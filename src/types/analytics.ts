@@ -1,3 +1,4 @@
+
 export interface AnalyticsData {
   totalUsers: number;
   activeUsers: number;
@@ -25,6 +26,32 @@ export interface AnalyticsData {
       other: number;
     };
   };
+  // Add missing properties that components are looking for
+  traffic?: {
+    currentVisitors: number;
+    pageViews: number;
+    bounceRate: number;
+    averageSessionDuration: number;
+  };
+  seo?: {
+    averageLoadTime: number;
+    mobileFriendlyPages: number;
+    totalBacklinks: number;
+    keywordRankings: Record<string, number[]>;
+    mobileScore?: number;
+    backlinkGrowth?: number;
+  };
+  performance?: {
+    averageLoadTime: number;
+    errorRate: number;
+    apiResponseTime: number;
+  };
+  conversions?: {
+    totalBookings: number;
+    totalOrders: number;
+    conversionRate: number;
+    revenue: number;
+  };
 }
 
 export interface SEOData {
@@ -40,6 +67,11 @@ export interface SEOData {
   mobileFriendly: boolean;
   indexedPages: number;
   crawlErrors: number;
+  mobileScore?: number;
+  mobileFriendlyPages?: number;
+  totalBacklinks?: number;
+  averageLoadTime?: number;
+  backlinkGrowth?: number;
 }
 
 export interface TrafficData {
@@ -65,6 +97,7 @@ export interface TrafficData {
     mobile: number;
     tablet: number;
   };
+  currentVisitors?: number;
 }
 
 export interface PerformanceData {
@@ -78,4 +111,5 @@ export interface PerformanceData {
   apiResponseTime: number;
   errorRate: number;
   uptime: number;
+  averageLoadTime?: number;
 }

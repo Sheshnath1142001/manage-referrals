@@ -1,3 +1,4 @@
+
 // Define the base FoodTruck interface
 export interface FoodTruck {
   id: string;
@@ -34,6 +35,7 @@ export interface FoodTruck {
   averageRating?: number;
   totalRatings?: number;
   reviewCount?: number;
+  rating?: number; // Add rating property that components are expecting
   tags?: Tag[] | string[];
   deliveryEnabled?: boolean;
   isOpen?: boolean;

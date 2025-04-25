@@ -1,5 +1,6 @@
+
 import { useState, useCallback } from 'react';
-import { LocationResult } from '@/types/location';
+import { LocationResult } from '../types/location';
 
 export const useGeocoding = () => {
   const [loading, setLoading] = useState(false);
@@ -9,12 +10,33 @@ export const useGeocoding = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/geocoding/search?query=${encodeURIComponent(query)}`);
-      if (!response.ok) {
-        throw new Error('Failed to search location');
-      }
-      const data = await response.json();
-      return data;
+      // Use dummy data instead of API call
+      const dummyLocations: LocationResult[] = [
+        {
+          latitude: 37.7749, 
+          longitude: -122.4194,
+          address: "123 Market St, San Francisco",
+          city: "San Francisco",
+          state: "CA",
+          postalCode: "94105",
+          country: "USA"
+        },
+        {
+          latitude: 37.3382, 
+          longitude: -121.8863,
+          address: "456 First St, San Jose",
+          city: "San Jose",
+          state: "CA",
+          postalCode: "95113",
+          country: "USA"
+        }
+      ];
+      
+      // Filter by query to simulate search
+      return dummyLocations.filter(loc => 
+        loc.address?.toLowerCase().includes(query.toLowerCase()) || 
+        loc.city?.toLowerCase().includes(query.toLowerCase())
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to search location');
       return [];
@@ -27,12 +49,18 @@ export const useGeocoding = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/geocoding/reverse?lat=${lat}&lng=${lng}`);
-      if (!response.ok) {
-        throw new Error('Failed to get address');
-      }
-      const data = await response.json();
-      return data;
+      // Use dummy data instead of API call
+      const dummyLocation: LocationResult = {
+        latitude: lat,
+        longitude: lng,
+        address: `Location at ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+        city: "San Francisco",
+        state: "CA",
+        postalCode: "94105",
+        country: "USA"
+      };
+      
+      return dummyLocation;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to get address');
       return null;

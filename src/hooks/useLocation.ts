@@ -1,8 +1,10 @@
+
 import { useState, useEffect, useCallback } from 'react';
-import { LocationResult } from '../lib/locationService';
+import { LocationResult } from '../types/location';
 
 export const useLocation = () => {
   const [location, setLocation] = useState<LocationResult | null>(null);
+  const [locationName, setLocationName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -11,13 +13,20 @@ export const useLocation = () => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/location/current');
-      if (!response.ok) {
-        throw new Error('Failed to fetch location');
-      }
-
-      const data = await response.json();
-      setLocation(data);
+      // Use dummy data instead of API call
+      const dummyLocation: LocationResult = {
+        latitude: 37.7749,
+        longitude: -122.4194,
+        address: "123 Market St",
+        city: "San Francisco",
+        state: "CA",
+        postalCode: "94105",
+        country: "USA"
+      };
+      
+      setLocation(dummyLocation);
+      setLocationName("San Francisco, CA");
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to get location');
     } finally {
@@ -35,6 +44,7 @@ export const useLocation = () => {
 
   return {
     location,
+    locationName,
     error,
     loading,
     refreshLocation

@@ -1,3 +1,4 @@
+
 import { AnalyticsData } from '../types/analytics';
 
 export class ExportService {
@@ -28,6 +29,11 @@ export class ExportService {
       rows.push(['Page Views', data.traffic.pageViews]);
       rows.push(['Bounce Rate', data.traffic.bounceRate]);
       rows.push(['Average Session Duration', data.traffic.averageSessionDuration]);
+    } else {
+      rows.push(['Current Visitors', 'N/A']);
+      rows.push(['Page Views', 'N/A']);
+      rows.push(['Bounce Rate', 'N/A']);
+      rows.push(['Average Session Duration', 'N/A']);
     }
 
     // Add SEO data
@@ -35,9 +41,15 @@ export class ExportService {
       rows.push(['Average Load Time', data.seo.averageLoadTime]);
       rows.push(['Mobile Friendly Pages', data.seo.mobileFriendlyPages]);
       rows.push(['Total Backlinks', data.seo.totalBacklinks]);
-      Object.entries(data.seo.keywordRankings).forEach(([keyword, rankings]) => {
-        rows.push([`Keyword: ${keyword}`, rankings.join(', ')]);
-      });
+      if (data.seo.keywordRankings) {
+        Object.entries(data.seo.keywordRankings).forEach(([keyword, rankings]) => {
+          rows.push([`Keyword: ${keyword}`, Array.isArray(rankings) ? rankings.join(', ') : rankings]);
+        });
+      }
+    } else {
+      rows.push(['Average Load Time', 'N/A']);
+      rows.push(['Mobile Friendly Pages', 'N/A']);
+      rows.push(['Total Backlinks', 'N/A']);
     }
 
     // Add conversion data
@@ -46,13 +58,22 @@ export class ExportService {
       rows.push(['Total Orders', data.conversions.totalOrders]);
       rows.push(['Conversion Rate', data.conversions.conversionRate]);
       rows.push(['Revenue', data.conversions.revenue]);
+    } else {
+      rows.push(['Total Bookings', 'N/A']);
+      rows.push(['Total Orders', data.totalOrders]);
+      rows.push(['Conversion Rate', data.conversionRate]);
+      rows.push(['Revenue', data.revenue]);
     }
 
     // Add performance data
     if (data.performance) {
-      rows.push(['Average Load Time', data.performance.averageLoadTime]);
-      rows.push(['Error Rate', data.performance.errorRate]);
-      rows.push(['API Response Time', data.performance.apiResponseTime]);
+      rows.push(['Average Load Time', data.performance.averageLoadTime || 'N/A']);
+      rows.push(['Error Rate', data.performance.errorRate || 'N/A']);
+      rows.push(['API Response Time', data.performance.apiResponseTime || 'N/A']);
+    } else {
+      rows.push(['Average Load Time', 'N/A']);
+      rows.push(['Error Rate', 'N/A']);
+      rows.push(['API Response Time', 'N/A']);
     }
 
     return [
@@ -76,6 +97,6 @@ export class ExportService {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    URL.revoObjectURL(url);
   }
 }

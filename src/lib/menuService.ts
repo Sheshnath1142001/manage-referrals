@@ -2,20 +2,86 @@ import { dummyData, simulateApiCall } from './dummyData';
 import { MenuItem } from './types';
 
 export const getMenuItems = async (foodTruckId: string): Promise<{ items: MenuItem[]; total: number }> => {
-  const items = dummyData.menuItems.filter(item => item.foodTruckId === foodTruckId);
+  // Create dummy menu items
+  const dummyMenuItems: MenuItem[] = [
+    {
+      id: "item1",
+      name: "Classic Taco",
+      description: "A delicious traditional taco with your choice of protein",
+      price: 8.99,
+      image: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+      category: "Tacos",
+      isAvailable: true,
+      foodTruckId,
+      isVegetarian: false,
+      isPopular: true
+    },
+    {
+      id: "item2",
+      name: "Veggie Burrito",
+      description: "Fresh vegetables wrapped in a warm tortilla",
+      price: 10.99,
+      image: "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+      category: "Burritos",
+      isAvailable: true,
+      foodTruckId,
+      isVegetarian: true,
+      isVegan: true
+    },
+    {
+      id: "item3",
+      name: "Chicken Quesadilla",
+      description: "Grilled chicken with melted cheese",
+      price: 9.99,
+      image: "https://images.unsplash.com/photo-1618040996337-11a1a57448e5?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+      category: "Quesadillas",
+      isAvailable: true,
+      foodTruckId,
+      isPopular: true
+    }
+  ];
+  
+  const items = dummyMenuItems.filter(item => item.foodTruckId === foodTruckId);
+  
   return simulateApiCall({
     items,
     total: items.length
   });
 };
 
-// Get a single menu item by ID
 export const getMenuItemById = async (id: string): Promise<MenuItem> => {
-  const menuItem = dummyData.menuItems.find(item => item.id === id);
-  return simulateApiCall(menuItem);
+  // Find in our dummy menu items
+  const dummyMenuItems = [
+    {
+      id: "item1",
+      name: "Classic Taco",
+      description: "A delicious traditional taco with your choice of protein",
+      price: 8.99,
+      image: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+      category: "Tacos",
+      isAvailable: true,
+      foodTruckId: "truck1",
+      isVegetarian: false,
+      isPopular: true
+    },
+    {
+      id: "item2",
+      name: "Veggie Burrito",
+      description: "Fresh vegetables wrapped in a warm tortilla",
+      price: 10.99,
+      image: "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+      category: "Burritos",
+      isAvailable: true,
+      foodTruckId: "truck1",
+      isVegetarian: true,
+      isVegan: true
+    }
+  ];
+  
+  const menuItem = dummyMenuItems.find(item => item.id === id);
+  return simulateApiCall(menuItem as MenuItem);
 };
 
-// Create a new menu item
 export const createMenuItem = async (foodTruckId: string, menuItemData: MenuItem): Promise<MenuItem> => {
   // Simulate creating a new menu item
   const newItem = { ...menuItemData, id: Math.random().toString(36).substring(7) };
@@ -23,7 +89,6 @@ export const createMenuItem = async (foodTruckId: string, menuItemData: MenuItem
   return simulateApiCall(newItem);
 };
 
-// Update a menu item
 export const updateMenuItem = async (id: string, menuItemData: Partial<MenuItem>): Promise<MenuItem> => {
   // Simulate updating a menu item
   const index = dummyData.menuItems.findIndex(item => item.id === id);
@@ -34,7 +99,6 @@ export const updateMenuItem = async (id: string, menuItemData: Partial<MenuItem>
   return simulateApiCall(null);
 };
 
-// Delete a menu item
 export const deleteMenuItem = async (id: string): Promise<void> => {
   // Simulate deleting a menu item
   const index = dummyData.menuItems.findIndex(item => item.id === id);
@@ -44,16 +108,14 @@ export const deleteMenuItem = async (id: string): Promise<void> => {
   return simulateApiCall(null);
 };
 
-// Upload menu item image
 export const uploadMenuItemImage = async (id: string, file: File): Promise<{ url: string }> => {
   // Simulate uploading an image
   const imageUrl = URL.createObjectURL(file);
   return simulateApiCall({ url: imageUrl });
 };
 
-// Get menu categories
 export const getMenuCategories = async (foodTruckId: string): Promise<string[]> => {
-  // Simulate getting menu categories
-  const categories = [...new Set(dummyData.menuItems.filter(item => item.foodTruckId === foodTruckId).map(item => item.category))];
+  // Dummy categories
+  const categories = ["Tacos", "Burritos", "Quesadillas", "Drinks", "Sides"];
   return simulateApiCall(categories);
 };

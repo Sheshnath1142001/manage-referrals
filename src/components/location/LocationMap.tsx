@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, ZoomControl } from 'react-leaflet';
 import { LocationSelector } from './LocationSelector';
@@ -133,7 +134,11 @@ export const LocationMap: React.FC<LocationMapProps> = ({
 
           <LocationSelector
             onLocationSelect={handleLocationSelect}
-            onSearch={handleSearch}
+            onSearch={searchQuery => {
+              setSearchQuery(searchQuery);
+              const formEvent = new Event('submit', { cancelable: true }) as unknown as React.FormEvent;
+              handleSearch(formEvent);
+            }}
           />
 
           <div className="mt-4 flex gap-2">
@@ -159,10 +164,10 @@ export const LocationMap: React.FC<LocationMapProps> = ({
 
         <div style={{ height }} className="rounded-lg overflow-hidden relative">
           <MapContainer
-            center={selectedLocation || [0, 0]}
+            center={selectedLocation ? [selectedLocation.lat, selectedLocation.lng] : [37.7749, -122.4194]}
             zoom={13}
             style={{ height: '100%', width: '100%' }}
-            ref={mapRef}
+            ref={mapRef as any}
           >
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
