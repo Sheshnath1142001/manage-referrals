@@ -1,0 +1,262 @@
+@import url('https://fonts.googleapis.com/css2?family=Viga&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'Viga';
+  src: url('https://fonts.googleapis.com/css2?family=Viga&display=swap');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+.font-viga {
+  font-family: 'Viga', sans-serif;
+}
+
+/* Food App Custom Colors */
+:root {
+  --food-green: #2A9D8F;
+  --food-blue: #264653;
+  --food-yellow: #E9C46A;
+  --food-orange: #F4A261;
+  --food-coral: #E76F51;
+}
+
+.text-food-green {
+  color: var(--food-green);
+}
+
+.text-food-blue {
+  color: var(--food-blue);
+}
+
+.text-food-yellow {
+  color: var(--food-yellow);
+}
+
+.text-food-orange {
+  color: var(--food-orange);
+}
+
+.text-food-coral {
+  color: var(--food-coral);
+}
+
+.bg-food-green {
+  background-color: var(--food-green);
+}
+
+.bg-food-blue {
+  background-color: var(--food-blue);
+}
+
+.bg-food-yellow {
+  background-color: var(--food-yellow);
+}
+
+.bg-food-orange {
+  background-color: var(--food-orange);
+}
+
+.bg-food-coral {
+  background-color: var(--food-coral);
+}
+
+.border-food-green {
+  border-color: var(--food-green);
+}
+
+.border-food-blue {
+  border-color: var(--food-blue);
+}
+
+.border-food-yellow {
+  border-color: var(--food-yellow);
+}
+
+.border-food-orange {
+  border-color: var(--food-orange);
+}
+
+.border-food-coral {
+  border-color: var(--food-coral);
+}
+
+.fill-food-yellow {
+  fill: var(--food-yellow);
+}
+
+/* Add the pulse animation for the user location marker */
+.pulse-animation {
+  position: relative;
+}
+
+.pulse-animation::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.5);
+  z-index: -1;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  70% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* Mobile responsiveness improvements */
+.container {
+  width: 100%;
+  padding-right: 1rem;
+  padding-left: 1rem;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+@media (min-width: 640px) {
+  .container {
+    max-width: 640px;
+    padding-right: 1.5rem;
+    padding-left: 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: 768px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1024px;
+    padding-right: 2rem;
+    padding-left: 2rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .container {
+    max-width: 1280px;
+  }
+}
+
+/* Google Maps related styles */
+.gm-style-iw {
+  padding: 0 !important;
+}
+
+.gm-style-iw-d {
+  overflow: hidden !important;
+}
+
+.gm-style-iw-c {
+  padding: 12px !important;
+  border-radius: 8px !important;
+}
+
+.gm-style .gm-style-iw-t::after {
+  background: linear-gradient(45deg, rgba(255, 255, 255, 1) 50%, rgba(255, 255, 255, 0) 51%, rgba(255, 255, 255, 0) 100%);
+}
+
+/* Override default Google Maps controls for better mobile experience */
+@media (max-width: 768px) {
+  .gm-bundled-control {
+    top: 0 !important;
+    right: 0 !important;
+  }
+
+  .gm-svpc {
+    display: none !important;
+  }
+}
