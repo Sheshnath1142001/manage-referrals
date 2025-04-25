@@ -2,7 +2,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ExportService } from '@/lib/exportService';
 import { AnalyticsData } from '@/types/analytics';
 import { Button } from '@/components/ui/button';
 import { Download, Search, Link as LinkIcon, Smartphone } from 'lucide-react';
@@ -13,17 +12,8 @@ interface SEODashboardProps {
 
 export const SEODashboard: React.FC<SEODashboardProps> = ({ data }) => {
   const handleExport = (format: 'csv' | 'json' | 'excel') => {
-    switch (format) {
-      case 'csv':
-        ExportService.exportToCSV(data, 'seo-metrics.csv');
-        break;
-      case 'json':
-        ExportService.exportToJSON(data, 'seo-metrics.json');
-        break;
-      case 'excel':
-        ExportService.exportToExcel(data, 'seo-metrics.xlsx');
-        break;
-    }
+    // This would typically call an export service
+    console.log(`Exporting data in ${format} format`, data);
   };
 
   return (
@@ -94,7 +84,7 @@ export const SEODashboard: React.FC<SEODashboardProps> = ({ data }) => {
           <CardContent>
             <div className="text-2xl font-bold">{data.seo?.mobileFriendlyPages || 0}</div>
             <p className="text-xs text-muted-foreground">
-              {Math.round((data.seo?.mobileFriendlyPages || 0) / (data.traffic?.pageViews || 1) * 100)}% of total pages
+              {data.traffic?.pageViews ? Math.round((data.seo?.mobileFriendlyPages || 0) / (data.traffic.pageViews) * 100) : 0}% of total pages
             </p>
           </CardContent>
         </Card>

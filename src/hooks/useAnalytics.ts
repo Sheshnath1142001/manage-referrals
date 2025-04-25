@@ -1,12 +1,9 @@
+
 import { useState, useEffect } from 'react';
-import { AnalyticsData, SEOData, TrafficData, PerformanceData } from '../types/analytics';
-import { analyticsService } from '../lib/analyticsService';
+import { AnalyticsData } from '../types/analytics';
 
 export const useAnalytics = () => {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
-  const [seoData, setSeoData] = useState<SEOData | null>(null);
-  const [trafficData, setTrafficData] = useState<TrafficData | null>(null);
-  const [performanceData, setPerformanceData] = useState<PerformanceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -15,20 +12,42 @@ export const useAnalytics = () => {
       setLoading(true);
       setError(null);
 
-      const [analytics, seo, traffic, performance] = await Promise.all([
-        analyticsService.getAnalyticsData(),
-        analyticsService.getSEOMetrics(),
-        analyticsService.getTrafficData(),
-        analyticsService.getPerformanceData(),
-      ]);
+      // Use dummy data instead of real API calls
+      const dummyData: AnalyticsData = {
+        seo: {
+          mobileScore: 85,
+          averageLoadTime: 320,
+          mobileFriendlyPages: 42,
+          totalBacklinks: 187,
+          backlinkGrowth: 12,
+          keywordRankings: {
+            "food trucks": [3, 5, 7],
+            "mobile food": [12],
+            "street food": [8]
+          }
+        },
+        traffic: {
+          currentVisitors: 128,
+          pageViews: 1450,
+          bounceRate: 35,
+          averageSessionDuration: 184
+        },
+        performance: {
+          averageLoadTime: 310,
+          errorRate: 2.5,
+          apiResponseTime: 180
+        },
+        conversions: {
+          totalBookings: 83,
+          totalOrders: 146,
+          conversionRate: 3.8,
+          revenue: 4320
+        }
+      };
 
-      setAnalyticsData(analytics);
-      setSeoData(seo);
-      setTrafficData(traffic);
-      setPerformanceData(performance);
+      setAnalyticsData(dummyData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch analytics data');
-      console.error('Error fetching analytics data:', err);
     } finally {
       setLoading(false);
     }
@@ -44,9 +63,6 @@ export const useAnalytics = () => {
 
   return {
     analyticsData,
-    seoData,
-    trafficData,
-    performanceData,
     loading,
     error,
     refreshData,

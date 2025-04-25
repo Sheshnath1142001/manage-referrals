@@ -1,104 +1,25 @@
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { Card, CardContent, Grid, Typography, Box, CircularProgress } from '@mui/material';
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  Cell
-} from 'recharts';
-import { io } from 'socket.io-client';
-import { format } from 'date-fns';
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
-
-interface AnalyticsData {
-  timestamp: string;
-  data: {
-    traffic?: {
-      currentVisitors: number;
-      pageViews: number;
-      bounceRate: number;
-      averageSessionDuration: number;
-    };
-    seo?: {
-      averageLoadTime: number;
-      mobileFriendlyPages: number;
-      totalBacklinks: number;
-      keywordRankings: Record<string, number[]>;
-      socialEngagement: {
-        facebook: number;
-        twitter: number;
-        linkedin: number;
-        pinterest: number;
-      };
-    };
-    conversions?: {
-      totalBookings: number;
-      totalOrders: number;
-      conversionRate: number;
-      revenue: number;
-    };
-    performance?: {
-      averageLoadTime: number;
-      errorRate: number;
-      apiResponseTime: number;
-    };
-  };
-}
+import React, { useState } from 'react';
+import { useAnalytics } from '@/hooks/useAnalytics';
 
 export const AnalyticsDashboard: React.FC = () => {
-  const { subscriptionId } = useParams<{ subscriptionId: string }>();
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const socket = io(process.env.REACT_APP_API_URL || 'http://localhost:5000');
-
-    socket.emit('subscribeAnalytics', {
-      subscriptionId,
-      metrics: ['traffic', 'seo', 'conversions', 'performance']
-    });
-
-    socket.on(`analytics:${subscriptionId}`, (data: AnalyticsData) => {
-      setAnalyticsData(data);
-      setLoading(false);
-    });
-
-    socket.on('error', (error: string) => {
-      setError(error);
-      setLoading(false);
-    });
-
-    return () => {
-      socket.emit('unsubscribeAnalytics', subscriptionId);
-      socket.disconnect();
-    };
-  }, [subscriptionId]);
+  const { analyticsData, loading, error } = useAnalytics();
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
-        <CircularProgress />
-      </Box>
+      <div className="p-8 flex justify-center">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
-        <Typography color="error">{error}</Typography>
-      </Box>
+      <div className="p-8">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          <p>{error}</p>
+        </div>
+      </div>
     );
   }
 
@@ -106,126 +27,48 @@ export const AnalyticsDashboard: React.FC = () => {
     return null;
   }
 
-  const { data } = analyticsData;
-
   return (
-    <Box p={3}>
-      <Typography variant="h4" gutterBottom>
-        Analytics Dashboard
-      </Typography>
-      <Typography variant="subtitle1" color="textSecondary" gutterBottom>
-        Last updated: {format(new Date(analyticsData.timestamp), 'PPpp')}
-      </Typography>
+    <div className="p-4">
+      <h2 className="text-2xl font-bold mb-6">Analytics Dashboard</h2>
+      <p className="text-sm text-gray-500 mb-6">
+        Last updated: {new Date().toLocaleString()}
+      </p>
 
-      <Grid container spacing={3}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {/* Traffic Overview */}
-        {data.traffic && (
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Traffic Overview
-                </Typography>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={[data.traffic]}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="currentVisitors" stroke="#8884d8" />
-                    <Line type="monotone" dataKey="pageViews" stroke="#82ca9d" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </Grid>
-        )}
+        <div className="border rounded-lg p-4 bg-white shadow-sm">
+          <h3 className="text-sm font-medium text-gray-500 mb-2">Current Visitors</h3>
+          <p className="text-3xl font-bold">{analyticsData.traffic?.currentVisitors || 0}</p>
+        </div>
 
-        {/* SEO Performance */}
-        {data.seo && (
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  SEO Performance
-                </Typography>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={[data.seo]}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="totalBacklinks" fill="#8884d8" />
-                    <Bar dataKey="mobileFriendlyPages" fill="#82ca9d" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </Grid>
-        )}
+        {/* Page Views */}
+        <div className="border rounded-lg p-4 bg-white shadow-sm">
+          <h3 className="text-sm font-medium text-gray-500 mb-2">Page Views</h3>
+          <p className="text-3xl font-bold">{analyticsData.traffic?.pageViews || 0}</p>
+        </div>
 
-        {/* Conversions */}
-        {data.conversions && (
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Conversions
-                </Typography>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={[
-                        { name: 'Bookings', value: data.conversions.totalBookings },
-                        { name: 'Orders', value: data.conversions.totalOrders },
-                      ]}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {[data.conversions.totalBookings, data.conversions.totalOrders].map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </Grid>
-        )}
+        {/* SEO Score */}
+        <div className="border rounded-lg p-4 bg-white shadow-sm">
+          <h3 className="text-sm font-medium text-gray-500 mb-2">Mobile Score</h3>
+          <p className="text-3xl font-bold">{analyticsData.seo?.mobileScore || 0}%</p>
+        </div>
 
-        {/* Performance Metrics */}
-        {data.performance && (
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Performance Metrics
-                </Typography>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={[data.performance]}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="averageLoadTime" stroke="#8884d8" />
-                    <Line type="monotone" dataKey="errorRate" stroke="#ff7300" />
-                    <Line type="monotone" dataKey="apiResponseTime" stroke="#387908" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </Grid>
-        )}
-      </Grid>
-    </Box>
+        {/* Conversion Rate */}
+        <div className="border rounded-lg p-4 bg-white shadow-sm">
+          <h3 className="text-sm font-medium text-gray-500 mb-2">Conversion Rate</h3>
+          <p className="text-3xl font-bold">{analyticsData.conversions?.conversionRate || 0}%</p>
+        </div>
+      </div>
+
+      <div className="mb-8">
+        <h3 className="text-xl font-semibold mb-4">Charts</h3>
+        <div className="border rounded-lg p-6 bg-white shadow-sm flex items-center justify-center h-64">
+          <p className="text-center text-gray-500">
+            Charts require recharts and @mui/material libraries.<br />
+            Please install these dependencies to view interactive charts.
+          </p>
+        </div>
+      </div>
+    </div>
   );
 };

@@ -8,3 +8,9 @@ export interface LocationResult {
   postalCode?: string;
   country?: string;
 }
+
+export interface GeocodingResponse {
+  results: LocationResult[];
+  status: 'OK' | 'ZERO_RESULTS' | 'ERROR';
+  error?: string;
+}

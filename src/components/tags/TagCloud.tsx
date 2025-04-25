@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useTags } from '@/hooks/useTags';
 import { Badge } from '@/components/ui/badge';
@@ -47,9 +48,9 @@ export const TagCloud: React.FC<TagCloudProps> = ({
           onClick={() => onTagClick?.(tag.name)}
         >
           {tag.name}
-          {tag.truckCount && (
+          {tag.foodTruckCount && (
             <span className="ml-1 text-xs opacity-70">
-              ({tag.truckCount})
+              ({tag.foodTruckCount})
             </span>
           )}
         </Badge>
