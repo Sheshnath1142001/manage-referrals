@@ -1,4 +1,3 @@
-
 // Define the base FoodTruck interface
 export interface FoodTruck {
   id: string;
@@ -94,8 +93,8 @@ export interface Review {
 export interface Tag {
   id: string;
   name: string;
-  description?: string;
   foodTruckCount?: number;
+  description?: string;
 }
 
 export interface MenuItemListResponse {
@@ -152,4 +151,11 @@ export interface User {
   role: 'customer' | 'owner' | 'admin';
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface FoodTruckFilter {
+  cuisineType?: string;
+  isActive?: boolean;
+  isPremium?: boolean;
+  tags?: string[];
 }

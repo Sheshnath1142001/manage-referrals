@@ -1,37 +1,11 @@
 import { dummyData, simulateApiCall } from './dummyData';
-import { 
-  FoodTruck, 
-  Location, 
-  MenuItem, 
-  Review, 
-  Tag, 
-  FoodTruckFilter,
-  MenuItemListResponse,
-  LocationListResponse
-} from './types.d';
+import { FoodTruck, FoodTruckFilter } from './types';
 
 interface FoodTruckResponse {
   items: FoodTruck[];
   total: number;
   page: number;
   limit: number;
-}
-
-interface FoodTruckQueryParams {
-  limit?: number;
-  page?: number;
-  sort?: string;
-  isActive?: boolean;
-  tags?: string[];
-  search?: string;
-}
-
-export interface FoodTruckListResponse {
-  items: FoodTruck[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
 }
 
 export const getAllFoodTrucks = async (params: any = {}): Promise<{ items: FoodTruck[]; total: number }> => {
@@ -75,13 +49,21 @@ export const getUserFoodTrucks = async (): Promise<FoodTruck[]> => {
   return simulateApiCall(dummyData.foodTrucks);
 };
 
-export const searchFoodTrucks = async (searchTerm: string, filters: Partial<FoodTruckFilter> = {}): Promise<FoodTruckListResponse> => {
+export const searchFoodTrucks = async (searchTerm: string, filters: Partial<FoodTruckFilter> = {}): Promise<FoodTruckResponse> => {
+  let filteredTrucks = [...dummyData.foodTrucks];
+  
+  if (searchTerm) {
+    filteredTrucks = filteredTrucks.filter(truck => 
+      truck.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      truck.description.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }
+  
   return simulateApiCall({
-    items: dummyData.foodTrucks,
-    total: dummyData.foodTrucks.length,
+    items: filteredTrucks,
+    total: filteredTrucks.length,
     page: 1,
-    limit: 10,
-    totalPages: 1,
+    limit: 10
   });
 };
 

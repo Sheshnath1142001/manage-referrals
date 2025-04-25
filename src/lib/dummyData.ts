@@ -1,142 +1,89 @@
+import { FoodTruck, MenuItem, Review, Tag } from './types';
 
 export const dummyData = {
-  users: [
-    {
-      id: 1,
-      firstName: "John",
-      lastName: "Doe",
-      email: "john@example.com",
-      role: "customer",
-      phoneNumber: "+61 123 456 789"
-    },
-    {
-      id: 2,
-      firstName: "Pete",
-      lastName: "Owner",
-      email: "pete@pizzatruck.com",
-      role: "owner",
-      phoneNumber: "+61 987 654 321"
-    }
-  ],
   foodTrucks: [
     {
       id: "1",
-      name: "Pizza Pete's",
-      description: "Best pizza truck in town!",
-      cuisineType: "Italian",
-      phone: "+61 123 456 789",
+      name: "Tasty Tacos",
+      description: "Best tacos in town",
+      cuisineType: "Mexican",
+      phone: "123-456-7890",
       location: {
-        latitude: -33.8688,
-        longitude: 151.2093,
-        address: "Sydney CBD",
-        city: "Sydney",
-        state: "NSW",
-        postalCode: "2000"
+        latitude: 37.7749,
+        longitude: -122.4194,
+        address: "123 Main St",
+        city: "San Francisco",
+        state: "CA",
+        postalCode: "94105"
       },
-      status: "active",
+      image: "/placeholder.svg",
+      status: "active" as const,
       isPremium: true,
-      imageUrl: "/images/pizza-truck.jpg",
-      averageRating: 4.5,
-      totalRatings: 128,
-      reviewCount: 89,
-      isOpen: true
-    }
-  ],
-  reviews: [
-    {
-      id: "1",
-      rating: 5,
-      comment: "Amazing pizza, best in Sydney!",
-      date: "2025-04-25",
-      userName: "John D.",
-      userId: "1",
-      foodTruckId: "1"
-    }
-  ],
-  menuItems: [
-    {
-      id: "1",
-      name: "Margherita Pizza",
-      description: "Fresh tomatoes, mozzarella, and basil",
-      price: 15.99,
-      category: "Pizza",
-      image: "/images/margherita.jpg",
-      isAvailable: true,
-      foodTruckId: "1"
+      createdAt: new Date(),
+      updatedAt: new Date()
     },
     {
       id: "2",
-      name: "Pepperoni Pizza",
-      description: "Classic pepperoni with cheese",
-      price: 17.99,
-      category: "Pizza",
-      image: "/images/pepperoni.jpg",
-      isAvailable: true,
-      foodTruckId: "1"
-    }
-  ],
-  locations: [
+      name: "Sushi Express",
+      description: "Fresh sushi on the go",
+      cuisineType: "Japanese",
+      phone: "415-555-1234",
+      location: {
+        latitude: 37.7833,
+        longitude: -122.4167,
+        address: "456 Market St",
+        city: "San Francisco",
+        state: "CA",
+        postalCode: "94103"
+      },
+      image: "/placeholder.svg",
+      status: "active" as const,
+      isPremium: false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
     {
-      id: "1",
-      latitude: -33.8688,
-      longitude: 151.2093,
-      address: "Sydney CBD",
-      city: "Sydney",
-      state: "NSW",
-      zipCode: "2000",
-      isActive: true,
-      foodTruckId: "1"
+      id: "3",
+      name: "Pizza Wheels",
+      description: "Authentic Italian pizza",
+      cuisineType: "Italian",
+      phone: "415-555-6789",
+      location: {
+        latitude: 37.7694,
+        longitude: -122.4862,
+        address: "789 Golden Gate Ave",
+        city: "San Francisco",
+        state: "CA",
+        postalCode: "94102"
+      },
+      image: "/placeholder.svg",
+      status: "active" as const,
+      isPremium: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
     }
   ],
-  operatingHours: {
-    monday: [{ open: "11:00", close: "20:00" }],
-    tuesday: [{ open: "11:00", close: "20:00" }],
-    wednesday: [{ open: "11:00", close: "20:00" }],
-    thursday: [{ open: "11:00", close: "20:00" }],
-    friday: [{ open: "11:00", close: "22:00" }],
-    saturday: [{ open: "12:00", close: "22:00" }],
-    sunday: [{ open: "12:00", close: "20:00" }]
-  }
+  menuItems: [],
+  reviews: [],
+  tags: [
+    { id: "1", name: "Mexican", foodTruckCount: 5 },
+    { id: "2", name: "Asian", foodTruckCount: 3 },
+    { id: "3", name: "Italian", foodTruckCount: 4 },
+    { id: "4", name: "Vegetarian", foodTruckCount: 7 },
+    { id: "5", name: "Vegan", foodTruckCount: 2 },
+    { id: "6", name: "Gluten-Free", foodTruckCount: 3 },
+    { id: "7", name: "Dessert", foodTruckCount: 4 },
+    { id: "8", name: "Breakfast", foodTruckCount: 6 },
+    { id: "9", name: "Lunch", foodTruckCount: 8 },
+    { id: "10", name: "Dinner", foodTruckCount: 7 }
+  ]
 };
 
-// Helper functions to simulate API calls
-export const simulateApiCall = <T>(data: T, delay: number = 500): Promise<T> => {
+// Helper function to simulate API delay
+export const simulateApiCall = <T>(data: T): Promise<T> => {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve(data);
-    }, delay);
+    }, 500);
   });
-};
-
-export const getFoodTrucks = () => {
-  return simulateApiCall(dummyData.foodTrucks);
-};
-
-export const getFoodTruckById = (id: string) => {
-  const truck = dummyData.foodTrucks.find(t => t.id === id);
-  return simulateApiCall(truck);
-};
-
-export const getMenuItems = (truckId: string) => {
-  const items = dummyData.menuItems.filter(item => item.foodTruckId === truckId);
-  return simulateApiCall(items);
-};
-
-export const getReviews = (truckId: string) => {
-  const reviews = dummyData.reviews.filter(review => review.foodTruckId === truckId);
-  return simulateApiCall(reviews);
-};
-
-export const getLocations = (truckId: string) => {
-  const locations = dummyData.locations.filter(loc => loc.foodTruckId === truckId);
-  return simulateApiCall(locations);
-};
-
-export const getOperatingHours = () => {
-  return simulateApiCall(dummyData.operatingHours);
-};
-
-export const getCurrentUser = () => {
-  // Simulate getting the first user as the current user
-  return simulateApiCall(dummyData.users[0]);
 };

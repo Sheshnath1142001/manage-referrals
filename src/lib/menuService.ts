@@ -2,50 +2,22 @@ import { dummyData, simulateApiCall } from './dummyData';
 import { MenuItem } from './types';
 
 export const getMenuItems = async (foodTruckId: string): Promise<{ items: MenuItem[]; total: number }> => {
-  // Create dummy menu items
   const dummyMenuItems: MenuItem[] = [
     {
       id: "item1",
       name: "Classic Taco",
-      description: "A delicious traditional taco with your choice of protein",
+      description: "A delicious traditional taco",
       price: 8.99,
-      image: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+      image: "/placeholder.svg",
       category: "Tacos",
       isAvailable: true,
-      foodTruckId,
-      isVegetarian: false,
-      isPopular: true
-    },
-    {
-      id: "item2",
-      name: "Veggie Burrito",
-      description: "Fresh vegetables wrapped in a warm tortilla",
-      price: 10.99,
-      image: "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
-      category: "Burritos",
-      isAvailable: true,
-      foodTruckId,
-      isVegetarian: true,
-      isVegan: true
-    },
-    {
-      id: "item3",
-      name: "Chicken Quesadilla",
-      description: "Grilled chicken with melted cheese",
-      price: 9.99,
-      image: "https://images.unsplash.com/photo-1618040996337-11a1a57448e5?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
-      category: "Quesadillas",
-      isAvailable: true,
-      foodTruckId,
-      isPopular: true
+      foodTruckId
     }
   ];
   
-  const items = dummyMenuItems.filter(item => item.foodTruckId === foodTruckId);
-  
   return simulateApiCall({
-    items,
-    total: items.length
+    items: dummyMenuItems,
+    total: dummyMenuItems.length
   });
 };
 
