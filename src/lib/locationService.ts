@@ -1,4 +1,4 @@
-import api from './api';
+import { dummyData, simulateApiCall } from './dummyData';
 import { FoodTruck } from './foodTruckService';
 
 export interface Location {
@@ -24,31 +24,42 @@ export interface LocationListResponse {
 
 // Get locations for a food truck
 export const getLocations = async (foodTruckId: string, params: { page?: number; limit?: number; isActive?: boolean } = {}): Promise<LocationListResponse> => {
-  const response = await api.get<LocationListResponse>(`/locations/food-truck/${foodTruckId}`, { params });
-  return response.data;
+  const locations = dummyData.locations.filter(loc => loc.foodTruckId === foodTruckId);
+  return simulateApiCall({
+    items: locations,
+    total: locations.length,
+    page: params.page || 1,
+    limit: params.limit || 10,
+    totalPages: Math.ceil(locations.length / (params.limit || 10))
+  });
 };
 
 // Get a single location by ID
 export const getLocationById = async (id: string): Promise<Location> => {
-  const response = await api.get<Location>(`/locations/${id}`);
-  return response.data;
+  const location = dummyData.locations.find(loc => loc.id === id);
+  return simulateApiCall(location || dummyData.locations[0]);
 };
 
 // Create a new location
 export const createLocation = async (foodTruckId: string, locationData: Location): Promise<Location> => {
-  const response = await api.post<Location>(`/locations/food-truck/${foodTruckId}`, locationData);
-  return response.data;
+  const newLocation = {
+    ...locationData,
+    id: `loc_${Date.now()}`,
+    foodTruckId
+  };
+  return simulateApiCall(newLocation);
 };
 
 // Update a location
 export const updateLocation = async (id: string, locationData: Partial<Location>): Promise<Location> => {
-  const response = await api.put<Location>(`/locations/${id}`, locationData);
-  return response.data;
+  const location = dummyData.locations.find(loc => loc.id === id) || dummyData.locations[0];
+  const updatedLocation = { ...location, ...locationData };
+  return simulateApiCall(updatedLocation);
 };
 
 // Delete a location
 export const deleteLocation = async (id: string): Promise<void> => {
-  await api.delete(`/locations/${id}`);
+  return simulateApiCall(undefined);
 };
 
 // Location accuracy types
@@ -188,156 +199,54 @@ const getAddressFromCoordinates = async (
   latitude: number,
   longitude: number
 ): Promise<Partial<LocationResult>> => {
-  try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
-    );
-    const data = await response.json();
-
-    return {
-      address: data.display_name,
-      city: data.address?.city || data.address?.town,
-      state: data.address?.state,
-      country: data.address?.country,
-      postalCode: data.address?.postcode
-    };
-  } catch (error) {
-    console.warn('Reverse geocoding failed:', error);
-    return {};
-  }
+  // Simulate API call with dummy data
+  return simulateApiCall({
+    address: "123 Example Street",
+    city: "Melbourne",
+    state: "Victoria",
+    country: "Australia",
+    postalCode: "3000"
+  });
 };
 
 // Step 1: HTML5 Geolocation API
 const getBrowserLocation = async (): Promise<LocationResult> => {
-  return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error('Geolocation not supported'));
-      return;
-    }
-
-    const options = {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 0
-    };
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const address = await getAddressFromCoordinates(
-          position.coords.latitude,
-          position.coords.longitude
-        );
-
-        const result: LocationResult = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: 'precise',
-          source: 'browser',
-          message: 'Precise location obtained from your device',
-          timestamp: Date.now(),
-          ...address
-        };
-
-        locationCache.set('browser', result);
-        locationHistory.add(result);
-        resolve(result);
-      },
-      (error) => {
-        console.warn('Browser geolocation failed:', error.message);
-        reject(error);
-      },
-      options
-    );
+  // Return dummy location instead of using browser geolocation
+  return simulateApiCall({
+    latitude: -37.8136,
+    longitude: 144.9631,
+    accuracy: 'precise',
+    source: 'browser',
+    message: 'Simulated precise location from browser',
+    timestamp: Date.now(),
+    address: "123 Example Street",
+    city: "Melbourne",
+    state: "Victoria",
+    country: "Australia",
+    postalCode: "3000"
   });
 };
 
 // Step 2: IP-based Geolocation
 const getIPLocation = async (): Promise<LocationResult> => {
-  try {
-    const services = [
-      'https://ipapi.co/json/',
-      'https://ipwho.is/',
-      'https://ipinfo.io/json'
-    ];
-
-    for (const service of services) {
-      try {
-        const response = await fetch(service);
-        const data = await response.json();
-
-        if (data.latitude && data.longitude) {
-          const address = await getAddressFromCoordinates(
-            data.latitude,
-            data.longitude
-          );
-
-          const result: LocationResult = {
-            latitude: data.latitude,
-            longitude: data.longitude,
-            accuracy: 'city',
-            source: 'ip',
-            message: 'Location obtained from your IP address',
-            timestamp: Date.now(),
-            ...address
-          };
-
-          locationCache.set('ip', result);
-          locationHistory.add(result);
-          return result;
-        }
-      } catch (error) {
-        console.warn(`IP geolocation service ${service} failed:`, error);
-        continue;
-      }
-    }
-
-    throw new Error('All IP geolocation services failed');
-  } catch (error) {
-    throw new Error('IP-based location failed');
-  }
+  // Return dummy location instead of IP-based geolocation
+  return simulateApiCall({
+    latitude: -37.8136,
+    longitude: 144.9631,
+    accuracy: 'city',
+    source: 'ip',
+    message: 'Simulated location from IP address',
+    timestamp: Date.now(),
+    city: "Melbourne",
+    state: "Victoria",
+    country: "Australia"
+  });
 };
 
 // Step 3: Country-level fallback
 const getCountryLocation = async (): Promise<LocationResult> => {
-  try {
-    const response = await fetch('https://ipapi.co/country/');
-    const countryCode = await response.text();
-
-    const countryCoordinates: Record<string, LocationResult> = {
-      'AU': {
-        ...DEFAULT_LOCATIONS.country,
-        message: 'Using Australian default location',
-        timestamp: Date.now(),
-        country: 'Australia'
-      },
-      'US': {
-        latitude: 37.0902,
-        longitude: -95.7129,
-        accuracy: 'country',
-        source: 'default',
-        message: 'Using United States default location',
-        timestamp: Date.now(),
-        country: 'United States'
-      },
-      'GB': {
-        latitude: 55.3781,
-        longitude: -3.4360,
-        accuracy: 'country',
-        source: 'default',
-        message: 'Using United Kingdom default location',
-        timestamp: Date.now(),
-        country: 'United Kingdom'
-      }
-    };
-
-    const result = countryCoordinates[countryCode] || DEFAULT_LOCATIONS.country;
-    locationCache.set(`country_${countryCode}`, result);
-    locationHistory.add(result);
-    return result;
-  } catch (error) {
-    console.warn('Country detection failed:', error);
-    return DEFAULT_LOCATIONS.country;
-  }
+  // Return dummy country location
+  return simulateApiCall(DEFAULT_LOCATIONS.country);
 };
 
 // Manual location input
@@ -345,8 +254,6 @@ export const setManualLocation = async (
   latitude: number,
   longitude: number
 ): Promise<LocationResult> => {
-  const address = await getAddressFromCoordinates(latitude, longitude);
-
   const result: LocationResult = {
     latitude,
     longitude,
@@ -354,12 +261,16 @@ export const setManualLocation = async (
     source: 'manual',
     message: 'Location set manually',
     timestamp: Date.now(),
-    ...address
+    address: "123 Example Street",
+    city: "Melbourne",
+    state: "Victoria",
+    country: "Australia",
+    postalCode: "3000"
   };
 
   locationCache.set('manual', result);
   locationHistory.add(result);
-  return result;
+  return simulateApiCall(result);
 };
 
 // Get location history
@@ -373,37 +284,20 @@ export const clearLocationHistory = (): void => {
 };
 
 export const getCurrentLocation = async (): Promise<LocationResult> => {
-  // Check cache first
-  const cached = locationCache.get('browser') ||
-                 locationCache.get('ip') ||
-                 locationCache.get('manual');
-  if (cached) {
-    return cached;
-  }
-
-  try {
-    // Step 1: Try HTML5 Geolocation
-    return await getBrowserLocation();
-  } catch (browserError) {
-    console.warn('Browser geolocation failed, trying IP-based location');
-
-    try {
-      // Step 2: Try IP-based Geolocation
-      return await getIPLocation();
-    } catch (ipError) {
-      console.warn('IP-based location failed, trying country detection');
-
-      try {
-        // Step 3: Try Country-level detection
-        return await getCountryLocation();
-      } catch (countryError) {
-        console.warn('All location methods failed, using default location');
-
-        // Step 4: Final fallback to default location
-        return DEFAULT_LOCATIONS.default;
-      }
-    }
-  }
+  // Return dummy location instead of actual geolocation
+  return simulateApiCall({
+    latitude: -37.8136,
+    longitude: 144.9631,
+    accuracy: 'precise',
+    source: 'browser',
+    message: 'Simulated current location',
+    timestamp: Date.now(),
+    address: "123 Example Street",
+    city: "Melbourne",
+    state: "Victoria",
+    country: "Australia",
+    postalCode: "3000"
+  });
 };
 
 export interface LocationQueryParams {
@@ -731,48 +625,31 @@ export const searchLocations = async (
     limit?: number;
   } = {}
 ): Promise<LocationSearchResult[]> => {
-  const cacheKey = `${query}-${options.country}-${options.city}`;
-  const cached = searchCache.get(cacheKey);
-  if (cached) {
-    return cached;
-  }
-
-  try {
-    const params = new URLSearchParams({
-      format: 'json',
-      q: query,
-      limit: (options.limit || 5).toString()
-    });
-
-    if (options.country) params.append('countrycodes', options.country);
-    if (options.city) params.append('city', options.city);
-
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?${params.toString()}`
-    );
-    const data = await response.json() as OpenStreetMapResult[];
-
-    const results = data.map(result => ({
-      display_name: result.display_name,
-      lat: parseFloat(result.lat),
-      lon: parseFloat(result.lon),
+  // Return dummy search results
+  return simulateApiCall([
+    {
+      display_name: "Melbourne CBD, Victoria, Australia",
+      lat: -37.8136,
+      lon: 144.9631,
       address: {
-        city: result.address?.city || result.address?.town,
-        state: result.address?.state,
-        country: result.address?.country,
-        postcode: result.address?.postcode
+        city: "Melbourne",
+        state: "Victoria",
+        country: "Australia",
+        postcode: "3000"
       }
-    }));
-
-    // Cache results for 1 hour
-    searchCache.set(cacheKey, results);
-    setTimeout(() => searchCache.delete(cacheKey), 3600000);
-
-    return results;
-  } catch (error) {
-    console.error('Location search failed:', error);
-    return [];
-  }
+    },
+    {
+      display_name: "Sydney CBD, New South Wales, Australia",
+      lat: -33.8688,
+      lon: 151.2093,
+      address: {
+        city: "Sydney",
+        state: "New South Wales",
+        country: "Australia",
+        postcode: "2000"
+      }
+    }
+  ]);
 };
 
 // Sort food trucks by multiple criteria
@@ -877,99 +754,11 @@ export const getNearbyFoodTrucks = async (
     isWheelchairAccessible?: boolean;
   }
 ): Promise<LocationResponse> => {
-  try {
-    // Create cache key from parameters
-    const cacheKey = JSON.stringify(params);
-    const cached = foodTruckCache.get(cacheKey);
-
-    // Return cached data if it's still valid
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-      return cached.data;
-    }
-
-    // Validate required parameters
-    if (params.lat === undefined || params.lng === undefined) {
-      throw new Error('Latitude and longitude are required');
-    }
-
-    // Validate latitude range (-90 to 90)
-    if (params.lat < -90 || params.lat > 90) {
-      throw new Error('Latitude must be between -90 and 90 degrees');
-    }
-
-    // Validate longitude range (-180 to 180)
-    if (params.lng < -180 || params.lng > 180) {
-      throw new Error('Longitude must be between -180 and 180 degrees');
-    }
-
-    // Set default values if not provided
-    const queryParams = {
-      lat: params.lat,
-      lng: params.lng,
-      distance: params.distance || 10,
-      limit: params.limit || 20,
-      minRating: params.minRating,
-      maxPrice: params.maxPrice,
-      minPrice: params.minPrice,
-      tags: params.tags?.join(','),
-      cuisine: params.cuisine?.join(','),
-      dietaryRestrictions: params.dietaryRestrictions?.join(','),
-      openNow: params.openNow,
-      hasDelivery: params.hasDelivery,
-      hasTakeout: params.hasTakeout,
-      hasReservations: params.hasReservations,
-      hasParking: params.hasParking,
-      hasWifi: params.hasWifi,
-      hasOutdoorSeating: params.hasOutdoorSeating,
-      acceptsCreditCards: params.acceptsCreditCards,
-      acceptsCashOnly: params.acceptsCashOnly,
-      isWheelchairAccessible: params.isWheelchairAccessible
-    };
-
-    const response = await api.get<LocationResponse>('/locations/nearby', {
-      params: queryParams
-    });
-
-    let trucks = response.data.items;
-
-    // Apply distance filtering if specified
-    if (params.maxDistance) {
-      trucks = filterFoodTrucksByDistance(
-        trucks,
-        params.lat,
-        params.lng,
-        params.maxDistance
-      );
-    }
-
-    // Sort trucks based on criteria
-    if (params.sortBy) {
-      trucks = sortFoodTrucks(trucks, params.lat, params.lng, {
-        sortBy: params.sortBy,
-        ascending: params.ascending
-      });
-    }
-
-    const result = {
-      items: trucks,
-      total: trucks.length
-    };
-
-    // Cache the result
-    foodTruckCache.set(cacheKey, {
-      data: result,
-      timestamp: Date.now()
-    });
-
-    return result;
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      console.error('Error fetching nearby food trucks:', error.message);
-    } else {
-      console.error('Error fetching nearby food trucks:', error);
-    }
-    throw error;
-  }
+  // Return dummy food trucks instead of making API call
+  return simulateApiCall({
+    items: dummyData.foodTrucks,
+    total: dummyData.foodTrucks.length
+  });
 };
 
 // Clear food truck cache

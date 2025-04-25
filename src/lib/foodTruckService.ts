@@ -1,4 +1,4 @@
-import api from './api';
+import { dummyData, simulateApiCall } from './dummyData';
 import { 
   FoodTruck, 
   Location, 
@@ -34,101 +34,69 @@ export interface FoodTruckListResponse {
   totalPages: number;
 }
 
-export const getAllFoodTrucks = async (params: FoodTruckQueryParams = {}): Promise<FoodTruckResponse> => {
-  const response = await api.get<FoodTruckResponse>('/food-trucks', { params });
-  return response.data;
+export const getAllFoodTrucks = async (params: any = {}): Promise<{ items: FoodTruck[]; total: number }> => {
+  return simulateApiCall({
+    items: dummyData.foodTrucks,
+    total: dummyData.foodTrucks.length
+  });
 };
 
-export const getFoodTruckById = async (id: string): Promise<FoodTruck> => {
-  const response = await api.get<FoodTruck>(`/food-trucks/${id}`);
-  return response.data;
+export const getFoodTruckById = async (id: string): Promise<FoodTruck | null> => {
+  const truck = dummyData.foodTrucks.find(t => t.id === id);
+  return simulateApiCall(truck || null);
 };
 
 export const getFoodTruckReviews = async (id: string): Promise<Review[]> => {
-  const response = await api.get<Review[]>(`/food-trucks/${id}/reviews`);
-  return response.data;
+  return simulateApiCall([]);
 };
 
 export const getFoodTruckMenu = async (id: string): Promise<MenuItem[]> => {
-  const response = await api.get<MenuItem[]>(`/food-trucks/${id}/menu`);
-  return response.data;
+  return simulateApiCall([]);
 };
 
-export const getFoodTruckBySlug = async (slug: string): Promise<FoodTruck> => {
-  const response = await api.get<FoodTruck>(`/food-trucks/slug/${slug}`);
-  return response.data;
+export const getFoodTruckBySlug = async (slug: string): Promise<FoodTruck | null> => {
+  const truck = dummyData.foodTrucks.find(t => t.name === slug);
+  return simulateApiCall(truck || null);
 };
 
 export const createFoodTruck = async (foodTruckData: Partial<FoodTruck>): Promise<FoodTruck> => {
-  const response = await api.post<FoodTruck>('/food-trucks', foodTruckData);
-  return response.data;
+  return simulateApiCall(foodTruckData as FoodTruck);
 };
 
 export const updateFoodTruck = async (id: string, foodTruckData: Partial<FoodTruck>): Promise<FoodTruck> => {
-  const response = await api.put<FoodTruck>(`/food-trucks/${id}`, foodTruckData);
-  return response.data;
+  return simulateApiCall(foodTruckData as FoodTruck);
 };
 
 export const deleteFoodTruck = async (id: string): Promise<void> => {
-  await api.delete(`/food-trucks/${id}`);
+  return simulateApiCall(undefined);
 };
 
 export const getUserFoodTrucks = async (): Promise<FoodTruck[]> => {
-  const response = await api.get<FoodTruck[]>('/food-trucks/user/me');
-  return response.data;
+  return simulateApiCall(dummyData.foodTrucks);
 };
 
 export const searchFoodTrucks = async (searchTerm: string, filters: Partial<FoodTruckFilter> = {}): Promise<FoodTruckListResponse> => {
-  const response = await api.get<FoodTruckListResponse>('/food-trucks/search', {
-    params: {
-      searchTerm,
-      ...filters
-    }
+  return simulateApiCall({
+    items: dummyData.foodTrucks,
+    total: dummyData.foodTrucks.length,
+    page: 1,
+    limit: 10,
+    totalPages: 1,
   });
-  return response.data;
 };
 
 export const uploadFoodTruckLogo = async (id: string, file: File): Promise<{ url: string }> => {
-  const formData = new FormData();
-  formData.append('image', file);
-
-  const response = await api.post<{ url: string }>(`/food-trucks/${id}/logo`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
-
-  return response.data;
+  return simulateApiCall({ url: 'dummy-url' });
 };
 
 export const uploadFoodTruckBanner = async (id: string, file: File): Promise<{ url: string }> => {
-  const formData = new FormData();
-  formData.append('image', file);
-
-  const response = await api.post<{ url: string }>(`/food-trucks/${id}/banner`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
-
-  return response.data;
+  return simulateApiCall({ url: 'dummy-url' });
 };
 
 export const addGalleryImage = async (id: string, file: File): Promise<{ url: string }> => {
-  const formData = new FormData();
-  formData.append('image', file);
-
-  const response = await api.post<{ url: string }>(`/food-trucks/${id}/gallery`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
-
-  return response.data;
+  return simulateApiCall({ url: 'dummy-url' });
 };
 
 export const removeGalleryImage = async (id: string, imageUrl: string): Promise<void> => {
-  await api.delete(`/food-trucks/${id}/gallery`, {
-    data: { imageUrl }
-  });
+  return simulateApiCall(undefined);
 };
