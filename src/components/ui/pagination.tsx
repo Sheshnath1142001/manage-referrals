@@ -3,16 +3,15 @@ import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { ButtonProps, buttonVariants } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-const Pagination = ({ className, ...props }: React.ComponentProps<"nav">) => (
-  <nav
-    role="navigation"
-    aria-label="pagination"
-    className={cn("mx-auto flex w-full justify-center", className)}
-    {...props}
-  />
-)
-Pagination.displayName = "Pagination"
+interface PaginationProps {
+  totalItems: number;
+  currentPage: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
+}
 
 const PaginationContent = React.forwardRef<
   HTMLUListElement,
@@ -106,8 +105,68 @@ const PaginationEllipsis = ({
 )
 PaginationEllipsis.displayName = "PaginationEllipsis"
 
+export function Pagination({
+  totalItems,
+  currentPage,
+  pageSize,
+  onPageChange,
+  onPageSizeChange,
+}: PaginationProps) {
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const pageSizeOptions = [10, 20, 50, 100];
+
+  const handlePrevious = () => {
+    if (currentPage > 1) {
+      onPageChange(currentPage - 1);
+    }
+  };
+
+  const handleNext = () => {
+    if (currentPage < totalPages) {
+      onPageChange(currentPage + 1);
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center space-x-2">
+        <p className="text-sm text-gray-700">
+          Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalItems)} of {totalItems} results
+        </p>
+        <Select
+          value={pageSize.toString()}
+          onValueChange={(value) => onPageSizeChange(Number(value))}
+        >
+          <SelectTrigger className="h-8 w-[70px]">
+            <SelectValue placeholder={pageSize} />
+          </SelectTrigger>
+          <SelectContent side="top">
+            {pageSizeOptions.map((size) => (
+              <SelectItem key={size} value={size.toString()}>
+                {size}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex items-center space-x-2">
+        <PaginationPrevious
+          onClick={handlePrevious}
+          className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+        />
+        <div className="flex items-center justify-center text-sm font-medium">
+          Page {currentPage} of {totalPages}
+        </div>
+        <PaginationNext
+          onClick={handleNext}
+          className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+        />
+      </div>
+    </div>
+  );
+}
+
 export {
-  Pagination,
   PaginationContent,
   PaginationEllipsis,
   PaginationItem,

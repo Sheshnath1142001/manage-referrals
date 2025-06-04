@@ -1,51 +1,88 @@
-
 import { useState, useEffect, useCallback } from 'react';
-import { Tag } from '@/lib/types';
+import { tagsService } from '@/services/api/items/tags';
+import { useToast } from '@/components/ui/use-toast';
+
+export interface Tag {
+  id: string;
+  tag: string;
+  restaurant_id: number;
+  created_at: string;
+  updated_at: string;
+}
 
 export const useTags = () => {
   const [tags, setTags] = useState<Tag[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
-  const fetchTags = useCallback(async (limit = 10) => {
+  const fetchTags = useCallback(async () => {
     try {
-      setLoading(true);
-      setError(null);
+      setIsLoading(true);
+      const response = await tagsService.getTags({
+        page: currentPage,
+        per_page: pageSize
+      });
       
-      // Use dummy data instead of API call
-      const dummyTags: Tag[] = [
-        { id: "1", name: "Vegetarian", description: "Vegetarian options", foodTruckCount: 15 },
-        { id: "2", name: "Vegan", description: "Vegan options", foodTruckCount: 8 },
-        { id: "3", name: "Gluten Free", description: "Gluten-free options", foodTruckCount: 12 },
-        { id: "4", name: "Organic", description: "Organic ingredients", foodTruckCount: 10 },
-        { id: "5", name: "Fast Service", description: "Quick service", foodTruckCount: 20 },
-        { id: "6", name: "Family Friendly", description: "Kid-friendly options", foodTruckCount: 18 },
-        { id: "7", name: "Spicy", description: "Spicy food options", foodTruckCount: 14 },
-        { id: "8", name: "Dessert", description: "Sweet treats", foodTruckCount: 9 },
-        { id: "9", name: "Drinks", description: "Beverage options", foodTruckCount: 11 },
-        { id: "10", name: "Seafood", description: "Fresh seafood", foodTruckCount: 7 }
-      ];
-      
-      setTags(dummyTags.slice(0, limit));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to get tags');
+      setTags(response.tags || []);
+      setTotal(response.total || 0);
+    } catch (error) {
+      console.error('Error fetching tags:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load tags. Please try again.",
+        variant: "destructive"
+      });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  }, []);
+  }, [currentPage, pageSize, toast]);
 
   useEffect(() => {
     fetchTags();
   }, [fetchTags]);
 
-  const refreshTags = useCallback((limit?: number) => {
-    fetchTags(limit);
-  }, [fetchTags]);
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setCurrentPage(1);
+  };
+
+  const deleteTag = async (id: string) => {
+    try {
+      await tagsService.deleteTag(id);
+      toast({
+        title: "Success",
+        description: "Tag deleted successfully",
+      });
+      fetchTags();
+    } catch (error) {
+      console.error('Error deleting tag:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete tag. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   return {
     tags,
-    error,
-    loading,
-    refreshTags
+    search,
+    setSearch,
+    currentPage,
+    pageSize,
+    total,
+    isLoading,
+    handlePageChange,
+    handlePageSizeChange,
+    fetchTags,
+    deleteTag
   };
-};
+}; 
