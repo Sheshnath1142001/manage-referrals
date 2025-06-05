@@ -1,4 +1,3 @@
-
 import { BulkEditDialog } from "@/components/items/BulkEditDialog";
 import { ItemDialog } from "@/components/items/ItemDialog";
 import { ItemsFilter } from "@/components/items/ItemsFilter";
@@ -46,8 +45,7 @@ const Items = () => {
     formData,
     updateFormField,
     resetForm,
-    handleItemAction,
-    restaurants
+    handleItemAction
   } = useItemForm();
 
   const [isBulkEditDialogOpen, setIsBulkEditDialogOpen] = useState(false);
@@ -104,7 +102,6 @@ const Items = () => {
         locations={locations}
         discountTypes={discountTypes}
         allCategories={allCategories}
-        restaurants={restaurants}
       />
 
       <BulkEditDialog

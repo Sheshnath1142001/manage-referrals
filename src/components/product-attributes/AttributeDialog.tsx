@@ -95,7 +95,7 @@ export function AttributeDialog({
                     <SelectItem value="text">Text</SelectItem>
                     <SelectItem value="number">Number</SelectItem>
                     <SelectItem value="single_select">Single select</SelectItem>
-                    <SelectItem value="multiple_select">Multiple select</SelectItem>
+                    <SelectItem value="multi_select">Multiple select</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

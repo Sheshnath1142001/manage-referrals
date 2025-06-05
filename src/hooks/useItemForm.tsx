@@ -1,5 +1,3 @@
-
-
 import { useState, useEffect } from "react";
 import { Item, ItemFormData } from "@/components/items/types";
 import axios from "axios";
@@ -12,8 +10,8 @@ const defaultFormData: ItemFormData = {
   barcode: "",
   price: "",
   online_price: "",
-  locations: [],
-  discount_type_id: 0,
+  locations: ["All Locations"],
+  discount_type_id: 0, // Updated from discount_type to discount_type_id
   discount: "",
   online_discount: "",
   description: "",
@@ -28,46 +26,6 @@ export function useItemForm() {
   const [isViewMode, setIsViewMode] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [formData, setFormData] = useState<ItemFormData>(defaultFormData);
-  const [restaurants, setRestaurants] = useState<any[]>([]);
-
-  // Fetch restaurants when dialog opens for create mode
-  useEffect(() => {
-    const fetchRestaurants = async () => {
-      if (isItemDialogOpen && !editingItem) {
-        try {
-          const adminData = localStorage.getItem('Admin');
-          let token = '';
-          if (adminData) {
-            const parsedData = JSON.parse(adminData);
-            token = parsedData.token;
-          }
-
-          const response = await axios.get('https://pratham-respos-testbe-v34.achyutlabs.cloud/api/restaurants', {
-            headers: {
-              'Accept': 'application/json',
-              'Authorization': `Bearer ${token}`,
-              'X-Timezone': 'Asia/Calcutta'
-            }
-          });
-
-          const restaurantList = response.data.restaurants || [];
-          setRestaurants(restaurantList);
-
-          // Set first restaurant ID as default if creating new item
-          if (restaurantList.length > 0 && !editingItem) {
-            setFormData(prev => ({
-              ...prev,
-              locations: [restaurantList[0].id.toString()]
-            }));
-          }
-        } catch (error) {
-          console.error('Error fetching restaurants:', error);
-        }
-      }
-    };
-
-    fetchRestaurants();
-  }, [isItemDialogOpen, editingItem]);
 
   const updateFormField = (field: string, value: any) => {
     setFormData(prev => ({
@@ -169,8 +127,6 @@ export function useItemForm() {
     formData,
     updateFormField,
     resetForm,
-    handleItemAction,
-    restaurants
+    handleItemAction
   };
 }
-

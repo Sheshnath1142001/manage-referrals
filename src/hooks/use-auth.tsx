@@ -63,45 +63,42 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     initializeAuth();
   }, []);
 
-  const login = async (credentials: LoginCredentials & { clientId: string }) => {
-    try {
-      setIsLoading(true);
-      console.log('Attempting login with endpoint /v2/users/admin/login...');
+ // In your login function, convert the string ID to number:
+
+const login = async (credentials: LoginCredentials & { clientId: string }) => {
+  try {
+    setIsLoading(true);
+    console.log('Attempting login with endpoint /v2/users/admin/login...');
+    
+    const authData = await authApi.login(
+      credentials.username,
+      credentials.password,
+      Number(credentials.clientId)
+    );
+    
+    if (authData.token && authData.user) {
+      console.log('Login successful');
       
-      const authData = await authApi.login(
-        credentials.username,
-        credentials.password,
-        Number(credentials.clientId)
-      );
+      // Convert string ID to number if needed
+      const userWithNumberId = {
+        ...authData.user,
+        id: Number(authData.user.id) // Convert string to number
+      };
       
-      if (authData.token && authData.user) {
-        console.log('Login successful');
-        setToken(authData.token);
-        setUser(authData.user);
-        
-        // Store in localStorage
-        localStorage.setItem('Admin', JSON.stringify({
-          token: authData.token,
-          session_token: authData.session_token,
-          user: authData.user
-        }));
-        
-        // Store individual token for backward compatibility
-        localStorage.setItem('token', authData.token);
-        
-        toast({
-          title: "Success",
-          description: "Login successful",
-        });
-        
-        // Navigate to intended route or dashboard
-        const from = location.state?.from?.pathname || "/";
-        navigate(from, { replace: true });
-      } else {
-        throw new Error("Invalid response format");
-      }
-    } catch (error: any) {
-      console.error('Login error:', error);
+      setToken(authData.token);
+      setUser(userWithNumberId);
+      
+      // Store in localStorage
+      localStorage.setItem('Admin', JSON.stringify({
+        token: authData.token,
+        session_token: authData.session_token,
+        user: userWithNumberId
+      }));
+      
+      // ... rest of your code
+    }
+  } catch (error: any) {
+    console.error('Login error:', error);
       toast({
         title: "Error",
         description: error.response?.data?.message || "Login failed",

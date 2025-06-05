@@ -10,7 +10,8 @@ import {
   AttributeTable, 
   AttributeFilters,
   AttributeDialog,
-  AddAttributeValueDialog
+  AddAttributeValueDialog,
+  AttributeValueDialog
 } from "@/components/product-attributes";
 import { useState, useEffect } from "react";
 import { ProductAttribute } from "@/types/productAttributes";
@@ -90,9 +91,21 @@ const ProductAttributes = () => {
     console.log("Attribute values from hook:", attributeValues);
   }, [attributeValues]);
 
+  // Get the current expanded attribute object to pass to useAttributeValueForm
+  const currentExpandedAttribute = attributes.find(attr => attr.id === expandedAttribute) || null;
+
   const {
+    isAddingAttributeValue,
+    isEditingAttributeValue,
+    attributeValueFormData,
+    selectedAttributeValue,
     createAttributeValueMutation,
-  } = useAttributeValueForm(selectedAttribute);
+    updateAttributeValueMutation,
+    setAttributeValueFormData,
+    handleAttributeValueFormSubmit,
+    closeAttributeValueDialog,
+    handleEditAttributeValue,
+  } = useAttributeValueForm(currentExpandedAttribute);
 
   // Handle adding a new attribute value
   const handleAddAttributeValue = () => {
@@ -186,6 +199,7 @@ const ProductAttributes = () => {
           onEditAttribute={handleEditAttribute}
           onViewAttribute={handleViewAttribute}
           onAddAttributeValue={handleAddAttributeValue}
+          onEditAttributeValue={handleEditAttributeValue}
         />
       </div>
 
@@ -232,6 +246,17 @@ const ProductAttributes = () => {
         open={isAddingValue}
         onOpenChange={setIsAddingValue}
         onSubmit={handleAttributeValueSubmit}
+      />
+
+      {/* Edit Attribute Value Dialog */}
+      <AttributeValueDialog
+        isOpen={isEditingAttributeValue}
+        isEditing={true}
+        formData={attributeValueFormData}
+        onFormDataChange={setAttributeValueFormData}
+        onSubmit={handleAttributeValueFormSubmit}
+        onClose={closeAttributeValueDialog}
+        mutation={updateAttributeValueMutation}
       />
     </div>
   );

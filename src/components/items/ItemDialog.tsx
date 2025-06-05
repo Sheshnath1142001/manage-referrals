@@ -1,5 +1,4 @@
 
-
 import {
   Dialog,
   DialogContent,
@@ -29,7 +28,6 @@ interface ItemDialogProps {
   quantityUnits: Array<{id: number, unit: string}>;
   locations: Array<{id: number, name: string}>;
   discountTypes: Array<{id: number, type: string}>;
-  restaurants?: Array<{id: number, name: string}>;
 }
 
 export const ItemDialog = ({
@@ -45,8 +43,7 @@ export const ItemDialog = ({
   quantityUnits,
   locations,
   discountTypes,
-  allCategories,
-  restaurants = []
+  allCategories
 }: ItemDialogProps) => {
   // Fetch restaurants for product when editing/viewing
   const { data: restaurantsForProduct = [], isLoading: isLoadingRestaurants } = useQuery({
@@ -54,12 +51,6 @@ export const ItemDialog = ({
     queryFn: () => getRestaurantsForProduct(editingItem.id),
     enabled: isOpen && !!editingItem?.id && (isViewMode || !!editingItem),
   });
-
-  // Convert restaurants array for locations prop
-  const restaurantLocations = restaurants.map(restaurant => ({
-    id: restaurant.id,
-    name: restaurant.name
-  }));
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -86,7 +77,7 @@ export const ItemDialog = ({
             categories={categories}
             allCategories={allCategories}
             quantityUnits={quantityUnits}
-            locations={restaurantLocations}
+            locations={locations}
             discountTypes={discountTypes}
           />
 
@@ -132,4 +123,3 @@ export const ItemDialog = ({
     </Dialog>
   );
 };
-
