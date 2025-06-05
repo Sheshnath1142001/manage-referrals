@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Building2, User, Lock, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -81,7 +82,8 @@ const Login = () => {
       
       await login({
         username,
-        password
+        password,
+        clientId
       });
       
     } catch (error) {

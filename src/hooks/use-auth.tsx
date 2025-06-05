@@ -1,7 +1,6 @@
-
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { api } from "@/services/api/client";
+import { authApi } from "@/services/api/auth";
 import { toast } from "@/hooks/use-toast";
 import { AuthResponse, User, LoginCredentials } from "@/types/auth";
 
@@ -10,7 +9,7 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   isAuthChecked: boolean;
-  login: (credentials: LoginCredentials) => Promise<void>;
+  login: (credentials: LoginCredentials & { clientId: string }) => Promise<void>;
   logout: () => void;
   isAuthenticated: () => boolean;
 }
@@ -64,13 +63,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     initializeAuth();
   }, []);
 
-  const login = async (credentials: LoginCredentials) => {
+  const login = async (credentials: LoginCredentials & { clientId: string }) => {
     try {
       setIsLoading(true);
-      console.log('Attempting login...');
+      console.log('Attempting login with endpoint /v2/users/admin/login...');
       
-      const response = await api.post<AuthResponse>('/auth/login', credentials);
-      const authData = response as unknown as AuthResponse;
+      const authData = await authApi.login(
+        credentials.username,
+        credentials.password,
+        Number(credentials.clientId)
+      );
       
       if (authData.token && authData.user) {
         console.log('Login successful');
