@@ -1,4 +1,5 @@
 
+
 import {
   Dialog,
   DialogContent,
@@ -54,7 +55,7 @@ export const ItemDialog = ({
     enabled: isOpen && !!editingItem?.id && (isViewMode || !!editingItem),
   });
 
-  // Convert restaurants array for locations prop, excluding "All Locations"
+  // Convert restaurants array for locations prop
   const restaurantLocations = restaurants.map(restaurant => ({
     id: restaurant.id,
     name: restaurant.name
@@ -131,3 +132,4 @@ export const ItemDialog = ({
     </Dialog>
   );
 };
+

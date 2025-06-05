@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect } from "react";
 import { Item, ItemFormData } from "@/components/items/types";
 import axios from "axios";
@@ -52,11 +53,11 @@ export function useItemForm() {
           const restaurantList = response.data.restaurants || [];
           setRestaurants(restaurantList);
 
-          // Set first restaurant as default if creating new item
+          // Set first restaurant ID as default if creating new item
           if (restaurantList.length > 0 && !editingItem) {
             setFormData(prev => ({
               ...prev,
-              locations: [restaurantList[0].name]
+              locations: [restaurantList[0].id.toString()]
             }));
           }
         } catch (error) {
@@ -172,3 +173,4 @@ export function useItemForm() {
     restaurants
   };
 }
+
