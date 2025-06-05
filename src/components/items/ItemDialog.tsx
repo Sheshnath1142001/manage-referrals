@@ -28,6 +28,7 @@ interface ItemDialogProps {
   quantityUnits: Array<{id: number, unit: string}>;
   locations: Array<{id: number, name: string}>;
   discountTypes: Array<{id: number, type: string}>;
+  restaurants: Array<{id: number | string, name: string}>;
 }
 
 export const ItemDialog = ({
@@ -43,7 +44,8 @@ export const ItemDialog = ({
   quantityUnits,
   locations,
   discountTypes,
-  allCategories
+  allCategories,
+  restaurants
 }: ItemDialogProps) => {
   // Fetch restaurants for product when editing/viewing
   const { data: restaurantsForProduct = [], isLoading: isLoadingRestaurants } = useQuery({
@@ -77,7 +79,7 @@ export const ItemDialog = ({
             categories={categories}
             allCategories={allCategories}
             quantityUnits={quantityUnits}
-            locations={locations}
+            locations={restaurants} // Pass restaurants instead of locations
             discountTypes={discountTypes}
           />
 
