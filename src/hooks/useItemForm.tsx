@@ -1,8 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { Item, ItemFormData } from "@/components/items/types";
 import axios from "axios";
-import { useGetRestaurants } from "@/hooks/useGetRestaurants";
 
 const defaultFormData: ItemFormData = {
   name: "",
@@ -13,7 +11,7 @@ const defaultFormData: ItemFormData = {
   price: "",
   online_price: "",
   locations: ["All Locations"],
-  discount_type_id: 0,
+  discount_type_id: 0, // Updated from discount_type to discount_type_id
   discount: "",
   online_discount: "",
   description: "",
@@ -24,21 +22,10 @@ const defaultFormData: ItemFormData = {
 };
 
 export function useItemForm() {
-  const { restaurants } = useGetRestaurants();
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [isViewMode, setIsViewMode] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [formData, setFormData] = useState<ItemFormData>(defaultFormData);
-
-  // Update default locations when restaurants are loaded and dialog opens for new item
-  useEffect(() => {
-    if (isItemDialogOpen && !editingItem && restaurants && restaurants.length > 0) {
-      setFormData(prev => ({
-        ...prev,
-        locations: [restaurants[0].name] // Set first restaurant as default
-      }));
-    }
-  }, [isItemDialogOpen, editingItem, restaurants]);
 
   const updateFormField = (field: string, value: any) => {
     setFormData(prev => ({

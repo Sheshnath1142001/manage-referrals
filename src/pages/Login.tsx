@@ -77,12 +77,11 @@ const Login = () => {
     }
 
     try {
-      console.log('Attempting login with:', { username, password: '********', company_code: Number(clientId) });
+      console.log('Attempting login with:', { username, password: '********', clientId });
       
       await login({
         username,
-        password,
-        company_code: Number(clientId)
+        password
       });
       
     } catch (error) {

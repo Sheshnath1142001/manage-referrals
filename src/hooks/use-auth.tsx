@@ -1,15 +1,9 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { authApi } from "@/services/api/auth";
+import { api } from "@/services/api/client";
 import { toast } from "@/hooks/use-toast";
-import { User } from "@/types/auth";
-
-interface LoginCredentials {
-  username: string;
-  password: string;
-  company_code: number;
-}
+import { AuthResponse, User, LoginCredentials } from "@/types/auth";
 
 interface AuthContextType {
   user: User | null;
@@ -50,7 +44,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         console.log('Initializing auth...');
         const adminData = localStorage.getItem('Admin');
         if (adminData) {
-          const parsedAdmin = JSON.parse(adminData);
+          const parsedAdmin = JSON.parse(adminData) as AuthResponse;
           if (parsedAdmin.token && parsedAdmin.user) {
             console.log('Found existing auth data');
             setToken(parsedAdmin.token);
@@ -73,13 +67,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const login = async (credentials: LoginCredentials) => {
     try {
       setIsLoading(true);
-      console.log('Attempting login with:', { 
-        username: credentials.username, 
-        password: '********', 
-        company_code: credentials.company_code 
-      });
+      console.log('Attempting login...');
       
-      const authData = await authApi.login(credentials.username, credentials.password, credentials.company_code);
+      const response = await api.post<AuthResponse>('/auth/login', credentials);
+      const authData = response as unknown as AuthResponse;
       
       if (authData.token && authData.user) {
         console.log('Login successful');
