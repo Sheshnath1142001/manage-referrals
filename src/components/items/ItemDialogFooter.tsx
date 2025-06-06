@@ -124,9 +124,9 @@ export const ItemDialogFooter = ({
           });
         }
         
-        // ✅ Fixed: Use 'image' key instead of 'attachment'
+        // ✅ Using 'attachment' key as requested
         if (formData.image) {
-          formDataToSend.append('image', formData.image);
+          formDataToSend.append('attachment', formData.image);
         }
         
         console.log('FormData contents for create:');
