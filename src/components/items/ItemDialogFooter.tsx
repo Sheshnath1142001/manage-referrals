@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
@@ -123,8 +124,14 @@ export const ItemDialogFooter = ({
           });
         }
         
+        // ✅ Fixed: Use 'image' key instead of 'attachment'
         if (formData.image) {
           formDataToSend.append('image', formData.image);
+        }
+        
+        console.log('FormData contents for create:');
+        for (let [key, value] of formDataToSend.entries()) {
+          console.log(key, value);
         }
         
         await itemsApi.createItem(formDataToSend);
