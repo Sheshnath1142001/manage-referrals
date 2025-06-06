@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { Item, ItemFormData } from "@/components/items/types";
-import axios from "axios";
+import { attachmentsApi } from "@/services/api/attachments";
 
 const defaultFormData: ItemFormData = {
   name: "",
@@ -10,8 +11,8 @@ const defaultFormData: ItemFormData = {
   barcode: "",
   price: "",
   online_price: "",
-  locations: ["All Locations"],
-  discount_type_id: 0, // Updated from discount_type to discount_type_id
+  locations: [],
+  discount_type_id: 0,
   discount: "",
   online_discount: "",
   description: "",
@@ -42,6 +43,8 @@ export function useItemForm() {
   };
 
   const handleItemAction = async (item: Item, action: 'view' | 'edit') => {
+    console.log('handleItemAction called with:', { item, action });
+    
     setEditingItem(item);
     setIsViewMode(action === 'view');
     
@@ -76,7 +79,7 @@ export function useItemForm() {
       barcode: item.barcode || "",
       price: item.price ? item.price.toString() : "0",
       online_price: item.online_price ? item.online_price.toString() : "0",
-      locations: ["All Locations"],
+      locations: [],
       discount_type_id: item.discount_type_id || item.discount_type || 0,
       discount: item.discount || "0",
       online_discount: item.online_discount || "0",
@@ -87,31 +90,33 @@ export function useItemForm() {
       status: item.status === 1 ? 1 : 0
     });
 
-    // Fetch image from attachments API
+    // Fetch image from attachments API using the proper service
     try {
-      const response = await axios.get('https://pratham-respos-testbe-v34.achyutlabs.cloud/api/attachments', {
-        params: {
-          module_type: 2,
-          module_id: item.id
-        },
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'X-Timezone': 'Asia/Calcutta'
-        }
+      console.log('Fetching attachments for module_id:', item.id, 'module_type: 2');
+      
+      const response = await attachmentsApi.getAttachments({
+        module_type: 2,
+        module_id: item.id
       });
 
-      const attachments = response.data.attachment || [];
+      console.log('Attachments API response:', response);
+
+      const attachments = response.attachment || [];
       if (attachments.length > 0 && attachments[0].upload_path) {
         const imageUrl = attachments[0].upload_path;
+        console.log('Found image URL:', imageUrl);
+        
         setFormData(prev => ({
           ...prev,
           imagePreview: imageUrl,
           imageToken: token
         }));
+      } else {
+        console.log('No attachments found');
       }
     } catch (error) {
-      console.error('Error fetching image:', error);
+      console.error('Error fetching attachments:', error);
+      console.error('Error details:', error.response?.data);
     }
     
     setIsItemDialogOpen(true);

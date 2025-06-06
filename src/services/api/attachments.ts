@@ -1,3 +1,4 @@
+
 import { api } from './client';
 
 export interface Attachment {
@@ -29,21 +30,51 @@ export const attachmentsApi = {
     module_type: number;
     module_id: string | number;
   }): Promise<AttachmentResponse> => {
-    const response = await api.get('/attachments', { params });
-    return response;
+    console.log('Making API request to /attachments with params:', params);
+    
+    try {
+      const response = await api.get('/attachments', { params });
+      console.log('Attachments API raw response:', response);
+      
+      // Return the response data
+      return response;
+    } catch (error) {
+      console.error('Attachments API error:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      
+      // Return empty response if error
+      return { attachment: [] };
+    }
   },
   
   uploadAttachment: async (formData: FormData) => {
-    const response = await api.post('/attachments', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response;
+    console.log('Uploading attachment...');
+    
+    try {
+      const response = await api.post('/attachments', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      console.log('Upload response:', response);
+      return response;
+    } catch (error) {
+      console.error('Upload error:', error);
+      throw error;
+    }
   },
   
   deleteAttachment: async (id: string) => {
-    const response = await api.delete(`/attachments/${id}`);
-    return response;
+    console.log('Deleting attachment:', id);
+    
+    try {
+      const response = await api.delete(`/attachments/${id}`);
+      console.log('Delete response:', response);
+      return response;
+    } catch (error) {
+      console.error('Delete error:', error);
+      throw error;
+    }
   }
-}; 
+};
