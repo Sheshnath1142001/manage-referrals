@@ -1,6 +1,5 @@
 
 import { useState } from 'react';
-import { Label } from "@/components/ui/label";
 import { Upload } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -19,20 +18,56 @@ export const ItemImageUpload = ({
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: "File too large",
-          description: "Image must be less than 5MB",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      setIsUploading(true);
-      updateFormField("image", file);
-      setIsUploading(false);
+    if (!file) {
+      console.warn('No file selected');
+      return;
     }
+    
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Image must be less than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsUploading(true);
+    
+    // Log file details before updating form data
+    console.log('Selected image file:', {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      lastModified: file.lastModified
+    });
+    
+    // Use FileReader to create preview and verify file is valid
+    const reader = new FileReader();
+    reader.onload = () => {
+      // Set the image in formData
+      updateFormField("image", file);
+      // Store preview URL
+      if (typeof reader.result === 'string') {
+        updateFormField("imagePreview", reader.result);
+      }
+      setIsUploading(false);
+      
+      // Confirmation log
+      console.log('Image successfully added to form data');
+    };
+    
+    reader.onerror = () => {
+      console.error('Error reading file:', reader.error);
+      toast({
+        title: "Error",
+        description: "Failed to process image",
+        variant: "destructive",
+      });
+      setIsUploading(false);
+    };
+    
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -53,6 +88,15 @@ export const ItemImageUpload = ({
             <p className="text-xs text-gray-500">
               {(formData.image.size / (1024 * 1024)).toFixed(2)} MB
             </p>
+            {formData.imagePreview && (
+              <div className="mt-2 flex justify-center">
+                <img 
+                  src={formData.imagePreview} 
+                  alt="Preview" 
+                  className="h-10 w-auto object-contain"
+                />
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex flex-col items-center gap-1">

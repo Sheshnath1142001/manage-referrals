@@ -80,7 +80,7 @@ export const ItemDialogFooter = ({
               }
             }
           });
-          formDataToSend.append('image', formData.image);
+          formDataToSend.append('attachment', formData.image);
           
           await itemsApi.updateItem(editingItem.id, formDataToSend);
         } else {
@@ -124,14 +124,17 @@ export const ItemDialogFooter = ({
           });
         }
         
-        // ✅ Using 'attachment' key as requested
-        if (formData.image) {
-          formDataToSend.append('attachment', formData.image);
+        // ✅ Make sure an actual file is being passed when using the attachment key
+        if (formData.image instanceof File) {
+          console.log('Attaching image file:', formData.image.name, formData.image.size, formData.image.type);
+          formDataToSend.append('attachment', formData.image, formData.image.name);
+        } else {
+          console.warn('No valid image file to attach', formData.image);
         }
         
         console.log('FormData contents for create:');
         for (let [key, value] of formDataToSend.entries()) {
-          console.log(key, value);
+          console.log(key, typeof value === 'object' ? 'File: ' + (value instanceof File ? value.name : 'Unknown object') : value);
         }
         
         await itemsApi.createItem(formDataToSend);
