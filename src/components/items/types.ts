@@ -37,6 +37,7 @@ export interface ItemFormData {
   online_discount: string;
   description: string;
   image: File | null;
+  imageToken: string;
   imagePreview: string;
   status: number;
 }

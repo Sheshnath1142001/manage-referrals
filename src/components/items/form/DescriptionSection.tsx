@@ -109,7 +109,7 @@ export const DescriptionSection = ({
             {!isViewMode && (
               <div className="space-y-1">
                 <p className="text-xs text-gray-500">
-                  Supported formats: JPG, PNG, GIF (max 5MB)
+                  Supported formats: JPG, PNG (max 5MB)
                 </p>
                 {isEditingImage && editingItem && (
                   <Button

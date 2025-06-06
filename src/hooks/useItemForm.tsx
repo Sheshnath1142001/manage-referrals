@@ -10,9 +10,10 @@ const defaultFormData: ItemFormData = {
   quantity_unit_id: 0,
   barcode: "",
   price: "",
+  module_type: 2,
   online_price: "",
   locations: [],
-  discount_type_id: 0,
+  discount_type_id: 0, // Updated from discount_type to discount_type_id
   discount: "",
   online_discount: "",
   description: "",
@@ -74,23 +75,25 @@ export function useItemForm() {
 
     // Set basic form data with token
     setFormData({
-      name: item.name || "",
-      category_id: category_id,
-      quantity: item.quantity ? item.quantity.toString() : "0",
-      quantity_unit_id: item.quantity_unit_id || item.quantity_unit || 0,
-      barcode: item.barcode || "",
-      price: item.price ? item.price.toString() : "0",
-      online_price: item.online_price ? item.online_price.toString() : "0",
-      locations: [],
-      discount_type_id: item.discount_type_id || item.discount_type || 0,
-      discount: item.discount || "0",
-      online_discount: item.online_discount || "0",
-      description: item.description || "",
-      image: null,
-      imagePreview: "",
-      imageToken: token,
-      status: item.status === 1 ? 1 : 0
-    });
+  name: item.name || "",
+  category_id: category_id,
+  quantity: item.quantity ? item.quantity.toString() : "0",
+  quantity_unit_id: Number(item.quantity_unit_id || item.quantity_unit || 0),
+  barcode: item.barcode || "",
+  price: item.price ? item.price.toString() : "0",
+  online_price: item.online_price ? item.online_price.toString() : "0",
+  locations: [],
+  module_type: 2,
+  discount_type_id: Number(item.discount_type_id || item.discount_type || 0),
+  discount: item.discount || "0",
+  online_discount: item.online_discount || "0",
+  description: item.description || "",
+  image: null,
+  imagePreview: "",
+  imageToken: token,
+  status: item.status === 1 ? 1 : 0
+});
+
 
     // Fetch image from attachments API using the proper service
     try {
