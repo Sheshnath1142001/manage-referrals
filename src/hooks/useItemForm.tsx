@@ -44,6 +44,7 @@ export function useItemForm() {
 
   const handleItemAction = async (item: Item, action: 'view' | 'edit') => {
     console.log('handleItemAction called with:', { item, action });
+    console.log('Item ID:', item.id, 'Type:', typeof item.id);
     
     setEditingItem(item);
     setIsViewMode(action === 'view');
@@ -57,6 +58,7 @@ export function useItemForm() {
       try {
         const parsedData = JSON.parse(adminData);
         token = parsedData.token;
+        console.log('Token found:', token ? 'Yes' : 'No');
         if (!token) {
           console.error('No token found in admin data');
           return;
@@ -92,16 +94,23 @@ export function useItemForm() {
 
     // Fetch image from attachments API using the proper service
     try {
+      console.log('=== STARTING ATTACHMENTS API CALL ===');
       console.log('Fetching attachments for module_id:', item.id, 'module_type: 2');
+      console.log('API Base URL:', import.meta.env.API_BASE_URL);
       
       const response = await attachmentsApi.getAttachments({
         module_type: 2,
         module_id: item.id
       });
 
-      console.log('Attachments API response:', response);
+      console.log('=== ATTACHMENTS API RESPONSE ===');
+      console.log('Full response:', response);
+      console.log('Response type:', typeof response);
 
       const attachments = response.attachment || [];
+      console.log('Parsed attachments:', attachments);
+      console.log('Number of attachments:', attachments.length);
+      
       if (attachments.length > 0 && attachments[0].upload_path) {
         const imageUrl = attachments[0].upload_path;
         console.log('Found image URL:', imageUrl);
@@ -114,9 +123,12 @@ export function useItemForm() {
       } else {
         console.log('No attachments found');
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('=== ATTACHMENTS API ERROR ===');
       console.error('Error fetching attachments:', error);
       console.error('Error details:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      console.error('Error message:', error.message);
     }
     
     setIsItemDialogOpen(true);

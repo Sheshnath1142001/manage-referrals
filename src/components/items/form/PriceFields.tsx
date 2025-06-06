@@ -55,7 +55,6 @@ export const PriceFields = ({
               placeholder="0.00"
               disabled={isViewMode}
               required
-              placeholder="0.00"
             />
           </div>
         </div>
@@ -77,7 +76,6 @@ export const PriceFields = ({
               className="pl-7 border-gray-200 focus:border-primary focus:ring-primary"
               placeholder="0.00"
               disabled={isViewMode}
-              placeholder="0.00"
             />
           </div>
         </div>

@@ -31,17 +31,21 @@ export const attachmentsApi = {
     module_id: string | number;
   }): Promise<AttachmentResponse> => {
     console.log('Making API request to /attachments with params:', params);
+    console.log('Full API URL will be:', `${import.meta.env.API_BASE_URL}/attachments`);
     
     try {
       const response = await api.get('/attachments', { params });
       console.log('Attachments API raw response:', response);
+      console.log('Response status:', response.status);
+      console.log('Response data:', response.data);
       
-      // Return the response data
-      return response;
-    } catch (error) {
+      // Return the response data directly
+      return response.data || response;
+    } catch (error: any) {
       console.error('Attachments API error:', error);
       console.error('Error response:', error.response?.data);
       console.error('Error status:', error.response?.status);
+      console.error('Error config:', error.config);
       
       // Return empty response if error
       return { attachment: [] };
