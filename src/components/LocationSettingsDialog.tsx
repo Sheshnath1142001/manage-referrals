@@ -74,7 +74,11 @@ const LocationSettingsDialog = ({
   useEffect(() => {
     console.log('LocationSettingsDialog useEffect triggered:', { initialData, open });
     if (open && initialData) {
+      console.log('Setting form data with initial data:', initialData);
       setSettings(initialData);
+    } else if (open && !initialData) {
+      // Reset to default settings if no initial data
+      setSettings(defaultSettings);
     }
   }, [initialData, open]);
   

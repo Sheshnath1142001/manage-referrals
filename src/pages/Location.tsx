@@ -15,7 +15,7 @@ import AddEditLocationDialog from "@/components/AddEditLocationDialog";
 import WorkingHoursDialog from "@/components/WorkingHoursDialog";
 import LocationSettingsDialog from "@/components/LocationSettingsDialog";
 import { CategoryPagination } from "@/components/categories/list/CategoryPagination";
-import { restaurantsApi } from "@/services/api/restaurants";
+import { restaurantsApi, restaurantSettingsApi } from "@/services/api";
 
 interface Location {
   id: number;
@@ -24,7 +24,7 @@ interface Location {
   restaurant_types: { id: number; type: string };
   owner_id: string;
   users_restaurants_owner_idTousers: { id: string; name: string };
-  status: number;
+  status: string | number;
   created_at: string;
   created_by: string;
   users_restaurants_created_byTousers: { id: string; name: string };
@@ -32,6 +32,10 @@ interface Location {
   receiver_email: string;
   timezone: string;
   order_types: { id: number; type: string };
+  // Fixed: Added restaurant_order_type_otm property
+  restaurant_order_type_otm?: Array<{
+    order_types: { id: number; type: string };
+  }>;
   phone: string;
   address: {
     id: string;
@@ -60,6 +64,12 @@ interface Location {
   online_order_surcharge_value: string;
   online_order_discount_type: string;
   online_order_discount_value: string;
+  // Additional properties for editing
+  locationType?: string;
+  serviceType?: string | string[];
+  receiverEmail?: string;
+  settings_id?: number; // Add settings ID for API calls
+  paring_secret?: string; // Add paring_secret
 }
 
 const apiBaseUrl = import.meta.env.API_BASE_URL || 'https://pratham-respos-testbe-v34.achyutlabs.cloud/api';
@@ -172,10 +182,17 @@ const Location = () => {
   };
 
   const handleEdit = (location: Location) => {
+    // Create an array of service types from restaurant_order_type_otm
+    const serviceTypes = location.restaurant_order_type_otm 
+      ? location.restaurant_order_type_otm.map(item => item.order_types.type)
+      : [];
+    
+    console.log('Setting editing location with service types:', serviceTypes);
+    
     setEditingLocation({
       ...location,
       locationType: location.restaurant_types?.type || "OUTLET",
-      serviceType: location.order_types?.type || "Delivery, Dine In, Takeaway",
+      serviceType: serviceTypes, // Set as array directly
       status: location.status === 1 ? "Active" : "Inactive",
       receiverEmail: location.receiver_email || ""
     });
@@ -184,10 +201,15 @@ const Location = () => {
   };
 
   const handleView = (location: Location) => {
+    // Create an array of service types from restaurant_order_type_otm
+    const serviceTypes = location.restaurant_order_type_otm 
+      ? location.restaurant_order_type_otm.map(item => item.order_types.type)
+      : [];
+    
     setEditingLocation({
       ...location,
       locationType: location.restaurant_types?.type || "OUTLET",
-      serviceType: location.order_types?.type || "Delivery, Dine In, Takeaway",
+      serviceType: serviceTypes, // Set as array directly
       status: location.status === 1 ? "Active" : "Inactive",
       receiverEmail: location.receiver_email || ""
     });
@@ -200,9 +222,58 @@ const Location = () => {
     setIsWorkingHoursDialogOpen(true);
   };
 
-  const handleSettings = (location: Location) => {
-    setEditingLocation(location);
-    setIsSettingsDialogOpen(true);
+  const handleSettings = async (location: Location) => {
+    console.log('Settings clicked for location:', location.id);
+    try {
+      // Fetch restaurant settings from API
+      const settingsResponse = await restaurantSettingsApi.getRestaurantSettings(location.id);
+      console.log('Restaurant settings response:', settingsResponse);
+      
+      const settings = settingsResponse.restaurant_settings[0];
+      
+      if (settings) {
+        console.log('Mapping settings data:', settings);
+        // Set editing location with fetched settings data
+        setEditingLocation({
+          ...location,
+          site_reference: settings.site_reference,
+          abn_number: settings.abn,
+          phone: settings.phone_no,
+          is_delivery: settings.is_deliverable,
+          gift_card_feature: settings.is_giftcard_feature_enabled,
+          dine_in_service: settings.is_dine_in_enabled,
+          is_cloud_printing_enabled: settings.is_cloud_printing_enabled,
+          delivery_charge: settings.fixed_delivery_charge,
+          minimum_order_value: settings.min_order_value_to_avail_disc,
+          pickup_time_duration: settings.pickup_time_duration,
+          online_order_surcharge_type: settings.order_surcharge_type === 1 ? "Fixed" : "Percentage",
+          online_order_surcharge_value: settings.order_fixed_surcharge,
+          online_order_discount_type: settings.order_discount_type === 1 ? "Fixed" : "Percentage",
+          online_order_discount_value: settings.order_fixed_discount,
+          settings_id: settings.id, // Store the settings ID for reference
+          paring_secret: settings.paring_secret, // Add paring_secret
+          address: {
+            ...location.address,
+            street_name: settings.address_line_1,
+            city: settings.address_line_2
+          }
+        });
+      } else {
+        setEditingLocation(location);
+      }
+      
+      setIsSettingsDialogOpen(true);
+    } catch (error) {
+      console.error("Error fetching restaurant settings:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch restaurant settings. Using default values.",
+        variant: "destructive"
+      });
+      // Fallback to existing location data
+      setEditingLocation(location);
+      setIsSettingsDialogOpen(true);
+    }
   };
 
   const handleFormSubmit = async (locationData: any) => {
@@ -235,13 +306,24 @@ const Location = () => {
       }
 
       // Map service types to order type IDs
-      const serviceTypes = locationData.serviceType.split(", ");
+      let serviceTypes: string[] = [];
+      
+      if (typeof locationData.serviceType === 'string') {
+        // If it's a string, split by comma
+        serviceTypes = locationData.serviceType.split(", ").map((s: string) => s.trim());
+      } else if (Array.isArray(locationData.serviceType)) {
+        // If it's already an array, use it
+        serviceTypes = locationData.serviceType;
+      }
+      
       const orderTypeMap: { [key: string]: string } = {
         "Dine In": "1",
         "Takeaway": "2",
         "Delivery": "3"
       };
       restaurantData.restaurant_order_type_otm = serviceTypes.map(type => orderTypeMap[type]).filter(id => id);
+
+      console.log('Submitting restaurant data:', restaurantData);
 
       if (editingLocation) {
         // Update existing location
@@ -442,43 +524,33 @@ const Location = () => {
   const handleSettingsSubmit = async (settings: any) => {
     if (!editingLocation) return;
     
+    console.log('Submitting settings:', settings);
     try {
       // Convert settings to match API format
       const apiData = {
-        restaurant_id: editingLocation.id,
-        phone_no: settings.phone,
-        product_vendor_name: "Restaurant",
-        product_name: editingLocation.name,
-        authorized_discount: 10,
-        product_version: "1.0",
-        site_reference: settings.siteReference,
+        abn: settings.abnNumber,
         address_line_1: settings.addressLine1,
         address_line_2: settings.addressLine2,
-        show_product_offer_popup: true,
-        gst_tax_rate: 10,
-        gst_ratio: 0.1,
-        expected_floating_amount: 100,
-        status: 1,
-        abn: settings.abnNumber,
-        tyro_api_key: "",
-        paring_secret: "",
-        is_refer_program_required: false,
-        is_spent_reward_program_required: false,
-        order_discount_type: 1,
-        order_fixed_discount: Number(settings.onlineOrderDiscountValue) || 0,
-        order_surcharge_type: 1,
-        order_fixed_surcharge: Number(settings.onlineOrderSurchargeValue) || 0,
-        is_deliverable: settings.isDelivery,
-        min_order_value_to_avail_disc: Number(settings.minimumOrderValue) || 0,
-        fixed_delivery_charge: Number(settings.deliveryCharge) || 0,
-        pickup_time_duration: Number(settings.pickupTimeDuration) || 30,
-        is_dine_in_enabled: settings.dineInService === "Enabled",
-        is_giftcard_feature_enabled: settings.giftCardFeature === "Enabled",
-        is_online_order_enabled: true,
-        is_cloud_printing_enabled: settings.is_cloud_printing_enabled
+        fixed_delivery_charge: settings.deliveryCharge,
+        is_deliverable: settings.isDelivery ? 1 : 0,
+        is_dine_in_enabled: settings.dineInService === "Enabled" ? 1 : 0,
+        is_giftcard_feature_enabled: settings.giftCardFeature === "Enabled" ? 1 : 0,
+        min_order_value_to_avail_disc: settings.minimumOrderValue,
+        order_discount_type: settings.onlineOrderDiscountType === "Fixed" ? 1 : 2,
+        order_fixed_discount: settings.onlineOrderDiscountValue,
+        order_fixed_surcharge: settings.onlineOrderSurchargeValue,
+        order_surcharge_type: settings.onlineOrderSurchargeType === "Fixed" ? 1 : 2,
+        phone_no: settings.phone,
+        pickup_time_duration: settings.pickupTimeDuration,
+        site_reference: settings.siteReference,
+        is_cloud_printing_enabled: settings.is_cloud_printing_enabled ? 1 : 0,
+        paring_secret: editingLocation.paring_secret || "default_secret"
       };
 
-      await restaurantsApi.updateRestaurant(editingLocation.id, apiData);
+      // Use restaurant ID instead of settings ID for the API call
+      const restaurantId = editingLocation.id;
+      
+      await restaurantSettingsApi.updateRestaurantSettings(restaurantId, apiData);
       
       toast({
         title: "Success",
@@ -593,7 +665,6 @@ const Location = () => {
               <TableHead className="text-primary-foreground">Id</TableHead>
               <TableHead className="text-primary-foreground">Name</TableHead>
               <TableHead className="text-primary-foreground">Location type</TableHead>
-              <TableHead className="text-primary-foreground">Type</TableHead>
               <TableHead className="text-primary-foreground">Owner</TableHead>
               <TableHead className="text-primary-foreground">Status</TableHead>
               <TableHead className="text-primary-foreground">Receiver email</TableHead>
@@ -605,11 +676,11 @@ const Location = () => {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center">Loading...</TableCell>
+                <TableCell colSpan={9} className="text-center">Loading...</TableCell>
               </TableRow>
             ) : locations.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center">No locations found</TableCell>
+                <TableCell colSpan={9} className="text-center">No locations found</TableCell>
               </TableRow>
             ) : (
               locations.map((location) => (
@@ -617,7 +688,6 @@ const Location = () => {
                   <TableCell>{location.id}</TableCell>
                   <TableCell className="font-medium">{location.name}</TableCell>
                   <TableCell>{location.restaurant_types?.type || "-"}</TableCell>
-                  <TableCell>{location.order_types?.type || "-"}</TableCell>
                   <TableCell>{location.users_restaurants_owner_idTousers?.name || "-"}</TableCell>
                   <TableCell>
                     <span className={location.status === 1 ? 'text-green-600' : 'text-gray-600'}>
@@ -625,7 +695,7 @@ const Location = () => {
                     </span>
                   </TableCell>
                   <TableCell>{location.receiver_email}</TableCell>
-                  <TableCell>{location.order_types?.type || "-"}</TableCell>
+                  <TableCell>{location.restaurant_order_type_otm ? (location.restaurant_order_type_otm?.map((serviceType) => serviceType.order_types?.type)).join(', '): '-'}</TableCell>
                   <TableCell>{location.phone}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">

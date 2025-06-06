@@ -1,5 +1,5 @@
 import React from "react";
-import { Eye } from "lucide-react";
+import { Eye, Edit } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,9 +39,10 @@ interface OrderData {
 interface OrdersTableProps {
   orders: OrderData[];
   onViewOrder: (orderId: string) => void;
+  onEditOrder: (orderId: string, currentStatus: string) => void;
 }
 
-export const OrdersTable = ({ orders, onViewOrder }: OrdersTableProps) => {
+export const OrdersTable = ({ orders, onViewOrder, onEditOrder }: OrdersTableProps) => {
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case "finished":
@@ -67,7 +68,7 @@ export const OrdersTable = ({ orders, onViewOrder }: OrdersTableProps) => {
   };
 
   return (
-    <div className="rounded-md border overflow-x-auto">
+    <div className="overflow-x-auto">
       <Table>
         <TableHeader className="bg-[#0f172a]">
           <TableRow>
@@ -111,14 +112,26 @@ export const OrdersTable = ({ orders, onViewOrder }: OrdersTableProps) => {
                 <TableCell>{order.restaurant_name || "-"}</TableCell>
                 <TableCell>{order.created_at ? format(parseISO(order.created_at), "yyyy-MM-dd HH:mm") : "-"}</TableCell>
                 <TableCell>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleViewOrderClick(order)}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="h-8 w-8 text-blue-500"
+                      onClick={() => handleViewOrderClick(order)}
+                      title="View Order"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="h-8 w-8 text-green-500"
+                      onClick={() => onEditOrder(order.id, order.order_status_name)}
+                      title="Edit Order Status"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))

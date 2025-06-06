@@ -72,18 +72,18 @@ export function AttributeValueDialog({
               </div>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="base_price" className="text-sm font-medium">Base Price</Label>
-              <Input
-                id="base_price"
-                type="number"
-                min="0"
-                step="0.01"
-                value={formData.base_price || 0}
-                onChange={(e) => onFormDataChange({...formData, base_price: parseFloat(e.target.value)})}
-                placeholder="Enter price"
-                className="h-9"
-              />
+              <div className="space-y-2">
+                <Label htmlFor="base_price" className="text-sm font-medium">Base Price</Label>
+                <Input
+                  id="base_price"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.base_price || 0}
+                  onChange={(e) => onFormDataChange({...formData, base_price: parseFloat(e.target.value)})}
+                  placeholder="Enter price"
+                  className="h-9"
+                />
             </div>
             
             <div className="flex items-center justify-between rounded-lg border p-4 bg-gray-50">

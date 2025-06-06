@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { authApi } from "@/services/api/auth";
 import { toast } from "@/hooks/use-toast";
 import { AuthResponse, User, LoginCredentials } from "@/types/auth";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface AuthContextType {
   user: User | null;
@@ -35,6 +36,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
 
   // Only read from localStorage once on initial mount
   useEffect(() => {
@@ -95,7 +97,16 @@ const login = async (credentials: LoginCredentials & { clientId: string }) => {
         user: userWithNumberId
       }));
       
-      // ... rest of your code
+      // Clear all React Query cache data to ensure fresh data for new tenant
+      queryClient.clear();
+      
+      toast({
+        title: "Success",
+        description: "Logged in successfully",
+      });
+      
+      // Navigate to dashboard
+      navigate('/', { replace: true });
     }
   } catch (error: any) {
     console.error('Login error:', error);
@@ -116,6 +127,10 @@ const login = async (credentials: LoginCredentials & { clientId: string }) => {
     setToken(null);
     localStorage.removeItem('Admin');
     localStorage.removeItem('token');
+    
+    // Clear all React Query cache to prevent showing old tenant data
+    queryClient.clear();
+    
     navigate('/login');
     toast({
       title: "Success",

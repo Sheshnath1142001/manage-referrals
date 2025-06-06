@@ -24,6 +24,19 @@ export const ItemDialogFooter = ({
 }: ItemDialogFooterProps) => {
   const [isLoading, setIsLoading] = useState(false);
 
+  // ✅ Validate required fields
+  const isFormValid = () => {
+    return (
+      formData.name?.trim() &&
+      formData.category_id &&
+      formData.quantity &&
+      formData.quantity_unit_id &&
+      formData.price &&
+      formData.discount_type_id !== null &&
+      formData.status !== null
+    );
+  };
+
   const handleSubmit = async () => {
     setIsLoading(true);
     try {
@@ -52,7 +65,7 @@ export const ItemDialogFooter = ({
         if (restaurant_ids.length > 0) {
           updateData.restaurant_ids = restaurant_ids;
         }
-        
+
         if (formData.image) {
           const formDataToSend = new FormData();
           Object.entries(updateData).forEach(([key, value]) => {
@@ -147,10 +160,10 @@ export const ItemDialogFooter = ({
         Reset
       </Button>
       {!isViewMode && (
-        <Button 
-          type="button" 
-          onClick={handleSubmit} 
-          disabled={isLoading}
+        <Button
+          type="button"
+          onClick={handleSubmit}
+          disabled={isLoading || !isFormValid()}
         >
           {isLoading ? "Saving..." : "Submit"}
         </Button>

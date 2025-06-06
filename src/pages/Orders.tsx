@@ -4,6 +4,7 @@ import { OrderFilters } from "@/components/orders/OrderFilters";
 import { OrdersTable } from "@/components/orders/OrdersTable";
 import { OrdersPagination } from "@/components/orders/OrdersPagination";
 import { OrderDetailsDialog } from "@/components/OrderDetailsDialog";
+import { UpdateOrderStatusDialog } from "@/components/orders/UpdateOrderStatusDialog";
 import { useToast } from "@/components/ui/use-toast";
 
 interface OrderItem {
@@ -89,6 +90,7 @@ const Orders = () => {
     restaurants,
     staffMembers,
     handleFilterChange,
+    handleDateChange,
     handlePageChange,
     handleItemsPerPageChange,
     fetchOrders,
@@ -96,6 +98,9 @@ const Orders = () => {
 
   const [selectedOrder, setSelectedOrder] = useState<OrderDetail | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isUpdateStatusOpen, setIsUpdateStatusOpen] = useState(false);
+  const [editingOrderId, setEditingOrderId] = useState<string>("");
+  const [editingOrderCurrentStatus, setEditingOrderCurrentStatus] = useState<string>("");
 
 
   const handleViewOrder = async (orderId: string) => {
@@ -315,6 +320,16 @@ const Orders = () => {
     }
   };
 
+  const handleEditOrder = (orderId: string, currentStatus: string) => {
+    setEditingOrderId(orderId);
+    setEditingOrderCurrentStatus(currentStatus);
+    setIsUpdateStatusOpen(true);
+  };
+
+  const handleStatusUpdated = () => {
+    fetchOrders(); // Refresh the orders list
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
@@ -332,6 +347,9 @@ const Orders = () => {
         selectedAttendant={filters.attendant}
         selectedLocation={filters.location}
         selectedStatus={filters.status}
+        startDate={filters.startDate}
+        endDate={filters.endDate}
+        searchTerm={filters.searchTerm}
         restaurants={restaurants}
         orderStatuses={orderStatuses}
         platforms={platforms}
@@ -339,26 +357,38 @@ const Orders = () => {
         orderTypes={orderTypes}
         staffMembers={staffMembers}
         onFilterChange={handleFilterChange}
+        onDateChange={handleDateChange}
         onRefresh={fetchOrders}
       />
 
-      <OrdersTable
-        orders={orders}
-        onViewOrder={handleViewOrder}
-      />
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <OrdersTable
+          orders={orders}
+          onViewOrder={handleViewOrder}
+          onEditOrder={handleEditOrder}
+        />
 
-      <OrdersPagination
-        currentPage={currentPage}
-        totalItems={totalItems}
-        itemsPerPage={itemsPerPage}
-        onPageChange={handlePageChange}
-        onItemsPerPageChange={handleItemsPerPageChange}
-      />
+        <OrdersPagination
+          currentPage={currentPage}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
+      </div>
 
       <OrderDetailsDialog
         isOpen={isDetailsOpen}
         onClose={() => setIsDetailsOpen(false)}
         order={selectedOrder}
+      />
+
+      <UpdateOrderStatusDialog
+        open={isUpdateStatusOpen}
+        onOpenChange={setIsUpdateStatusOpen}
+        orderId={editingOrderId}
+        currentStatus={editingOrderCurrentStatus}
+        onStatusUpdated={handleStatusUpdated}
       />
     </div>
   );

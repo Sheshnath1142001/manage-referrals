@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -45,16 +45,17 @@ export function StaffForm({ onSubmit, formData, setFormData, isSubmitting, handl
 
   // Fetch user roles
   const { data: rolesData, isLoading: isLoadingRoles } = useQuery({
-    queryKey: ["userRoles"],
+    queryKey: ["roles-data-user-roles"],
     queryFn: async () => {
       const response = await getUserRoles({ with_pre_defines: 1 });
+      console.log({  response})
       console.log("User roles response:", response);
       return response;
     },
   });
 
   // Access user roles data safely
-  const userRoles = rolesData?.user_roles || [];
+  const userRoles = useMemo(() => rolesData?.user_roles || [], [rolesData]);
   console.log("User roles:", userRoles);
   console.log("Current roleId:", formData.roleId);
 
@@ -74,7 +75,7 @@ export function StaffForm({ onSubmit, formData, setFormData, isSubmitting, handl
 
         <div className="space-y-2">
           <Label htmlFor="type">User Type*</Label>
-          <Select
+          {!isLoadingRoles && Boolean(userRoles.length) && <Select
             value={formData.roleId ? formData.roleId.toString() : undefined}
             onValueChange={(value) => {
               const roleId = parseInt(value);
@@ -100,7 +101,7 @@ export function StaffForm({ onSubmit, formData, setFormData, isSubmitting, handl
                 </SelectItem>
               ))}
             </SelectContent>
-          </Select>
+          </Select>}
         </div>
 
         <div className="space-y-2">

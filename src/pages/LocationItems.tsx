@@ -1094,6 +1094,7 @@ const LocationItems = () => {
               <TableHead className="text-white font-semibold">ID</TableHead>
               <TableHead className="text-white font-semibold">Name</TableHead>
               <TableHead className="text-white font-semibold">Category</TableHead>
+              <TableHead className="text-white font-semibold">Tags</TableHead>
               <TableHead className="text-white font-semibold">Price</TableHead>
               <TableHead className="text-white font-semibold">Online Price</TableHead>
               <TableHead className="text-white font-semibold">Online</TableHead>
@@ -1133,6 +1134,11 @@ const LocationItems = () => {
                   <TableCell>{item.id}</TableCell>
                   <TableCell>{item.products?.name}</TableCell>
                   <TableCell>{item.products?.categories?.category}</TableCell>
+                  <TableCell>
+                    {
+                      item.restaurant_product_tags.map(tags => tags.tag).join(', ')
+                    }
+                  </TableCell>
                   <TableCell>{formatPrice(item.price)}</TableCell>
                   <TableCell>{formatPrice(item.online_price)}</TableCell>
                   <TableCell>

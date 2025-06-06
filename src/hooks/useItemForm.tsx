@@ -1,9 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { Item, ItemFormData } from "@/components/items/types";
 import axios from "axios";
-import { useQuery } from "@tanstack/react-query";
-import { getRestaurants } from "@/services/api/restaurants";
 
 const defaultFormData: ItemFormData = {
   name: "",
@@ -13,8 +10,8 @@ const defaultFormData: ItemFormData = {
   barcode: "",
   price: "",
   online_price: "",
-  locations: [], // Changed from ["All Locations"] to empty array
-  discount_type_id: 0,
+  locations: ["All Locations"],
+  discount_type_id: 0, // Updated from discount_type to discount_type_id
   discount: "",
   online_discount: "",
   description: "",
@@ -29,25 +26,6 @@ export function useItemForm() {
   const [isViewMode, setIsViewMode] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [formData, setFormData] = useState<ItemFormData>(defaultFormData);
-
-  // Fetch restaurants data
-  const { data: restaurantsResponse } = useQuery({
-    queryKey: ['restaurants'],
-    queryFn: () => getRestaurants({ per_page: 100 }),
-    enabled: true,
-  });
-
-  const restaurants = restaurantsResponse?.data?.data || [];
-
-  // Set first restaurant as default when dialog opens for new item
-  useEffect(() => {
-    if (isItemDialogOpen && !editingItem && restaurants.length > 0) {
-      setFormData(prev => ({
-        ...prev,
-        locations: [restaurants[0].id.toString()] // Set first restaurant ID as default
-      }));
-    }
-  }, [isItemDialogOpen, editingItem, restaurants]);
 
   const updateFormField = (field: string, value: any) => {
     setFormData(prev => ({
@@ -149,7 +127,6 @@ export function useItemForm() {
     formData,
     updateFormField,
     resetForm,
-    handleItemAction,
-    restaurants
+    handleItemAction
   };
 }

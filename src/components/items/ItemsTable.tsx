@@ -54,6 +54,7 @@ export const ItemsTable = ({
   updateBulkStatus,
   onBulkEdit,
 }: ItemsTableProps) => {
+  console.log({  items })
   const columns: Column[] = [
     {
       name: "id",
@@ -159,7 +160,6 @@ export const ItemsTable = ({
   const handleSelectAllChange = (checked: boolean) => {
     toggleSelectAll(checked);
   };
-
   return (
     <div className="space-y-4">
       {selectedItems.length > 0 && (

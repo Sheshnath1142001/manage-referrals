@@ -1,19 +1,24 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { TablePagination } from "@/components/ui/table";
 import { customersApi } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { CustomerHeader } from "@/components/customers/CustomerHeader";
 import { CustomerFilters } from "@/components/customers/CustomerFilters";
 import { CustomerTable } from "@/components/customers/CustomerTable";
+import { CustomerDialog } from "@/components/customers/CustomerDialog";
 import { Customer } from "@/services/api/customers";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Plus, RefreshCw } from "lucide-react";
 
+const apiBaseUrl = import.meta.env.API_BASE_URL || 'https://pratham-respos-testbe-v34.achyutlabs.cloud/api';
+
 const Customers = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  
   const [filters, setFilters] = useState({
     email: "",
     phone: "",
@@ -21,17 +26,164 @@ const Customers = () => {
   });
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  
+  // Dialog states
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [customerAddress, setCustomerAddress] = useState(null);
 
   // Fetch customers with filters
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["customers", page, pageSize, filters],
     queryFn: () => customersApi.getCustomers({
       email: filters.email,
-      phone: filters.phone,
+      phone_no: filters.phone,
       status: filters.status === "all" ? undefined : filters.status,
       page,
       per_page: pageSize
     }),
+  });
+
+  // Fetch customer address when needed
+  const { data: address } = useQuery({
+    queryKey: ["customer-address", selectedCustomer?.id],
+    queryFn: () => customersApi.getCustomerAddress(selectedCustomer!.id),
+    enabled: !!selectedCustomer?.id && selectedCustomer.id !== 'new',
+  });
+
+  // Get auth token from localStorage
+  const getAuthToken = (): string | null => {
+    try {
+      const adminData = localStorage.getItem('Admin');
+      if (adminData) {
+        const admin = JSON.parse(adminData);
+        return admin?.token || null;
+      }
+    } catch (error) {
+      console.error('Error getting auth token:', error);
+    }
+    return null;
+  };
+
+  // Fetch customer groups
+  const { data: customerGroups } = useQuery({
+    queryKey: ["customer-groups"],
+    queryFn: async () => {
+      const token = getAuthToken();
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+      
+      const response = await fetch(`${apiBaseUrl}/v2/customer-groups`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch customer groups: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      return result.data.data.map((group: any) => ({
+        label: group.name,
+        value: group.id.toString(),
+      }));
+    },
+  });
+
+  // Create/Update customer mutation
+  const customerMutation = useMutation({
+    mutationFn: async (data: any) => {
+      console.log('Customer mutation data:', data); // Debug log
+      const isNewCustomer = selectedCustomer?.id === 'new';
+      
+      if (isNewCustomer) {
+        // Create new customer
+        const newCustomerResponse = await customersApi.createCustomer({
+          name: data.name,
+          email: data.email,
+          phone_no: data.phone_no,
+          country_code: data.country_code,
+          status: data.status,
+          role_id: 3, // Default to Customer role
+          customer_groups: data.customer_groups,
+        });
+
+        // Extract customer ID from response
+        const newCustomerId = newCustomerResponse?.id;
+
+        // If address details are provided, create address for the new customer
+        if (newCustomerId && (data.street_name || data.city || data.postcode || data.unit_number)) {
+          await customersApi.createCustomerAddress({
+            unit_number: data.unit_number || '',
+            street_name: data.street_name || '',
+            postcode: data.postcode || '',
+            city: data.city || '',
+            province: data.province || '',
+            country: data.country || '',
+            module_id: parseInt(newCustomerId),
+            module_type: 6,
+          });
+        }
+      } else {
+        // Update existing customer
+        await customersApi.updateCustomer(selectedCustomer!.id, {
+          name: data.name,
+          email: data.email,
+          phone_no: data.phone_no,
+          country_code: data.country_code,
+          status: data.status,
+          customer_groups: data.customer_groups, // This will be converted to customer_group_ids in the API function
+        });
+
+        // Update or create address if provided
+        const hasAddress = Array.isArray(address) && address.length > 0;
+        if (hasAddress) {
+          await customersApi.updateCustomerAddress(address[0].id, {
+            unit_number: data.unit_number,
+            street_name: data.street_name,
+            postcode: data.postcode,
+            city: data.city,
+            province: data.province,
+            country: data.country,
+            module_id: selectedCustomer!.id, // Pass the customer ID as module_id
+          });
+        } else if (data.street_name || data.city || data.postcode) {
+          await customersApi.createCustomerAddress({
+            unit_number: data.unit_number || '',
+            street_name: data.street_name || '',
+            postcode: data.postcode || '',
+            city: data.city || '',
+            province: data.province || '',
+            country: data.country || '',
+            module_id: parseInt(selectedCustomer!.id),
+            module_type: 6,
+          });
+        }
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: selectedCustomer?.id === 'new' ? "Customer created successfully" : "Customer updated successfully",
+      });
+      setIsEditDialogOpen(false);
+      setIsAddDialogOpen(false);
+      setSelectedCustomer(null);
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to ${selectedCustomer?.id === 'new' ? 'create' : 'update'} customer. Please try again.`,
+        variant: "destructive",
+      });
+    },
   });
 
   // Extract customer data and total safely
@@ -61,20 +213,34 @@ const Customers = () => {
   };
 
   const handleAddCustomer = () => {
-    navigate("/customers/new");
+    setSelectedCustomer({
+      id: 'new',
+      name: '',
+      email: '',
+      phone_no: '',
+      country_code: null,
+      role_id: 4,
+      roles: { id: 4, role: 'Customer' },
+      username: '',
+      status: 1,
+      customer_groups: []
+    });
+    setIsAddDialogOpen(true);
   };
 
   const handleViewCustomer = (customerId: string) => {
-    navigate(`/customers/${customerId}`);
+    const customer = customers.find(c => c.id === customerId);
+    if (customer) {
+      setSelectedCustomer(customer);
+      setIsViewDialogOpen(true);
+    }
   };
 
   const handleEditCustomer = (customerId: string) => {
-    // Find the customer data from the current list
-    const customerToEdit = customers.find(customer => customer.id === customerId);
-    
-    if (customerToEdit) {
-      // Pass the customer data as state when navigating
-      navigate(`/customers/${customerId}/edit`, { state: { customerData: customerToEdit } });
+    const customer = customers.find(c => c.id === customerId);
+    if (customer) {
+      setSelectedCustomer(customer);
+      setIsEditDialogOpen(true);
     } else {
       toast({
         title: "Error",
@@ -131,6 +297,37 @@ const Customers = () => {
           }}
         />
       </div>
+
+      {/* View Customer Dialog */}
+      <CustomerDialog
+        open={isViewDialogOpen}
+        onOpenChange={setIsViewDialogOpen}
+        customer={selectedCustomer || undefined}
+        address={address?.[0]}
+        customerGroups={customerGroups}
+        isViewMode={true}
+      />
+
+      {/* Edit Customer Dialog */}
+      <CustomerDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        customer={selectedCustomer || undefined}
+        address={address?.[0]}
+        customerGroups={customerGroups}
+        isLoading={customerMutation.isPending}
+        onSubmit={(data) => customerMutation.mutate(data)}
+      />
+
+      {/* Add Customer Dialog */}
+      <CustomerDialog
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        customer={selectedCustomer || undefined}
+        customerGroups={customerGroups}
+        isLoading={customerMutation.isPending}
+        onSubmit={(data) => customerMutation.mutate(data)}
+      />
     </div>
   );
 };

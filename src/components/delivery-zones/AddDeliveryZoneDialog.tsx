@@ -83,14 +83,10 @@ export function DeliveryZoneFormDialog({ open, onOpenChange, mode, initialData, 
     }
   }, [restaurants, restaurantId]);
 
-  // For debugging - monitor postcodeOptions changes
-  useEffect(() => {
-    console.log("Current postcodeOptions:", postcodeOptions);
-  }, [postcodeOptions]);
   
   // Debounce postcode input
   useEffect(() => {
-    if (zoneType !== 'area' || !postcodeInput || postcodeInput.length < 2) {
+    if (zoneType !== 'area' || !postcodeInput) {
       return;
     }
     
@@ -108,19 +104,24 @@ export function DeliveryZoneFormDialog({ open, onOpenChange, mode, initialData, 
             let validPostcodes = [];
             
             // Direct response structure: { success: true, data: [...] }
-            if (res?.data?.success && Array.isArray(res.data.data)) {
-              validPostcodes = res.data.data;
-              console.log("Case 1: Direct data array access");
-            } 
+            if (res?.success && Array.isArray(res.data)) {
+              validPostcodes = res.data;
+              console.log("Case 1: Direct response with success and data array");
+            }
             // Axios wrapper: { data: { success: true, data: [...] } }
-            else if (res && res.data && res.data.success && Array.isArray(res.data.data)) {
+            else if (res?.data?.success && Array.isArray(res.data.data)) {
               validPostcodes = res.data.data;
-              console.log("Case 2: Nested data.data array access");
+              console.log("Case 2: Axios wrapped response");
             }
             // Raw array: [...]
             else if (Array.isArray(res)) {
               validPostcodes = res;
               console.log("Case 3: Raw array access");
+            }
+            // Check if data is nested in different structure
+            else if (res?.data && Array.isArray(res.data)) {
+              validPostcodes = res.data;
+              console.log("Case 4: Direct data array access");
             }
             // Unknown format
             else {

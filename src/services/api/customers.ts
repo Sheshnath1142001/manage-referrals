@@ -1,4 +1,3 @@
-
 import { api, PaginatedResponse } from './client';
 
 export interface Customer {
@@ -64,7 +63,7 @@ export const customersApi = {
     per_page?: number;
     status?: string | number;
     email?: string;
-    phone?: string;
+    phone_no?: string;
   }): Promise<CustomerResponse> => {
     try {
       const response = await api.get<CustomerResponse>('/customers', { 
@@ -100,14 +99,69 @@ export const customersApi = {
     return response as unknown as CustomerAddress[];
   },
   
-  createCustomer: (data: Partial<Omit<Customer, 'id'>>) => 
-    api.post<Customer>('/customers', data),
+  createCustomer: async (data: any) => {
+    try {
+      // Format data for customer creation using /v2/users/admin endpoint
+      const createData = {
+        name: data.name,
+        email: data.email,
+        phone_no: data.phone_no,
+        country_code: data.country_code?.replace('+', ''), // Remove + from country code
+        status: data.status ? 1 : 0,
+        role_id: data.role_id || 3, // Default to role_id 3 (Customer)
+        customer_group_ids: data.customer_groups?.map((id: string) => parseInt(id)) || [] // Convert to array of numbers
+      };
+      
+      console.log('Creating customer with data:', createData); // Debug log
+      
+      const response = await api.post('/v2/users/admin', createData);
+      
+      console.log('Create customer response:', response); // Debug log
+      
+      // Handle the response structure from the API
+      if ('data' in response) {
+        return response.data.user || response.data;
+      }
+      return response.user || response;
+    } catch (error) {
+      console.error('Error creating customer:', error);
+      throw error;
+    }
+  },
   
-  updateCustomer: (id: string, data: Partial<Omit<Customer, 'id'>>) => 
-    api.put<Customer>(`/customers/${id}`, data),
+  updateCustomer: async (id: string, data: any) => {
+    // Use the correct endpoint from curl: /v2/users/admin/{id}
+    const updateData = {
+      name: data.name,
+      email: data.email,
+      phone_no: data.phone_no,
+      country_code: data.country_code?.replace('+', ''), // Remove + from country code
+      status: data.status ? 1 : 0,
+      role_id: data.role_id || 3, // Default to role_id 3 (Customer)
+      customer_group_ids: data.customer_groups?.map((id: string) => parseInt(id)) || [] // Convert to array of numbers
+    };
+    
+    return api.put(`/v2/users/admin/${id}`, updateData);
+  },
   
-  updateCustomerAddress: (id: string, data: Partial<CustomerAddress>) =>
-    api.put<CustomerAddress>(`/address/${id}`, data),
+  updateCustomerAddress: async (id: string, data: Partial<CustomerAddress> & { module_id?: string }) => {
+    // Use the correct endpoint from curl: /update-address/{id}
+    const updateData = {
+      street_name: data.street_name,
+      city: data.city,
+      province: data.province,
+      country: data.country,
+      unit_number: data.unit_number,
+      latitude: data.latitude || "00",
+      longitude: data.longitude || "00", 
+      postcode: data.postcode,
+      phone: data.phone || null,
+      module_type: 6,
+      module_id: data.module_id || data.module_id?.toString()
+    };
+    
+    return api.put(`/update-address/${id}`, updateData);
+  },
   
   createCustomerAddress: (data: Partial<CustomerAddress>) =>
     api.post<CustomerAddress>('/address', data),

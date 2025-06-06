@@ -351,7 +351,7 @@ export function AddEditDealDialog({ open, onOpenChange, restaurantId, deal, onSu
                       <FormItem>
                         <FormLabel>Location</FormLabel>
                         <Select
-                          value={field.value?.toString()}
+                          value={(field.value ? field.value: restaurantId)?.toString()}
                           onValueChange={(value) => field.onChange(Number(value))}
                           disabled={viewOnly}
                         >

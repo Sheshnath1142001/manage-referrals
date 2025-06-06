@@ -42,6 +42,11 @@ export function CustomerTable({ customers, isLoading, isError, onView, onEdit }:
     }
   };
 
+  const formatGroups = (groups: any[]) => {
+    if (!groups || groups.length === 0) return '-';
+    return groups.map(group => group.name || group).join(', ');
+  };
+
   return (
     <div className="rounded-md border">
       <Table>
@@ -49,10 +54,9 @@ export function CustomerTable({ customers, isLoading, isError, onView, onEdit }:
           <TableRow className="bg-primary hover:bg-primary rounded-t-md">
             <TableHead className="text-primary-foreground first:rounded-tl-md">ID</TableHead>
             <TableHead className="text-primary-foreground">Name</TableHead>
-            <TableHead className="text-primary-foreground">Username</TableHead>
             <TableHead className="text-primary-foreground">Email</TableHead>
             <TableHead className="text-primary-foreground">Phone</TableHead>
-            <TableHead className="text-primary-foreground">Role</TableHead>
+            <TableHead className="text-primary-foreground">Groups</TableHead>
             <TableHead className="text-primary-foreground">Status</TableHead>
             <TableHead className="text-primary-foreground last:rounded-tr-md">Actions</TableHead>
           </TableRow>
@@ -60,19 +64,19 @@ export function CustomerTable({ customers, isLoading, isError, onView, onEdit }:
         <TableBody>
           {isLoading ? (
             <TableRow>
-              <TableCell colSpan={8} className="text-center py-10">
+              <TableCell colSpan={7} className="text-center py-10">
                 Loading customer data...
               </TableCell>
             </TableRow>
           ) : isError ? (
             <TableRow>
-              <TableCell colSpan={8} className="text-center py-10 text-red-500">
+              <TableCell colSpan={7} className="text-center py-10 text-red-500">
                 Error loading customer data. Please try again.
               </TableCell>
             </TableRow>
           ) : customers.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={8} className="text-center py-10">
+              <TableCell colSpan={7} className="text-center py-10">
                 No customers found.
               </TableCell>
             </TableRow>
@@ -81,14 +85,13 @@ export function CustomerTable({ customers, isLoading, isError, onView, onEdit }:
               <TableRow key={customer.id} className="hover:bg-secondary/20">
                 <TableCell>{customer.id}</TableCell>
                 <TableCell>{customer.name}</TableCell>
-                <TableCell>{customer.username}</TableCell>
                 <TableCell>{customer.email}</TableCell>
                 <TableCell>
                   {customer.country_code && customer.phone_no 
                     ? `${customer.country_code} ${customer.phone_no}`
                     : customer.phone_no || '-'}
                 </TableCell>
-                <TableCell>{customer.roles.role}</TableCell>
+                <TableCell>{formatGroups(customer.customer_groups)}</TableCell>
                 <TableCell>
                   <Badge 
                     variant="default"

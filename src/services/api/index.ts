@@ -5,6 +5,7 @@ export * from './users';
 export * from './locationItems';
 export * from './auth';
 export * from './restaurants';
+export * from './restaurantSettings';
 export * from './userRoles';
 export * from './customers';
 export * from './categories';

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { X, Upload, Trash, Loader2, Trash2 } from "lucide-react";
 import {
   Select,
@@ -23,7 +24,7 @@ interface Location {
   owner: string;
   status: "Active" | "Inactive";
   receiverEmail: string;
-  serviceType: string;
+  serviceType: string | string[];
   phone: string;
   // Additional fields based on the image
   unitNumber?: string;
@@ -58,19 +59,19 @@ const AddEditLocationDialog = ({
 }: AddEditLocationDialogProps) => {
   const [formData, setFormData] = useState<Omit<Location, "id">>({
     name: "",
-    locationType: "",
+    locationType: "OUTLET",
     type: "",
     owner: "",
     status: "Active",
     receiverEmail: "",
-    serviceType: "",
+    serviceType: [],
     phone: "",
     unitNumber: "",
     streetName: "",
     postcode: "",
     city: "",
     province: "",
-    country: "",
+    country: "Australia",
     latitude: "",
     longitude: "",
     alternatePhone: "",
@@ -92,8 +93,26 @@ const AddEditLocationDialog = ({
   const [timingDetails, setTimingDetails] = useState<any[]>([]);
   const [isLoadingTiming, setIsLoadingTiming] = useState(false);
   
+  // Available service types
+  const serviceTypes = [
+    { id: "1", name: "Dine In" },
+    { id: "2", name: "Takeaway" },
+    { id: "3", name: "Delivery" }
+  ];
+  
   useEffect(() => {
     if (initialData) {
+      // Parse service types from initialData
+      let parsedServiceTypes: string[] = [];
+      
+      if (typeof initialData.serviceType === 'string') {
+        // If it's a comma-separated string, split it
+        parsedServiceTypes = initialData.serviceType.split(', ').map(s => s.trim());
+      } else if (Array.isArray(initialData.serviceType)) {
+        // If it's already an array, use it
+        parsedServiceTypes = initialData.serviceType;
+      }
+      
       setFormData({
         name: initialData.name || "",
         locationType: initialData.locationType || "OUTLET",
@@ -101,14 +120,14 @@ const AddEditLocationDialog = ({
         owner: initialData.owner || "",
         status: initialData.status || "Active",
         receiverEmail: initialData.receiverEmail || "",
-        serviceType: initialData.serviceType || "Delivery, Dine In, Takeaway",
+        serviceType: parsedServiceTypes,
         phone: initialData.phone || "",
         unitNumber: initialData.unitNumber || "",
         streetName: initialData.streetName || "",
         postcode: initialData.postcode || "",
         city: initialData.city || "",
         province: initialData.province || "",
-        country: initialData.country || "",
+        country: initialData.country || "Australia",
         latitude: initialData.latitude || "",
         longitude: initialData.longitude || "",
         alternatePhone: initialData.alternatePhone || "",
@@ -120,19 +139,19 @@ const AddEditLocationDialog = ({
     } else {
       setFormData({
         name: "",
-        locationType: "",
+        locationType: "OUTLET",
         type: "",
         owner: "",
         status: "Active",
         receiverEmail: "",
-        serviceType: "",
+        serviceType: [],
         phone: "",
         unitNumber: "",
         streetName: "",
         postcode: "",
         city: "",
         province: "",
-        country: "",
+        country: "Australia",
         latitude: "",
         longitude: "",
         alternatePhone: "",
@@ -180,6 +199,16 @@ const AddEditLocationDialog = ({
           const addressData = await addressResponse.json();
           if (Array.isArray(addressData) && addressData.length > 0) {
             const addr = addressData[0];
+            
+            // Parse service types from initialData
+            let parsedServiceTypes: string[] = [];
+            
+            if (typeof initialData.serviceType === 'string') {
+              parsedServiceTypes = initialData.serviceType.split(', ').map(s => s.trim());
+            } else if (Array.isArray(initialData.serviceType)) {
+              parsedServiceTypes = initialData.serviceType;
+            }
+            
             setFormData(prev => ({
               ...prev,
               // Location details from initialData
@@ -189,7 +218,7 @@ const AddEditLocationDialog = ({
               owner: initialData.owner || '',
               status: initialData.status || 'Active',
               receiverEmail: initialData.receiverEmail || '',
-              serviceType: initialData.serviceType || 'Delivery, Dine In, Takeaway',
+              serviceType: parsedServiceTypes,
               email: initialData.receiverEmail || '',
               // Address details
               unitNumber: addr.unit_number || '',
@@ -197,7 +226,7 @@ const AddEditLocationDialog = ({
               postcode: addr.postcode || '',
               city: addr.city || '',
               province: addr.province || '',
-              country: addr.country || '',
+              country: addr.country || 'Australia',
               latitude: addr.latitude || '',
               longitude: addr.longitude || '',
               phone: addr.phone || '',
@@ -205,6 +234,14 @@ const AddEditLocationDialog = ({
             }));
           } else {
             // If no address data, still set the location details
+            let parsedServiceTypes: string[] = [];
+            
+            if (typeof initialData.serviceType === 'string') {
+              parsedServiceTypes = initialData.serviceType.split(', ').map(s => s.trim());
+            } else if (Array.isArray(initialData.serviceType)) {
+              parsedServiceTypes = initialData.serviceType;
+            }
+            
             setFormData(prev => ({
               ...prev,
               name: initialData.name || '',
@@ -213,7 +250,7 @@ const AddEditLocationDialog = ({
               owner: initialData.owner || '',
               status: initialData.status || 'Active',
               receiverEmail: initialData.receiverEmail || '',
-              serviceType: initialData.serviceType || 'Delivery, Dine In, Takeaway',
+              serviceType: parsedServiceTypes,
               email: initialData.receiverEmail || ''
             }));
           }
@@ -266,7 +303,7 @@ const AddEditLocationDialog = ({
         owner: "",
         status: "Active",
         receiverEmail: "",
-        serviceType: "",
+        serviceType: [],
         phone: "",
         unitNumber: "",
         streetName: "",
@@ -339,6 +376,33 @@ const AddEditLocationDialog = ({
       ...prev,
       [field]: value
     }));
+  };
+  
+  // Add new function to handle service type changes
+  const handleServiceTypeChange = (serviceTypeName: string, checked: boolean) => {
+    if (viewOnly) return;
+    
+    setFormData(prev => {
+      const currentServiceTypes = Array.isArray(prev.serviceType) ? prev.serviceType : [];
+      
+      if (checked) {
+        // Add service type if not already present
+        if (!currentServiceTypes.includes(serviceTypeName)) {
+          return {
+            ...prev,
+            serviceType: [...currentServiceTypes, serviceTypeName]
+          };
+        }
+      } else {
+        // Remove service type
+        return {
+          ...prev,
+          serviceType: currentServiceTypes.filter(type => type !== serviceTypeName)
+        };
+      }
+      
+      return prev;
+    });
   };
   
   const handleStatusChange = (checked: boolean) => {
@@ -443,7 +507,8 @@ const AddEditLocationDialog = ({
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    formData.locationType = 'OUTLET';
+
     if (viewOnly) {
       onOpenChange(false);
       return;
@@ -467,10 +532,10 @@ const AddEditLocationDialog = ({
       return;
     }
     
-    if (!formData.serviceType) {
+    if (!Array.isArray(formData.serviceType) || formData.serviceType.length === 0) {
       toast({
         title: "Error",
-        description: "Service Type is required",
+        description: "At least one service type is required",
         variant: "destructive"
       });
       return;
@@ -488,10 +553,11 @@ const AddEditLocationDialog = ({
     const locationData: Location & { selectedFile?: File } = {
       id: initialData?.id || 0,
       ...formData,
+      serviceType: Array.isArray(formData.serviceType) ? formData.serviceType.join(", ") : formData.serviceType,
       receiverEmail: formData.receiverEmail || formData.email || "",
       selectedFile: selectedFile || undefined
     };
-    
+    console.log({ locationData })
     setIsSubmitting(true);
     try {
       await onSubmit(locationData);
@@ -517,6 +583,14 @@ const AddEditLocationDialog = ({
     if (viewOnly) return; // Prevent changes in view mode
     
     if (initialData) {
+      let parsedServiceTypes: string[] = [];
+      
+      if (typeof initialData.serviceType === 'string') {
+        parsedServiceTypes = initialData.serviceType.split(', ').map(s => s.trim());
+      } else if (Array.isArray(initialData.serviceType)) {
+        parsedServiceTypes = initialData.serviceType;
+      }
+      
       setFormData({
         name: initialData.name,
         locationType: initialData.locationType,
@@ -524,7 +598,7 @@ const AddEditLocationDialog = ({
         owner: initialData.owner,
         status: initialData.status,
         receiverEmail: initialData.receiverEmail,
-        serviceType: initialData.serviceType,
+        serviceType: parsedServiceTypes,
         phone: initialData.phone,
         unitNumber: initialData.unitNumber || "",
         streetName: initialData.streetName || "",
@@ -548,7 +622,7 @@ const AddEditLocationDialog = ({
         owner: "",
         status: "Active",
         receiverEmail: "",
-        serviceType: "",
+        serviceType: [],
         phone: "",
         unitNumber: "",
         streetName: "",
@@ -748,7 +822,7 @@ const AddEditLocationDialog = ({
             <div className="space-y-2">
               <Label htmlFor="locationType" className="text-gray-700">Location Type*</Label>
               <Select 
-                value={formData.locationType} 
+                value={formData.locationType || 'OUTLET'} 
                 onValueChange={(value) => handleChange("locationType", value)}
                 disabled={viewOnly}
               >
@@ -762,22 +836,38 @@ const AddEditLocationDialog = ({
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="serviceType" className="text-gray-700">Service Type*</Label>
-              <Select 
-                value={formData.serviceType} 
-                onValueChange={(value) => handleChange("serviceType", value)}
-                disabled={viewOnly}
-              >
-                <SelectTrigger id="serviceType" className="border-gray-300">
-                  <SelectValue placeholder="Select service type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Delivery, Dine In, Takeaway">Delivery, Dine In, Takeaway</SelectItem>
-                  <SelectItem value="Dine In">Dine-in</SelectItem>
-                  <SelectItem value="Takeaway">Takeaway</SelectItem>
-                  <SelectItem value="Delivery">Delivery</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label className="text-gray-700">Service Type*</Label>
+              <div className="space-y-3 border border-gray-300 rounded-md p-3">
+                {serviceTypes.map((serviceType) => {
+                  const isChecked = Array.isArray(formData.serviceType) 
+                    ? formData.serviceType.includes(serviceType.name)
+                    : false;
+                  
+                  return (
+                    <div key={serviceType.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`service-${serviceType.id}`}
+                        checked={isChecked}
+                        onCheckedChange={(checked) => 
+                          handleServiceTypeChange(serviceType.name, checked as boolean)
+                        }
+                        disabled={viewOnly}
+                      />
+                      <Label 
+                        htmlFor={`service-${serviceType.id}`} 
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        {serviceType.name}
+                      </Label>
+                    </div>
+                  );
+                })}
+              </div>
+              {Array.isArray(formData.serviceType) && formData.serviceType.length > 0 && (
+                <p className="text-xs text-gray-500">
+                  Selected: {formData.serviceType.join(", ")}
+                </p>
+              )}
             </div>
             
             <div className="space-y-4">
@@ -852,7 +942,7 @@ const AddEditLocationDialog = ({
                   <Label htmlFor="country" className="text-gray-700">Country*</Label>
                   <Input
                     id="country"
-                    value={formData.country}
+                    value={formData.country || 'Australia'}
                     onChange={(e) => handleChange("country", e.target.value)}
                     placeholder="e.g., Australia"
                     className="border-gray-300"
@@ -998,7 +1088,7 @@ const AddEditLocationDialog = ({
               </div>
             </div>
             
-            <div className="space-y-4">
+            {/* <div className="space-y-4">
               <h3 className="font-medium text-gray-700">Timing Details</h3>
               {isLoadingTiming ? (
                 <div className="flex items-center justify-center p-4">
@@ -1021,7 +1111,7 @@ const AddEditLocationDialog = ({
                   ))}
                 </div>
               )}
-            </div>
+            </div> */}
             
             <div className="flex items-center gap-2">
               <Label className="text-gray-700">Status</Label>

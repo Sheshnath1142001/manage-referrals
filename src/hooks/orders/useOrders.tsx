@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { staffApi } from "@/services/api/staff";
+import { format } from "date-fns";
 
 interface OrderFilters {
   platform: string;
@@ -9,6 +10,9 @@ interface OrderFilters {
   attendant: string;
   location: string;
   status: string;
+  startDate: Date | undefined;
+  endDate: Date | undefined;
+  searchTerm: string;
 }
 
 const apiBaseUrl = import.meta.env.API_BASE_URL || 'https://pratham-respos-testbe-v34.achyutlabs.cloud/api';
@@ -27,6 +31,9 @@ export const useOrders = () => {
     attendant: "all",
     location: "all",
     status: "all",
+    startDate: undefined,
+    endDate: undefined,
+    searchTerm: "",
   });
 
   // State for filter options
@@ -100,10 +107,25 @@ export const useOrders = () => {
         throw new Error('No authentication data found');
       }
       const { token } = JSON.parse(adminData);
-      const offset = (currentPage - 1) * itemsPerPage;
+      const offset = itemsPerPage === -1 ? 0 : (currentPage - 1) * itemsPerPage;
+      const limit = itemsPerPage === -1 ? 100000 : itemsPerPage; // Use a large number for "All"
       const apiUrl = new URL(`${apiBaseUrl}/v2/orders`);
       apiUrl.searchParams.append('offset', offset.toString());
-      apiUrl.searchParams.append('limit', itemsPerPage.toString());
+      apiUrl.searchParams.append('limit', limit.toString());
+      
+      // Add date range filters
+      if (filters.startDate) {
+        apiUrl.searchParams.append('start_date', format(filters.startDate, 'dd-MM-yyyy'));
+      }
+      if (filters.endDate) {
+        apiUrl.searchParams.append('end_date', format(filters.endDate, 'dd-MM-yyyy'));
+      }
+      
+      // Add search term
+      if (filters.searchTerm) {
+        apiUrl.searchParams.append('search_term', filters.searchTerm);
+      }
+
       // Map frontend filter keys to backend API parameter names
       const filterKeyMap: Record<string, string> = {
         platform: 'platform_id',
@@ -114,7 +136,7 @@ export const useOrders = () => {
         status: 'status',
       };
       Object.entries(filters).forEach(([key, value]) => {
-        if (value !== "all" && filterKeyMap[key]) {
+        if (value !== "all" && filterKeyMap[key] && typeof value === 'string') {
           apiUrl.searchParams.append(filterKeyMap[key], value);
         }
       });
@@ -142,7 +164,20 @@ export const useOrders = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, itemsPerPage, filters, toast]);
+  }, [
+    currentPage, 
+    itemsPerPage, 
+    filters.platform,
+    filters.paymentMethod,
+    filters.orderType,
+    filters.attendant,
+    filters.location,
+    filters.status,
+    filters.startDate,
+    filters.endDate,
+    filters.searchTerm,
+    toast
+  ]);
 
   useEffect(() => {
     fetchFilterOptions();
@@ -157,12 +192,18 @@ export const useOrders = () => {
     setCurrentPage(1);
   };
 
+  const handleDateChange = (filterName: string, date: Date | undefined) => {
+    setFilters(prev => ({ ...prev, [filterName]: date }));
+    setCurrentPage(1);
+  };
+
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
 
   const handleItemsPerPageChange = (value: string) => {
-    setItemsPerPage(parseInt(value));
+    const newItemsPerPage = value === "-1" ? -1 : parseInt(value);
+    setItemsPerPage(newItemsPerPage);
     setCurrentPage(1);
   };
 
@@ -180,6 +221,7 @@ export const useOrders = () => {
     restaurants,
     staffMembers,
     handleFilterChange,
+    handleDateChange,
     handlePageChange,
     handleItemsPerPageChange,
     fetchOrders,

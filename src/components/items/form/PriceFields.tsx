@@ -46,7 +46,11 @@ export const PriceFields = ({
               min="0"
               step="0.01"
               value={formData.price}
-              onChange={(e) => updateFormField('price', e.target.value)}
+              onChange={(e) => {
+                const price = e.target.value;
+                updateFormField("price", price);
+                updateFormField("online_price", price); // mirror store price to online price
+              }}
               className="pl-7 border-gray-200 focus:border-primary focus:ring-primary"
               placeholder="0.00"
               disabled={isViewMode}

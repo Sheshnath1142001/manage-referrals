@@ -21,6 +21,14 @@ export const DescriptionSection = ({
   editingItem
 }: DescriptionSectionProps) => {
   const [isEditingImage, setIsEditingImage] = useState(false);
+  const maxDescriptionLength = 300;
+
+  const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    if (value.length <= maxDescriptionLength) {
+      updateFormField("description", value);
+    }
+  };
 
   return (
     <Card className="shadow-sm">
@@ -43,11 +51,16 @@ export const DescriptionSection = ({
             <Textarea
               id="description"
               value={formData.description}
-              onChange={(e) => updateFormField("description", e.target.value)}
+              onChange={handleDescriptionChange}
               disabled={isViewMode}
               placeholder={isViewMode ? "No description available" : "Enter item description"}
               className="min-h-[200px] resize-none border-gray-200 focus:border-primary focus:ring-primary"
             />
+            {!isViewMode && (
+              <p className={`text-xs mt-1 ${formData.description.length >= maxDescriptionLength ? "text-red-500" : "text-gray-500"}`}>
+                {formData.description.length}/{maxDescriptionLength} characters
+              </p>
+            )}
           </div>
           
           <div className="col-span-12 md:col-span-4 space-y-2">

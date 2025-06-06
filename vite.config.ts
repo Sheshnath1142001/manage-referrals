@@ -5,13 +5,11 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
-  // Load env variables
-  const env = loadEnv(mode, process.cwd());
+  const env = loadEnv(mode, process.cwd(), '');
   
-  // Set fallback values for required environment variables
-  const API_BASE_URL = env.API_BASE_URL || 'https://pratham-respos-testbe-v34.achyutlabs.cloud/api';
+  const API_BASE_URL = env.API_BASE_URL;
   const VERSION_NO = env.VERSION_NO || '3.4.0';
-  const BASE_URL = env.BASE_URL || 'https://pratham-respos-testbe-v34.achyutlabs.cloud';
+  const BASE_URL = env.BASE_URL;
   
   console.log('API_BASE_URL:', API_BASE_URL);
   console.log('VERSION_NO:', VERSION_NO);

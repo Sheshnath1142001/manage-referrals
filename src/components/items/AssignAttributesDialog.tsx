@@ -83,7 +83,8 @@ export const AssignAttributesDialog = ({
     isActive: true,
     isRequired: false
   });
-  const [addedAttributes, setAddedAttributes] = useState<AttributeConfig[]>([]);
+  const [existingAttributes, setExistingAttributes] = useState<AttributeConfig[]>([]);
+  const [newlyAddedAttributes, setNewlyAddedAttributes] = useState<AttributeConfig[]>([]);
   const queryClient = useQueryClient();
 
   // Fetch all available product attributes
@@ -98,7 +99,7 @@ export const AssignAttributesDialog = ({
         throw error;
       }
     },
-    enabled: open // Only fetch when dialog is open
+    enabled: open
   });
 
   // Fetch product-specific configuration options
@@ -110,28 +111,28 @@ export const AssignAttributesDialog = ({
         console.log(`Fetching config options for product ID: ${productId}`);
         const response = await api.get(`/v2/products/config-options?product_id=${productId}`);
         console.log('Config options API response:', response);
-        console.log('Config options data:', response?.data);
-        
-        // Log the actual response structure
-        if (response?.data) {
-          console.log('Response data type:', typeof response.data);
-          console.log('Response data is array:', Array.isArray(response.data));
-          if (Array.isArray(response.data) && response.data.length > 0) {
-            console.log('First item structure:', JSON.stringify(response.data[0], null, 2));
-          }
-        }
-        
-        return response?.data || [];
+        return response?.data || response || [];
+
+
+
+
+
+
+
+
+
+
+
       } catch (error) {
         console.error('Error fetching product config options:', error);
-        console.error('Error details:', error.response?.data);
-        console.error('Error status:', error.response?.status);
+
+
         throw error;
       }
     },
-    enabled: open && !!productId, // Only fetch when dialog is open and productId exists
-    retry: 1, // Only retry once
-    refetchOnWindowFocus: false, // Prevent unnecessary refetches
+    enabled: open && !!productId,
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 
   // Save attributes mutation
@@ -161,51 +162,56 @@ export const AssignAttributesDialog = ({
   // Load existing product configuration attributes when data is available
   useEffect(() => {
     console.log('Config options received:', configOptions);
-    console.log('Type of configOptions:', typeof configOptions);
-    console.log('Is configOptions an array?', Array.isArray(configOptions));
-    
+
+
+
     if (configOptions && Array.isArray(configOptions) && configOptions.length > 0) {
       console.log('Processing config options, length:', configOptions.length);
-      
-      const existingAttributes = configOptions.map((option: ProductConfigOption, index: number) => {
-        console.log(`Processing config option ${index}:`, JSON.stringify(option, null, 2));
-        
-        // Handle nested product_configuration_attributes
+
+      const existingAttrs = configOptions.map((option: ProductConfigOption) => {
+
+
+
         const configAttributes = option?.product_configuration_attributes;
-        console.log('Config attributes object:', configAttributes);
-        
+
+
         let attributeName = 'Unknown Attribute';
-        
+
         if (configAttributes && typeof configAttributes === 'object') {
           attributeName = configAttributes.name || 
                         configAttributes.display_name || 
                         'Unknown Attribute';
-          console.log('Extracted attribute name:', attributeName);
-        } else {
-          console.warn('product_configuration_attributes is missing or invalid:', configAttributes);
+
+
+
         }
-        
-        const mappedAttribute = {
+
+        const mappedAttribute: AttributeConfig = {
           attributeId: option.attribute_id.toString(),
           attributeName: attributeName,
           minSelections: option.min_selections.toString(),
           maxSelections: option.max_selections.toString(),
           isActive: option.status === 1,
-          isRequired: option.is_required === 1,
+          isRequired: option.is_required === 1
         };
-        
-        console.log(`Mapped attribute ${index}:`, mappedAttribute);
+
+
         return mappedAttribute;
       });
-      
-      console.log('All mapped existing attributes:', existingAttributes);
-      setAddedAttributes(existingAttributes);
+
+      console.log('All mapped existing attributes:', existingAttrs);
+      setExistingAttributes(existingAttrs);
+      // Clear newly added attributes when loading existing ones
+      setNewlyAddedAttributes([]);
     } else {
-      console.log('No config options found, empty array, or not array. Setting empty attributes.');
-      console.log('configOptions value:', configOptions);
-      setAddedAttributes([]);
+      console.log('No config options found');
+      setExistingAttributes([]);
+
     }
   }, [configOptions]);
+
+  // Combine existing and newly added attributes for display
+  const allAttributes = [...existingAttributes, ...newlyAddedAttributes];
 
   // Handle error states
   useEffect(() => {
@@ -216,7 +222,7 @@ export const AssignAttributesDialog = ({
         variant: "destructive"
       });
     }
-    
+
     if (configError) {
       toast({
         title: "Error",
@@ -226,11 +232,11 @@ export const AssignAttributesDialog = ({
     }
   }, [attributesError, configError]);
 
-  // Log productId for debugging
+
   useEffect(() => {
     if (open) {
       console.log("Dialog opened with productId:", productId);
-      // If no productId is provided, show a warning
+
       if (!productId) {
         console.warn("Warning: No productId provided to AssignAttributesDialog");
         toast({
@@ -243,7 +249,7 @@ export const AssignAttributesDialog = ({
   }, [open, productId]);
 
   const attributeOptions = attributesData?.filter(
-    (attr: Attribute) => !addedAttributes.some(added => added.attributeId === attr.id.toString())
+    (attr: Attribute) => !allAttributes.some(added => added.attributeId === attr.id.toString())
   ) || [];
 
   const handleAttributeSelect = (value: string) => {
@@ -263,7 +269,7 @@ export const AssignAttributesDialog = ({
 
   const handleAddAttribute = () => {
     if (currentConfig.attributeId) {
-      setAddedAttributes(prev => [...prev, currentConfig]);
+      setNewlyAddedAttributes(prev => [...prev, currentConfig]);
       setSelectedAttribute("");
       setCurrentConfig({
         attributeId: "",
@@ -277,23 +283,54 @@ export const AssignAttributesDialog = ({
   };
 
   const removeAttribute = (attributeId: string) => {
-    setAddedAttributes(prev => prev.filter(attr => attr.attributeId !== attributeId));
+    // Check if it's an existing attribute or newly added
+    const isExisting = existingAttributes.some(attr => attr.attributeId === attributeId);
+    
+    if (isExisting) {
+      // Remove from existing attributes
+      setExistingAttributes(prev => prev.filter(attr => attr.attributeId !== attributeId));
+    } else {
+      // Remove from newly added attributes
+      setNewlyAddedAttributes(prev => prev.filter(attr => attr.attributeId !== attributeId));
+    }
   };
 
   const toggleEditMode = (attributeId: string) => {
-    setAddedAttributes(prev => prev.map(attr => 
-      attr.attributeId === attributeId 
-        ? { ...attr, isEditing: !attr.isEditing }
-        : { ...attr, isEditing: false }
-    ));
+    // Check if it's an existing attribute or newly added
+    const isExisting = existingAttributes.some(attr => attr.attributeId === attributeId);
+    
+    if (isExisting) {
+      setExistingAttributes(prev => prev.map(attr => 
+        attr.attributeId === attributeId 
+          ? { ...attr, isEditing: !attr.isEditing }
+          : { ...attr, isEditing: false }
+      ));
+    } else {
+      setNewlyAddedAttributes(prev => prev.map(attr => 
+        attr.attributeId === attributeId 
+          ? { ...attr, isEditing: !attr.isEditing }
+          : { ...attr, isEditing: false }
+      ));
+    }
   };
 
   const updateAttribute = (attributeId: string, updates: Partial<AttributeConfig>) => {
-    setAddedAttributes(prev => prev.map(attr => 
-      attr.attributeId === attributeId 
-        ? { ...attr, ...updates }
-        : attr
-    ));
+    // Check if it's an existing attribute or newly added
+    const isExisting = existingAttributes.some(attr => attr.attributeId === attributeId);
+    
+    if (isExisting) {
+      setExistingAttributes(prev => prev.map(attr => 
+        attr.attributeId === attributeId 
+          ? { ...attr, ...updates }
+          : attr
+      ));
+    } else {
+      setNewlyAddedAttributes(prev => prev.map(attr => 
+        attr.attributeId === attributeId 
+          ? { ...attr, ...updates }
+          : attr
+      ));
+    }
   };
 
   const handleSubmit = () => {
@@ -308,40 +345,40 @@ export const AssignAttributesDialog = ({
 
     try {
       console.log("Submitting with productId:", productId);
-      
-      // Ensure productId is a number
+
+
       const productIdNumber = typeof productId === 'string' 
         ? parseInt(productId, 10) 
         : productId;
-      
+
       if (isNaN(productIdNumber)) {
         throw new Error(`Invalid product ID format: ${productId}`);
       }
-      
-      // Create payload
+
+      // Only send newly added attributes in payload
       const payload = {
         product_id: productIdNumber,
-        attributes: addedAttributes.map(attr => ({
+        attributes: newlyAddedAttributes.map(attr => ({
           attribute_id: parseInt(attr.attributeId),
           max_selections: parseInt(attr.maxSelections),
           min_selections: parseInt(attr.minSelections),
           is_required: attr.isRequired ? 1 : 0
         }))
       };
-  
-      console.log("Payload:", JSON.stringify(payload));
-      
-      // Check if there are attributes to save
+
+      console.log("Payload (only new attributes):", JSON.stringify(payload));
+
+
       if (payload.attributes.length === 0) {
         toast({
           title: "Warning",
-          description: "No attributes to save",
+          description: "No new attributes to save",
           variant: "destructive"
         });
         return;
       }
-      
-      // Submit the mutation
+
+
       saveAttributesMutation.mutate(payload);
     } catch (error) {
       console.error("Error preparing payload:", error);
@@ -357,7 +394,7 @@ export const AssignAttributesDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[600px]" hideCloseButton>
+      <DialogContent className="max-w-[700px]" hideCloseButton>
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-xl font-semibold">Assign Attributes</DialogTitle>
@@ -484,107 +521,146 @@ export const AssignAttributesDialog = ({
 
               <div className="border rounded-lg p-4">
                 <h3 className="text-lg font-semibold mb-4">Selected Attributes</h3>
-                <div className="space-y-2">
-                  {addedAttributes.map((attr) => (
-                    <div 
-                      key={attr.attributeId}
-                      className="flex flex-col p-4 border rounded-md bg-gray-50 space-y-3"
-                    >
-                      {attr.isEditing ? (
-                        <>
-                          <div className="flex items-center justify-between">
-                            <p className="font-medium">{attr.attributeName}</p>
-                            <div className="flex gap-2">
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => toggleEditMode(attr.attributeId)}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label>Minimum Selections</Label>
-                              <Input
-                                type="number"
-                                value={attr.minSelections}
-                                onChange={(e) => updateAttribute(attr.attributeId, {
-                                  minSelections: e.target.value
-                                })}
-                                min="0"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label>Maximum Selections</Label>
-                              <Input
-                                type="number"
-                                value={attr.maxSelections}
-                                onChange={(e) => updateAttribute(attr.attributeId, {
-                                  maxSelections: e.target.value
-                                })}
-                                min="1"
-                              />
-                            </div>
-                          </div>
+                <div className="space-y-3">
+                  {allAttributes.map((attr, index) => {
+                    const isExisting = existingAttributes.some(existingAttr => existingAttr.attributeId === attr.attributeId);
+                    return (
+                      <div 
+                        key={`${attr.attributeId}-${index}`}
+                        className={`border rounded-md overflow-hidden ${
+                          isExisting ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'
+                        }`}
+                      >
+                        {attr.isEditing ? (
+                          <div className="p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <p className="font-medium">{attr.attributeName}</p>
+                              <div className="flex gap-2">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => toggleEditMode(attr.attributeId)}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
 
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Label>Active</Label>
-                              <Switch
-                                checked={attr.isActive}
-                                onCheckedChange={(checked) => updateAttribute(attr.attributeId, {
-                                  isActive: checked
-                                })}
-                              />
+
+
+
+
+
+
+
+
                             </div>
-                            <div className="flex items-center gap-2">
-                              <Label>Required</Label>
-                              <Switch
-                                checked={attr.isRequired}
-                                onCheckedChange={(checked) => updateAttribute(attr.attributeId, {
-                                  isRequired: checked
-                                })}
-                              />
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label>Minimum Selections</Label>
+                                <Input
+                                  type="number"
+                                  value={attr.minSelections}
+                                  onChange={(e) => updateAttribute(attr.attributeId, {
+                                    minSelections: e.target.value
+                                  })}
+                                  min="0"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label>Maximum Selections</Label>
+                                <Input
+                                  type="number"
+                                  value={attr.maxSelections}
+                                  onChange={(e) => updateAttribute(attr.attributeId, {
+                                    maxSelections: e.target.value
+                                  })}
+                                  min="1"
+                                />
+                              </div>
+                            </div>
+
+
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Label>Active</Label>
+                                <Switch
+                                  checked={attr.isActive}
+                                  onCheckedChange={(checked) => updateAttribute(attr.attributeId, {
+                                    isActive: checked
+                                  })}
+                                />
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Label>Required</Label>
+                                <Switch
+                                  checked={attr.isRequired}
+                                  onCheckedChange={(checked) => updateAttribute(attr.attributeId, {
+                                    isRequired: checked
+                                  })}
+                                />
+                              </div>
                             </div>
                           </div>
-                        </>
-                      ) : (
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">{attr.attributeName}</p>
-                            <p className="text-sm text-gray-500">
-                              Min: {attr.minSelections}, Max: {attr.maxSelections}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              {attr.isActive ? 'Active' : 'Inactive'} • 
-                              {attr.isRequired ? ' Required' : ' Optional'}
-                            </p>
+                        ) : (
+                          <div className="p-4">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <h4 className={`font-medium text-lg ${
+                                    isExisting ? 'text-blue-600' : 'text-green-600'
+                                  }`}>
+                                    {attr.attributeName}
+                                  </h4>
+                                  {isExisting && (
+                                    <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                                      Existing
+                                    </span>
+                                  )}
+                                  {!isExisting && (
+                                    <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                                      New
+                                    </span>
+                                  )}
+                                  <span className={`px-2 py-1 rounded-full text-xs ${
+                                    attr.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {attr.isActive ? 'Active' : 'Inactive'}
+                                  </span>
+                                  {attr.isRequired && (
+                                    <span className="px-2 py-1 rounded-full text-xs bg-red-100 text-red-800">
+                                      Required
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-sm text-gray-600">
+                                  Selections: {attr.minSelections} - {attr.maxSelections}
+                                </p>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => toggleEditMode(attr.attributeId)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => removeAttribute(attr.attributeId)}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => toggleEditMode(attr.attributeId)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => removeAttribute(attr.attributeId)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  {addedAttributes.length === 0 && (
-                    <p className="text-gray-500 text-center py-2">No attributes added yet</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {allAttributes.length === 0 && (
+                    <p className="text-gray-500 text-center py-4">No attributes assigned yet</p>
                   )}
                 </div>
               </div>
@@ -597,7 +673,7 @@ export const AssignAttributesDialog = ({
             </Button>
             <Button 
               onClick={handleSubmit}
-              disabled={addedAttributes.length === 0 || isLoading}
+              disabled={newlyAddedAttributes.length === 0 || isLoading}
             >
               {saveAttributesMutation.isPending ? (
                 <>
