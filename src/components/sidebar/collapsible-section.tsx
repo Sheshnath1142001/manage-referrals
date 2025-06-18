@@ -32,7 +32,7 @@ export function CollapsibleSection({
   onToggle
 }: CollapsibleSectionProps) {
   const location = useLocation();
-  const { state, isMobile } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const isCollapsed = state === "collapsed";
   
   const isActive = items.some(item => location.pathname === item.url);
@@ -47,6 +47,13 @@ export function CollapsibleSection({
   const handleClick = () => {
     if (!isCollapsed || isMobile) {
       onToggle();
+    }
+  };
+
+  const handleSubItemClick = () => {
+    // Close mobile drawer when sub-navigation item is clicked
+    if (isMobile) {
+      setOpenMobile(false);
     }
   };
 
@@ -82,7 +89,7 @@ export function CollapsibleSection({
                   isActive={isItemActive}
                   className={`text-base ${isItemActive ? "bg-primary text-white" : ""}`}
                 >
-                  <Link to={item.url} className="flex items-center gap-3">
+                  <Link to={item.url} className="flex items-center gap-3" onClick={handleSubItemClick}>
                     <Icon className="h-5 w-5" />
                     <span>{item.title}</span>
                   </Link>

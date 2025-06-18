@@ -118,15 +118,17 @@ export function PaymentMethodDialog({ isOpen, onClose, mode, initialData, onSucc
               />
             </div>
 
-            <div className="flex items-center justify-between">
-              <Label htmlFor="active">Active</Label>
-              <Switch
-                id="active"
-                checked={isActive}
-                onCheckedChange={setIsActive}
-                disabled={isSubmitting}
-              />
-            </div>
+            {mode === "edit" && (
+              <div className="flex items-center justify-between">
+                <Label htmlFor="active">Active</Label>
+                <Switch
+                  id="active"
+                  checked={isActive}
+                  onCheckedChange={setIsActive}
+                  disabled={isSubmitting}
+                />
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-2 mt-6">

@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { format, startOfWeek, endOfWeek, addDays, startOfMonth, endOfMonth, startOfYear, endOfYear, subWeeks, subMonths, subYears, eachDayOfInterval } from "date-fns";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
@@ -14,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { reportsApi } from "@/services/api/reports";
 import { ReportType } from "@/types/reports";
 import { useGetRestaurants } from "@/hooks/useGetRestaurants";
-import { ReportDatePicker } from "@/components/ui/report-date-picker";
+
 
 // Type definition for the API response
 interface ModifierReportItem {
@@ -499,10 +500,6 @@ const ModifierSalesReport = () => {
           </div> */}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6 no-print">
-            <ReportDatePicker 
-              selectedDate={selectedDate}
-              onDateChange={handleDateChange}
-            />
 
             <Select
               value={periodType}
@@ -518,6 +515,11 @@ const ModifierSalesReport = () => {
                 <SelectItem value="year">Year</SelectItem>
               </SelectContent>
             </Select>
+            <DatePicker
+              date={selectedDate}
+              onSelect={handleDateChange}
+              placeholder="Select date"
+            />
             
             <Select
               value={selectedLocation}

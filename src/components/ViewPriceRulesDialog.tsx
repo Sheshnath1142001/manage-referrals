@@ -506,15 +506,15 @@ export const ViewPriceRulesDialog = ({
           ) : (
             <>
               {/* Add new price rule form */}
-              <div className="mb-6 bg-gray-50 p-4 rounded-md">
-                <h3 className="font-medium mb-4">Add New Price Adjustment</h3>
-                <div className="grid grid-cols-4 gap-4">
+              <div className="mb-6 bg-gray-50 p-3 sm:p-4 rounded-md">
+                <h3 className="font-medium mb-4 text-sm sm:text-base">Add New Price Adjustment</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   <div>
                     <Select 
                       value={selectedPrimaryAttributeId} 
                       onValueChange={handlePrimaryAttributeChange}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="h-10 text-sm">
                         <SelectValue placeholder="Select Primary Attribute" />
                       </SelectTrigger>
                       <SelectContent>
@@ -531,7 +531,7 @@ export const ViewPriceRulesDialog = ({
                       value={selectedDependentAttributeId} 
                       onValueChange={handleDependentAttributeChange}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="h-10 text-sm">
                         <SelectValue placeholder="Select Dependent Attribute" />
                       </SelectTrigger>
                       <SelectContent>
@@ -549,7 +549,7 @@ export const ViewPriceRulesDialog = ({
                       onValueChange={(value) => handleInputChange("primary_attribute_value_id", value)}
                       disabled={!selectedPrimaryAttributeId}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="h-10 text-sm">
                         <SelectValue placeholder={!selectedPrimaryAttributeId ? "Select Primary Attribute First" : "Select Primary Value"} />
                       </SelectTrigger>
                       <SelectContent>
@@ -567,7 +567,7 @@ export const ViewPriceRulesDialog = ({
                       onValueChange={(value) => handleInputChange("dependent_attribute_value_id", value)}
                       disabled={!selectedDependentAttributeId}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="h-10 text-sm">
                         <SelectValue placeholder={!selectedDependentAttributeId ? "Select Dependent Attribute First" : "Select Dependent Value"} />
                       </SelectTrigger>
                       <SelectContent>
@@ -580,8 +580,8 @@ export const ViewPriceRulesDialog = ({
                     </Select>
                   </div>
                 </div>
-                <div className="grid grid-cols-4 gap-4 mt-4">
-                  <div className="col-span-3">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mt-4">
+                  <div className="sm:col-span-3">
                     <Input
                       type="number"
                       placeholder="Price Adjustment"
@@ -589,6 +589,7 @@ export const ViewPriceRulesDialog = ({
                       onChange={(e) => handleInputChange("price_adjustment", e.target.value)}
                       step="0.01"
                       min="0"
+                      className="w-full h-10 text-sm"
                     />
                   </div>
                   <div>
@@ -597,8 +598,8 @@ export const ViewPriceRulesDialog = ({
                       onClick={handleAddPriceRule}
                       disabled={isSubmitting}
                     >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add Rule
                     </Button>
                   </div>
                 </div>

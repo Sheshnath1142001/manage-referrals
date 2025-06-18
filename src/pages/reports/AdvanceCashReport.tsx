@@ -110,11 +110,11 @@ const AdvanceCashReport = () => {
       const apiUrl = new URL(`${apiBaseUrl}/advance-cashes`);
       apiUrl.searchParams.append('page', '1');
       apiUrl.searchParams.append('per_page', '10');
-      apiUrl.searchParams.append('start_date', formattedStartDate);
-      apiUrl.searchParams.append('end_date', formattedEndDate);
-      if (selectedLocation !== "0") {
-        apiUrl.searchParams.append('restaurant_id', selectedLocation);
-      }
+      // apiUrl.searchParams.append('start_date', formattedStartDate);
+      // apiUrl.searchParams.append('end_date', formattedEndDate);
+      // if (selectedLocation !== "0") {
+      //   apiUrl.searchParams.append('restaurant_id', selectedLocation);
+      // }
 
       const response = await fetch(apiUrl.toString(), {
         headers: {

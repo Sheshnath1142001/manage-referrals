@@ -245,16 +245,16 @@ const DeliveryZones = () => {
 
   return (
     <div className="p-8">
-      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         {/* Filter inputs */}
-        <div className="grid gap-3 flex-1 sm:grid-cols-2 md:grid-cols-3 lg:flex lg:flex-wrap lg:gap-4">
-          <div className="w-full sm:w-auto">
+        <div className="grid gap-3 flex-1 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 min-w-0">
+          <div className="min-w-0">
             <Select 
               value={filterLocation} 
               onValueChange={setFilterLocation}
               disabled={isLoadingRestaurants}
             >
-              <SelectTrigger className="h-9 bg-white border border-gray-300 w-full sm:w-[160px]">
+              <SelectTrigger className="h-9 bg-white border border-gray-300 w-full">
                 <SelectValue placeholder="Select Location" />
               </SelectTrigger>
               <SelectContent>
@@ -265,19 +265,19 @@ const DeliveryZones = () => {
               </SelectContent>
             </Select>
           </div>
-          <div className="w-full sm:w-auto">
+          <div className="min-w-0">
             <Input 
               placeholder="Search by zone name..." 
               value={zoneName} 
               onChange={(e) => setZoneName(e.target.value)}
               className="h-9 bg-white border border-gray-300 w-full"/>
           </div>
-          <div className="w-full sm:w-auto">
+          <div className="min-w-0">
             <Select 
               value={filterStatus} 
               onValueChange={setFilterStatus}
             >
-              <SelectTrigger className="h-9 bg-white border border-gray-300 w-full sm:w-[130px]">
+              <SelectTrigger className="h-9 bg-white border border-gray-300 w-full">
                 <SelectValue placeholder="Select Status" />
               </SelectTrigger>
               <SelectContent>
@@ -287,12 +287,12 @@ const DeliveryZones = () => {
               </SelectContent>
             </Select>
           </div>
-          <div className="w-full sm:w-auto">
+          <div className="min-w-0">
             <Select 
               value={filterZoneType} 
               onValueChange={setFilterZoneType}
             >
-              <SelectTrigger className="h-9 bg-white border border-gray-300 w-full sm:w-[160px]">
+              <SelectTrigger className="h-9 bg-white border border-gray-300 w-full">
                 <SelectValue placeholder="Select Zone Type" />
               </SelectTrigger>
               <SelectContent>
@@ -305,7 +305,7 @@ const DeliveryZones = () => {
         </div>
 
         {/* Action buttons */}
-        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+        <div className="flex flex-wrap items-center gap-2 xl:justify-end shrink-0">
           <Button
             variant="outline"
             size="icon"

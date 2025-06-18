@@ -42,8 +42,9 @@ export const tableTypesApi = {
   createTableType: (data: CreateTableTypeData) => 
     api.post<TableType>('/table-type', data),
 
-  updateTableType: (id: number, data: UpdateTableTypeData) => 
-    api.patch<TableType>(`/table-type/${id}`, data),
+  updateTableType: (id: number, data: UpdateTableTypeData) => {
+    return api.patch<TableType>(`/table-type/${id}`, data);
+  },
 
   deleteTableType: (id: number) => 
     api.delete(`/table-type/${id}`)

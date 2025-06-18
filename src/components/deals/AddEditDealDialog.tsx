@@ -618,33 +618,33 @@ export function AddEditDealDialog({ open, onOpenChange, restaurantId, deal, onSu
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-[90vw] md:w-[80vw] lg:w-[70vw] xl:w-[60vw]">
         <DialogHeader>
-          <DialogTitle>{viewOnly ? 'View Deal' : (deal ? 'Edit Deal' : 'Create New Deal')}</DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl">{viewOnly ? 'View Deal' : (deal ? 'Edit Deal' : 'Create New Deal')}</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
             
             toast.error('Please fix highlighted errors');
-          })} className="space-y-6">
+          })} className="space-y-4 sm:space-y-6">
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'basic' | 'products' | 'media')} className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="basic">Basic Info</TabsTrigger>
-                <TabsTrigger value="products">Products</TabsTrigger>
-                <TabsTrigger value="media">Media & Tags</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-3 h-auto sm:h-10">
+                <TabsTrigger value="basic" className="text-xs sm:text-sm py-2 sm:py-1">Basic Info</TabsTrigger>
+                <TabsTrigger value="products" className="text-xs sm:text-sm py-2 sm:py-1">Products</TabsTrigger>
+                <TabsTrigger value="media" className="text-xs sm:text-sm py-2 sm:py-1">Media & Tags</TabsTrigger>
               </TabsList>
 
               <TabsContent value="basic" className="space-y-4" forceMount>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Deal Name <span className="text-red-500">*</span></FormLabel>
+                        <FormLabel className="text-sm sm:text-base">Deal Name <span className="text-red-500">*</span></FormLabel>
                         <FormControl>
-                          <Input {...field} disabled={viewOnly} />
+                          <Input {...field} disabled={viewOnly} className="text-sm sm:text-base" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -655,20 +655,20 @@ export function AddEditDealDialog({ open, onOpenChange, restaurantId, deal, onSu
                     name="deal_type_id"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Deal Type <span className="text-red-500">*</span></FormLabel>
+                        <FormLabel className="text-sm sm:text-base">Deal Type <span className="text-red-500">*</span></FormLabel>
                         <Select
                           value={field.value?.toString()}
                           onValueChange={(value) => field.onChange(Number(value))}
                           disabled={viewOnly}
                         >
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="text-sm sm:text-base">
                               <SelectValue placeholder="Select deal type" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent>
+                          <SelectContent className="max-w-[90vw] sm:max-w-none w-[90vw] sm:w-auto">
                             {dealTypes.map((type) => (
-                              <SelectItem key={type.id} value={type.id.toString()}>
+                              <SelectItem key={type.id} value={type.id.toString()} className="text-sm sm:text-base">
                                 {type.name}
                               </SelectItem>
                             ))}
@@ -680,26 +680,26 @@ export function AddEditDealDialog({ open, onOpenChange, restaurantId, deal, onSu
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="restaurant_id"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Location <span className="text-red-500">*</span></FormLabel>
+                        <FormLabel className="text-sm sm:text-base">Location <span className="text-red-500">*</span></FormLabel>
                         <Select
                           value={(field.value ? field.value: restaurantId)?.toString()}
                           onValueChange={(value) => field.onChange(Number(value))}
                           disabled={viewOnly}
                         >
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="text-sm sm:text-base">
                               <SelectValue placeholder="Select location" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent>
+                          <SelectContent className="max-w-[90vw] sm:max-w-none w-[90vw] sm:w-auto">
                             {restaurants?.map((restaurant) => (
-                              <SelectItem key={restaurant.id} value={restaurant.id.toString()}>
+                              <SelectItem key={restaurant.id} value={restaurant.id.toString()} className="text-sm sm:text-base">
                                 {restaurant.name}
                               </SelectItem>
                             ))}
@@ -727,29 +727,29 @@ export function AddEditDealDialog({ open, onOpenChange, restaurantId, deal, onSu
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Description</FormLabel>
+                      <FormLabel className="text-sm sm:text-base">Description</FormLabel>
                       <FormControl>
-                        <Textarea {...field} disabled={viewOnly} />
+                        <Textarea {...field} disabled={viewOnly} className="text-sm sm:text-base min-h-[80px] sm:min-h-[100px]" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="start_date"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
-                        <FormLabel>Start Date</FormLabel>
+                        <FormLabel className="text-sm sm:text-base">Start Date</FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
                             <FormControl>
                               <Button
                                 variant="outline"
                                 className={cn(
-                                  'w-full pl-3 text-left font-normal',
+                                  'w-full pl-3 text-left font-normal text-sm sm:text-base h-10 sm:h-10',
                                   !field.value && 'text-muted-foreground'
                                 )}
                               >
@@ -784,14 +784,14 @@ export function AddEditDealDialog({ open, onOpenChange, restaurantId, deal, onSu
                     name="end_date"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
-                        <FormLabel>End Date</FormLabel>
+                        <FormLabel className="text-sm sm:text-base">End Date</FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
                             <FormControl>
                               <Button
                                 variant="outline"
                                 className={cn(
-                                  'w-full pl-3 text-left font-normal',
+                                  'w-full pl-3 text-left font-normal text-sm sm:text-base h-10 sm:h-10',
                                   !field.value && 'text-muted-foreground'
                                 )}
                               >
@@ -823,18 +823,18 @@ export function AddEditDealDialog({ open, onOpenChange, restaurantId, deal, onSu
                 </div>
 
                 {/* Active Days (Optional) Section */}
-                <Card className="p-4 mb-4 bg-gray-50">
+                <Card className="p-3 sm:p-4 mb-4 bg-gray-50">
                   <div className="flex items-center mb-2">
-                    <CalendarIcon className="mr-2 text-blue-700" />
-                    <span className="font-semibold">Active Days (Optional)</span>
+                    <CalendarIcon className="mr-2 text-blue-700 h-4 w-4 sm:h-5 sm:w-5" />
+                    <span className="font-semibold text-sm sm:text-base">Active Days (Optional)</span>
                   </div>
-                  <div className="text-sm mb-2">Select the days when this deal is available. Leave all unchecked if available every day.</div>
-                  <div className="flex flex-wrap gap-4">
+                  <div className="text-xs sm:text-sm mb-3 sm:mb-2">Select the days when this deal is available. Leave all unchecked if available every day.</div>
+                  <div className="flex flex-wrap gap-2 sm:gap-4">
                     {DAYS_OF_WEEK.map((day) => {
                       const selectedDays = form.watch('active_days')?.split(',').filter(Boolean) || [];
                       const checked = selectedDays.includes(day.value);
                       return (
-                        <label key={day.value} className="flex items-center gap-2 cursor-pointer">
+                        <label key={day.value} className="flex items-center gap-1 sm:gap-2 cursor-pointer">
                           <Checkbox
                             checked={checked}
                             onCheckedChange={(checked) => {
@@ -849,22 +849,22 @@ export function AddEditDealDialog({ open, onOpenChange, restaurantId, deal, onSu
                             className={checked ? 'bg-blue-700 border-blue-700' : ''}
                             disabled={viewOnly}
                           />
-                          <span className={checked ? 'text-blue-700 font-semibold' : ''}>{day.label}</span>
+                          <span className={`text-xs sm:text-sm ${checked ? 'text-blue-700 font-semibold' : ''}`}>{day.label}</span>
                         </label>
                       );
                     })}
                   </div>
                 </Card>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="start_time"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Start Time</FormLabel>
+                        <FormLabel className="text-sm sm:text-base">Start Time</FormLabel>
                         <FormControl>
-                          <Input type="time" {...field} />
+                          <Input type="time" {...field} className="text-sm sm:text-base" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -876,9 +876,9 @@ export function AddEditDealDialog({ open, onOpenChange, restaurantId, deal, onSu
                     name="end_time"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>End Time</FormLabel>
+                        <FormLabel className="text-sm sm:text-base">End Time</FormLabel>
                         <FormControl>
-                          <Input type="time" {...field} />
+                          <Input type="time" {...field} className="text-sm sm:text-base" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -892,13 +892,14 @@ export function AddEditDealDialog({ open, onOpenChange, restaurantId, deal, onSu
                     name="fixed_price"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Price</FormLabel>
+                        <FormLabel className="text-sm sm:text-base">Price</FormLabel>
                         <FormControl>
                           <Input 
                             type="number" 
                             step="0.01" 
                             min="0"
                             {...field} 
+                            className="text-sm sm:text-base"
                             onChange={(e) => {
                               const value = e.target.value;
                               field.onChange(value);
@@ -915,9 +916,9 @@ export function AddEditDealDialog({ open, onOpenChange, restaurantId, deal, onSu
                   control={form.control}
                   name="status"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 sm:p-4">
                       <div className="space-y-0.5">
-                        <FormLabel className="text-base">Active</FormLabel>
+                        <FormLabel className="text-sm sm:text-base">Active</FormLabel>
                       </div>
                       <FormControl>
                         <Switch
@@ -930,10 +931,10 @@ export function AddEditDealDialog({ open, onOpenChange, restaurantId, deal, onSu
                 />
               </TabsContent>
 
-              <TabsContent value="products" className="space-y-6" forceMount>
+              <TabsContent value="products" className="space-y-4 sm:space-y-6" forceMount>
                 {form.watch('deal_type_id') === 6 ? (
                   <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Create Combo Product</h3>
+                    <h3 className="text-base sm:text-lg font-medium">Create Combo Product</h3>
                     {!viewOnly && (
                       <AddComboProductDialog
                         ref={comboDialogRef}
@@ -965,7 +966,7 @@ export function AddEditDealDialog({ open, onOpenChange, restaurantId, deal, onSu
               </TabsContent>
 
               <TabsContent value="media" forceMount>
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                   <DealImageUpload
                     key={`deal-image-${deal ? deal.id : 'new'}`}
                     dealId={deal?.id}
@@ -999,27 +1000,27 @@ export function AddEditDealDialog({ open, onOpenChange, restaurantId, deal, onSu
             </Tabs>
 
             {!viewOnly && (
-              <div className="flex justify-end gap-2">
+              <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-2 pt-4">
                 {activeTab === 'products' && (
-                  <Button type="button" variant="outline" onClick={() => setActiveTab('basic')}>
+                  <Button type="button" variant="outline" onClick={() => setActiveTab('basic')} className="w-full sm:w-auto">
                     Back
                   </Button>
                 )}
                 {activeTab === 'media' && (
-                  <Button type="button" variant="outline" onClick={() => setActiveTab('products')}>
+                  <Button type="button" variant="outline" onClick={() => setActiveTab('products')} className="w-full sm:w-auto">
                     Back
                   </Button>
                 )}
                 {activeTab !== 'media' ? (
-                  <Button type="button" onClick={handleNext} disabled={loading}>
+                  <Button type="button" onClick={handleNext} disabled={loading} className="w-full sm:w-auto">
                     Next
                   </Button>
                 ) : (
                   <>
-                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
                       Cancel
                     </Button>
-                    <Button type="submit" disabled={loading}>
+                    <Button type="submit" disabled={loading} className="w-full sm:w-auto">
                       {deal ? 'Update Deal' : 'Create Deal'}
                     </Button>
                   </>
@@ -1027,8 +1028,8 @@ export function AddEditDealDialog({ open, onOpenChange, restaurantId, deal, onSu
               </div>
             )}
             {viewOnly && (
-              <div className="flex justify-end">
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <div className="flex justify-end pt-4">
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
                   Close
                 </Button>
               </div>

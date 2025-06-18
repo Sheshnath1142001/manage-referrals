@@ -3,8 +3,16 @@ import { SidebarRail, useSidebar } from "@/components/ui/sidebar";
 
 export function SidebarLogo() {
   const navigate = useNavigate();
-  const { state, isMobile } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const isCollapsed = state === "collapsed" && !isMobile;
+
+  const handleLogoClick = () => {
+    navigate("/");
+    // Close mobile drawer when logo is clicked
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   return (
     <>
@@ -12,7 +20,7 @@ export function SidebarLogo() {
         {isCollapsed ? (
           <div 
             className="flex items-center justify-center w-8 h-8 cursor-pointer"
-            onClick={() => navigate("/")}
+            onClick={handleLogoClick}
           >
             <img 
               src="/logo.png" 
@@ -28,7 +36,7 @@ export function SidebarLogo() {
         ) : (
           <div 
             className="flex items-center justify-between w-full cursor-pointer"
-            onClick={() => navigate("/")}
+            onClick={handleLogoClick}
           >
             <div className="flex items-center gap-2">
               <img 

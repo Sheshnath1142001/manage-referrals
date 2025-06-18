@@ -1,6 +1,5 @@
-
 import { Link } from "react-router-dom";
-import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
+import { SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
 import { LucideIcon } from "lucide-react";
 
 interface NavigationItemProps {
@@ -18,6 +17,15 @@ export function NavigationItem({
   isActive,
   activeMenuItemStyle 
 }: NavigationItemProps) {
+  const { setOpenMobile, isMobile } = useSidebar();
+
+  const handleClick = () => {
+    // Close mobile drawer when navigation item is clicked
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+
   return (
     <SidebarMenuItem key={title} className="mb-3">
       <SidebarMenuButton 
@@ -26,7 +34,7 @@ export function NavigationItem({
         data-active={isActive}
         className={`text-base ${isActive ? activeMenuItemStyle : ""}`}
       >
-        <Link to={url} className="flex items-center gap-3">
+        <Link to={url} className="flex items-center gap-3" onClick={handleClick}>
           <Icon className="w-6 h-6" />
           <span>{title}</span>
         </Link>

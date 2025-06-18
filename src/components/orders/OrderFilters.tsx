@@ -92,7 +92,7 @@ export const OrderFilters = ({
   return (
     <div className="space-y-4 mb-6">
       {/* Search and Date Range Row */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
         {/* Search Input */}
         <div className="flex flex-col gap-1.5">
           <span className="text-sm font-medium">Search</span>
@@ -172,22 +172,10 @@ export const OrderFilters = ({
             </PopoverContent>
           </Popover>
         </div>
-
-        {/* Refresh Button */}
-        <div className="flex items-end justify-end">
-          <Button 
-            variant="outline" 
-            onClick={onRefresh} 
-            className="w-10 h-10 p-0"
-            title="Refresh"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-        </div>
       </div>
 
       {/* Filter Dropdowns Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 items-center">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
         <Select value={selectedLocation} onValueChange={(value) => onFilterChange("location", value)}>
           <SelectTrigger>
             <SelectValue placeholder="All Locations" />
@@ -251,7 +239,10 @@ export const OrderFilters = ({
             )}
           </SelectContent>
         </Select>
+      </div>
 
+      {/* Second Row of Filter Dropdowns */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
         <Select value={selectedOrderType} onValueChange={(value) => onFilterChange("orderType", value)}>
           <SelectTrigger>
             <SelectValue placeholder="All Types" />
@@ -283,6 +274,21 @@ export const OrderFilters = ({
             )}
           </SelectContent>
         </Select>
+
+        {/* Empty column for spacing */}
+        <div></div>
+
+        {/* Refresh Button in 4th column */}
+        <div className="flex justify-end">
+          <Button 
+            variant="outline" 
+            onClick={onRefresh} 
+            className="w-10 h-10 p-0"
+            title="Refresh"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -16,9 +16,9 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
 import { useNavigate } from "react-router-dom";
 import { Restaurant } from "@/services/api/restaurants";
-import { ReportDatePicker } from "@/components/ui/report-date-picker";
 import { useGetRestaurants } from "@/hooks/useGetRestaurants";
 import { useTopPerformersReport } from "@/hooks/reports/useTopPerformersReport";
 import { useGetUsers } from "@/hooks/useGetUsers";
@@ -387,11 +387,7 @@ const TopPerformersReport = () => {
 
         <div className="p-6">
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6 no-print">
-        <ReportDatePicker 
-          selectedDate={selectedDate}
-          onDateChange={handleDateChange}
-        />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-6 no-print">
 
         <Select
           value={periodType}
@@ -407,6 +403,12 @@ const TopPerformersReport = () => {
             <SelectItem value="year">Year</SelectItem>
           </SelectContent>
         </Select>
+
+        <DatePicker
+          date={selectedDate}
+          onSelect={handleDateChange}
+          placeholder="Select date"
+        />
 
         <Select
           value={selectedLocation}
@@ -453,7 +455,7 @@ const TopPerformersReport = () => {
           </SelectContent>
         </Select>
 
-        <div className="sm:col-span-2 lg:col-span-1 flex justify-end gap-2 sm:ml-auto">
+        <div className="sm:col-span-2 lg:col-span-2 flex justify-end gap-2 sm:ml-auto">
           <Button variant="outline" onClick={handlePrint} className="w-10 h-10 p-0">
             <PrinterIcon className="h-4 w-4" />
           </Button>

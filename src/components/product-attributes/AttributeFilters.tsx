@@ -27,7 +27,7 @@ export function AttributeFilters({
   };
 
   return (
-    <div className="grid gap-3 mb-0 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+    <div className="flex flex-col sm:flex-row gap-3 mb-0">
       <div className="w-auto min-w-[200px]">
         <label className="text-xs text-gray-500 mb-1 block">Attribute Name</label>
         <div className="relative">

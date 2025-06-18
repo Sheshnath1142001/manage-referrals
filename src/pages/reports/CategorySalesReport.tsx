@@ -17,6 +17,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
 import { useNavigate } from "react-router-dom";
 import { useGetRestaurants } from "@/hooks/useGetRestaurants";
 import { useCategorySalesReport } from "@/hooks/reports/useCategorySalesReport";
@@ -49,7 +50,7 @@ const CategorySalesReport = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedLocation, setSelectedLocation] = useState("0");
   const [selectedView, setSelectedView] = useState("table");
-  const [periodType, setPeriodType] = useState<ReportPeriodType>(ReportPeriodType.Week);
+  const [periodType, setPeriodType] = useState<ReportPeriodType>(ReportPeriodType.Day);
   const { restaurants: locations } = useGetRestaurants();
   
   // Use the custom hook for data fetching
@@ -77,34 +78,33 @@ const CategorySalesReport = () => {
   // Get the dates to display based on period type
   const getDisplayDates = () => {
     const dates: Date[] = [];
-    const today = new Date();
     
     switch (periodType) {
       case ReportPeriodType.Day:
-        // Last 7 days
-         const currentWeekStart = startOfWeek(today, { weekStartsOn: 0 });
-                for (let i = 0; i < 7; i++) {
-                  dates.push(addDays(currentWeekStart, i));
-                }
+        // Week containing the selected date (Sunday to Saturday)
+        const selectedWeekStart = startOfWeek(selectedDate, { weekStartsOn: 0 });
+        for (let i = 0; i < 7; i++) {
+          dates.push(addDays(selectedWeekStart, i));
+        }
         break;
       case ReportPeriodType.Week:
-        // Last 7 weeks
+        // Last 7 weeks from the selected date
         for (let i = 6; i >= 0; i--) {
-          const weekStart = startOfWeek(subWeeks(today, i), { weekStartsOn: 0 });
+          const weekStart = startOfWeek(subWeeks(selectedDate, i), { weekStartsOn: 0 });
           dates.push(weekStart);
         }
         break;
       case ReportPeriodType.Month:
-        // Last 7 months
+        // Last 7 months from the selected date
         for (let i = 6; i >= 0; i--) {
-          const monthStart = startOfMonth(subMonths(today, i));
+          const monthStart = startOfMonth(subMonths(selectedDate, i));
           dates.push(monthStart);
         }
         break;
       case ReportPeriodType.Year:
-        // Last 7 years
+        // Last 7 years from the selected date
         for (let i = 6; i >= 0; i--) {
-          const yearStart = startOfYear(subYears(today, i));
+          const yearStart = startOfYear(subYears(selectedDate, i));
           dates.push(yearStart);
         }
         break;
@@ -118,7 +118,9 @@ const CategorySalesReport = () => {
       case ReportPeriodType.Day:
         return format(date, "dd-MM-yyyy");
       case ReportPeriodType.Week:
-        return `Week ${format(date, "MMM dd")}`;
+        // For week periods, return Monday date to match API response
+        const mondayDate = addDays(date, 1); // Add 1 day to get Monday
+        return format(mondayDate, "yyyy-MM-dd");
       case ReportPeriodType.Month:
         return format(date, "MMM yyyy");
       case ReportPeriodType.Year:
@@ -141,12 +143,10 @@ const CategorySalesReport = () => {
           </>
         );
       case ReportPeriodType.Week:
+        // Show week range (Sunday to Saturday)
         return (
           <>
-            Week
-            <div className="text-xs font-normal">
-              {format(date, "MMM dd")}
-            </div>
+            {format(date, "dd-MM-yyyy")}
           </>
         );
       case ReportPeriodType.Month:
@@ -164,7 +164,9 @@ const CategorySalesReport = () => {
       case ReportPeriodType.Day:
         return format(date, "yyyy-MM-dd");
       case ReportPeriodType.Week:
-        return format(date, "yyyy-MM-dd");
+        // For week periods, return Monday date to match API response
+        const mondayDate = addDays(date, 1); // Add 1 day to get Monday
+        return format(mondayDate, "yyyy-MM-dd");
       case ReportPeriodType.Month:
         return format(date, "MMM yyyy");
       case ReportPeriodType.Year:
@@ -252,7 +254,17 @@ const CategorySalesReport = () => {
         }
       });
       
-      return result;
+      // Format the date label for display
+      let dateLabel = result.date;
+      if (periodType === ReportPeriodType.Week) {
+        const weekEnd = addDays(date, 6);
+        dateLabel = `${format(date, "dd-MM-yyyy")} to ${format(weekEnd, "dd-MM-yyyy")}`;
+      }
+      
+      return {
+        ...result,
+        date: dateLabel
+      };
     });
     
     return dateData;
@@ -262,15 +274,25 @@ const CategorySalesReport = () => {
   const getCategoryBars = () => {
     if (!categorySalesData) return [];
     
-    return Object.entries(categorySalesData).map(([categoryId, categoryData]) => {
-      const firstDayData = Object.values(categoryData)[0];
-      return {
-        id: categoryId,
-        name: firstDayData.category_name,
-        dataKey: `${categoryId}_sales`,
-        fill: getColorForCategory(parseInt(categoryId))
-      };
-    });
+    return Object.entries(categorySalesData)
+      .map(([categoryId, categoryData]) => {
+        const firstDayData = Object.values(categoryData)[0];
+        const { totalSales } = calculateCategoryTotals(categoryData);
+        return {
+          id: categoryId,
+          name: firstDayData.category_name,
+          dataKey: `${categoryId}_sales`,
+          fill: getColorForCategory(parseInt(categoryId)),
+          totalSales
+        };
+      })
+      .sort((a, b) => b.totalSales - a.totalSales) // Sort by total sales in decreasing order
+      .map(({ id, name, dataKey, fill }) => ({
+        id,
+        name,
+        dataKey,
+        fill
+      }));
   };
   
   // Generate a color based on category ID
@@ -334,34 +356,45 @@ const CategorySalesReport = () => {
       // Create CSV rows
       const csvRows = [headers.join(',')];
       
-      // Add data rows
-      Object.entries(categorySalesData).forEach(([categoryId, categoryData]) => {
-        const firstYearData = Object.values(categoryData)[0];
-        const categoryName = firstYearData?.category_name || 'Unknown';
-        const { totalSales, totalQuantity } = calculateCategoryTotals(categoryData);
-        
-        // Sales row
-        const salesRow = [categoryName, 'Sales'];
-        displayDates.forEach(date => {
-          const dateStr = getDateStringKey(date);
-          const monthData = categoryData[dateStr];
-          const sales = Number(monthData?.total_sales) || 0;
-          salesRow.push(formatCurrency(sales).replace('$', '')); // Remove $ for CSV
+      // Add data rows - sort by total sales in decreasing order
+      Object.entries(categorySalesData)
+        .map(([categoryId, categoryData]) => {
+          const firstYearData = Object.values(categoryData)[0];
+          const categoryName = firstYearData?.category_name || 'Unknown';
+          const { totalSales, totalQuantity } = calculateCategoryTotals(categoryData);
+          
+          return {
+            categoryId,
+            categoryData,
+            categoryName,
+            totalSales,
+            totalQuantity
+          };
+        })
+        .sort((a, b) => b.totalSales - a.totalSales) // Sort by total sales in decreasing order
+        .forEach(({ categoryId, categoryData, categoryName, totalSales, totalQuantity }) => {
+          // Sales row
+          const salesRow = [categoryName, 'Sales'];
+          displayDates.forEach(date => {
+            const dateStr = getDateStringKey(date);
+            const monthData = categoryData[dateStr];
+            const sales = Number(monthData?.total_sales) || 0;
+            salesRow.push(formatCurrency(sales).replace('$', '')); // Remove $ for CSV
+          });
+          salesRow.push(formatCurrency(totalSales).replace('$', ''));
+          csvRows.push(salesRow.join(','));
+          
+          // Quantity row
+          const quantityRow = ['', 'Quantity'];
+          displayDates.forEach(date => {
+            const dateStr = getDateStringKey(date);
+            const monthData = categoryData[dateStr];
+            const quantity = Number(monthData?.total_sold_quantity) || 0;
+            quantityRow.push(quantity.toString());
+          });
+          quantityRow.push(totalQuantity.toString());
+          csvRows.push(quantityRow.join(','));
         });
-        salesRow.push(formatCurrency(totalSales).replace('$', ''));
-        csvRows.push(salesRow.join(','));
-        
-        // Quantity row
-        const quantityRow = ['', 'Quantity'];
-        displayDates.forEach(date => {
-          const dateStr = getDateStringKey(date);
-          const monthData = categoryData[dateStr];
-          const quantity = Number(monthData?.total_sold_quantity) || 0;
-          quantityRow.push(quantity.toString());
-        });
-        quantityRow.push(totalQuantity.toString());
-        csvRows.push(quantityRow.join(','));
-      });
       
       // Add totals row
       const totalSalesRow = ['Total', 'Sales'];
@@ -523,45 +556,59 @@ const CategorySalesReport = () => {
           <h1 style={{ fontSize: '24px', marginBottom: '10px' }}>Category Sales Report</h1>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6 no-print">
-          <Select
-            value={selectedLocation}
-            onValueChange={handleLocationChange}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select location" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="0">All Locations</SelectItem>
-              {locations.map((location) => (
-                <SelectItem key={location.id} value={location.id.toString()}>
-                  {location.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4 mb-6 no-print">
+          <div className="sm:col-span-1">
+            <Select
+              value={selectedLocation}
+              onValueChange={handleLocationChange}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select location" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">All Locations</SelectItem>
+                {locations.map((location) => (
+                  <SelectItem key={location.id} value={location.id.toString()}>
+                    {location.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-          <Select
-            value={periodType.toString()}
-            onValueChange={handlePeriodChange}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select period" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1">Day</SelectItem>
-              <SelectItem value="2">Week</SelectItem>
-              <SelectItem value="3">Month</SelectItem>
-              <SelectItem value="4">Year</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="sm:col-span-1">
+            <DatePicker
+              date={selectedDate}
+              onSelect={handleDateChange}
+              placeholder="Select date"
+            />
+          </div>
 
-          <TableChartToggle 
-            value={selectedView}
-            onValueChange={handleViewChange}
-          />
+          <div className="sm:col-span-1">
+            <Select
+              value={periodType.toString()}
+              onValueChange={handlePeriodChange}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select period" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">Day</SelectItem>
+                <SelectItem value="2">Week</SelectItem>
+                <SelectItem value="3">Month</SelectItem>
+                <SelectItem value="4">Year</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-          <div className="flex justify-end gap-2 col-span-2">
+          <div className="sm:col-span-1">
+            <TableChartToggle 
+              value={selectedView}
+              onValueChange={handleViewChange}
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 sm:col-span-2 lg:col-span-4 xl:col-span-2">
             <Button variant="outline" onClick={handlePrint} className="w-10 h-10 p-0">
               <PrinterIcon className="h-4 w-4" />
             </Button>
@@ -646,66 +693,78 @@ const CategorySalesReport = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  Object.entries(categorySalesData).map(([categoryId, categoryData]) => {
-                    const firstYearData = Object.values(categoryData)[0];
-                    const categoryName = firstYearData?.category_name || 'Unknown';
-                    const { totalSales, totalQuantity } = calculateCategoryTotals(categoryData);
-                    
-                    return (
-                      <React.Fragment key={categoryId}>
-                        {/* Sales Row */}
-                        <TableRow>
-                          <TableCell rowSpan={2} className="font-medium">
-                            {categoryName}
-                          </TableCell>
-                          <TableCell className="text-purple-600">Sales</TableCell>
-                          {getDisplayDates().map((date) => {
-                            const dateStr = getDateStringKey(date);
-                            const monthData = categoryData[dateStr];
-                            const sales = Number(monthData?.total_sales) || 0;
-                            
-                            return (
-                              <TableCell 
-                                key={`${dateStr}-sales`} 
-                                className="text-right"
-                              >
-                                <span className="text-purple-600">
-                                  {formatCurrency(sales)}
-                                </span>
-                              </TableCell>
-                            );
-                          })}
-                          <TableCell className="text-right font-medium">
-                            <span className="text-purple-600">
-                              {formatCurrency(totalSales)}
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                        
-                        {/* Quantity Row */}
-                        <TableRow>
-                          <TableCell className="text-purple-600">Quantity</TableCell>
-                          {getDisplayDates().map((date) => {
-                            const dateStr = getDateStringKey(date);
-                            const monthData = categoryData[dateStr];
-                            const quantity = Number(monthData?.total_sold_quantity) || 0;
-                            
-                            return (
-                              <TableCell 
-                                key={`${dateStr}-quantity`} 
-                                className="text-right"
-                              >
-                                {quantity}
-                              </TableCell>
-                            );
-                          })}
-                          <TableCell className="text-right font-medium">
-                            {totalQuantity}
-                          </TableCell>
-                        </TableRow>
-                      </React.Fragment>
-                    );
-                  })
+                  // Sort categories by total sales in decreasing order
+                  Object.entries(categorySalesData)
+                    .map(([categoryId, categoryData]) => {
+                      const firstYearData = Object.values(categoryData)[0];
+                      const categoryName = firstYearData?.category_name || 'Unknown';
+                      const { totalSales, totalQuantity } = calculateCategoryTotals(categoryData);
+                      
+                      return {
+                        categoryId,
+                        categoryData,
+                        categoryName,
+                        totalSales,
+                        totalQuantity
+                      };
+                    })
+                    .sort((a, b) => b.totalSales - a.totalSales) // Sort by total sales in decreasing order
+                    .map(({ categoryId, categoryData, categoryName, totalSales, totalQuantity }) => {
+                      return (
+                        <React.Fragment key={categoryId}>
+                          {/* Sales Row */}
+                          <TableRow>
+                            <TableCell rowSpan={2} className="font-medium">
+                              {categoryName}
+                            </TableCell>
+                            <TableCell className="text-purple-600">Sales</TableCell>
+                            {getDisplayDates().map((date) => {
+                              const dateStr = getDateStringKey(date);
+                              const monthData = categoryData[dateStr];
+                              const sales = Number(monthData?.total_sales) || 0;
+                              
+                              return (
+                                <TableCell 
+                                  key={`${dateStr}-sales`} 
+                                  className="text-right"
+                                >
+                                  <span className="text-purple-600">
+                                    {formatCurrency(sales)}
+                                  </span>
+                                </TableCell>
+                              );
+                            })}
+                            <TableCell className="text-right font-medium">
+                              <span className="text-purple-600">
+                                {formatCurrency(totalSales)}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                          
+                          {/* Quantity Row */}
+                          <TableRow>
+                            <TableCell className="text-purple-600">Quantity</TableCell>
+                            {getDisplayDates().map((date) => {
+                              const dateStr = getDateStringKey(date);
+                              const monthData = categoryData[dateStr];
+                              const quantity = Number(monthData?.total_sold_quantity) || 0;
+                              
+                              return (
+                                <TableCell 
+                                  key={`${dateStr}-quantity`} 
+                                  className="text-right"
+                                >
+                                  {quantity}
+                                </TableCell>
+                              );
+                            })}
+                            <TableCell className="text-right font-medium">
+                              {totalQuantity}
+                            </TableCell>
+                          </TableRow>
+                        </React.Fragment>
+                      );
+                    })
                 )}
                 
                 {/* Total Row */}

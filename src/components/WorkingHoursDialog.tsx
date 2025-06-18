@@ -373,7 +373,6 @@ const WorkingHoursDialog = ({
   };
 
   const handleReset = () => {
-    initializeDefaultSlots();
   };
 
   const getActiveTabName = () => {
@@ -387,10 +386,10 @@ const WorkingHoursDialog = ({
     const sectionSlots = timeSlots[section];
     
     return (
-      <div className="p-6 max-h-[60vh] overflow-y-auto space-y-4">
+      <div className="p-3 sm:p-6 max-h-[60vh] overflow-y-auto space-y-4">
         {sectionSlots.map((daySlot, dayIndex) => (
           <div key={daySlot.day_of_week} className="py-2 border-b last:border-0">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Switch
                   checked={daySlot.status === 1}
@@ -413,9 +412,9 @@ const WorkingHoursDialog = ({
             </div>
             
             {daySlot.slots.map((slot, slotIndex) => (
-              <div key={slotIndex} className="grid grid-cols-2 gap-8 mb-2">
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm text-gray-500 min-w-16">Start Time</Label>
+              <div key={slotIndex} className="space-y-4 sm:space-y-0 sm:flex sm:gap-4 mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-1">
+                  <Label className="text-sm text-gray-500 w-20 sm:w-auto sm:min-w-20">Start Time</Label>
                   <div className="relative flex-1">
                     <Input
                       type="time"
@@ -428,8 +427,8 @@ const WorkingHoursDialog = ({
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm text-gray-500 min-w-16">End Time</Label>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-1">
+                  <Label className="text-sm text-gray-500 w-20 sm:w-auto sm:min-w-20">End Time</Label>
                   <div className="relative flex-1">
                     <Input
                       type="time"
@@ -446,7 +445,7 @@ const WorkingHoursDialog = ({
                       variant="ghost"
                       size="sm"
                       onClick={() => handleRemoveTimeSlot(section, dayIndex, slotIndex)}
-                      className="text-red-500 hover:text-red-700"
+                      className="text-red-500 hover:text-red-700 self-start sm:self-center mt-2 sm:mt-0"
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -462,10 +461,10 @@ const WorkingHoursDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden">
-        <DialogHeader className="bg-primary text-white px-6 py-4 sticky top-0 z-10">
+      <DialogContent className="w-[95vw] max-w-[550px] p-0 overflow-hidden">
+        <DialogHeader className="bg-primary text-white px-4 sm:px-6 py-4 sticky top-0 z-10">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl font-bold">
+            <DialogTitle className="text-lg sm:text-xl font-bold">
               Edit Opening Hours
             </DialogTitle>
             <Button 
@@ -488,9 +487,9 @@ const WorkingHoursDialog = ({
             className="w-full"
           >
             <TabsList className="w-full grid grid-cols-3">
-              <TabsTrigger value="dineIn" className="uppercase">Dine In</TabsTrigger>
-              <TabsTrigger value="takeaway" className="uppercase">Takeaway</TabsTrigger>
-              <TabsTrigger value="delivery" className="uppercase">Delivery</TabsTrigger>
+              <TabsTrigger value="dineIn" className="uppercase text-xs sm:text-sm">Dine In</TabsTrigger>
+              <TabsTrigger value="takeaway" className="uppercase text-xs sm:text-sm">Takeaway</TabsTrigger>
+              <TabsTrigger value="delivery" className="uppercase text-xs sm:text-sm">Delivery</TabsTrigger>
             </TabsList>
             
             <div className="flex justify-end p-2">
@@ -499,7 +498,7 @@ const WorkingHoursDialog = ({
                 variant="link" 
                 size="sm" 
                 onClick={handleCopyStoreClick}
-                className="text-blue-600"
+                className="text-blue-600 text-xs sm:text-sm"
               >
                 Copy Slots
               </Button>
@@ -524,6 +523,7 @@ const WorkingHoursDialog = ({
                   variant="outline" 
                   onClick={handleReset}
                   disabled={isSubmitting}
+                  className="text-xs sm:text-sm"
                 >
                   RESET
                 </Button>
@@ -531,7 +531,7 @@ const WorkingHoursDialog = ({
                   type="button" 
                   onClick={handleSubmit}
                   disabled={isSubmitting}
-                  className="bg-primary text-white hover:bg-primary/90"
+                  className="bg-primary text-white hover:bg-primary/90 text-xs sm:text-sm"
                 >
                   {isSubmitting ? "SAVING..." : "SUBMIT"}
                 </Button>
@@ -544,13 +544,13 @@ const WorkingHoursDialog = ({
       {/* Copy Slots Dialog */}
       {isCopyDialogOpen && (
         <Dialog open={isCopyDialogOpen} onOpenChange={setIsCopyDialogOpen}>
-          <DialogContent className="sm:max-w-[400px]">
+          <DialogContent className="w-[95vw] sm:max-w-[400px]">
             <div className="flex items-center gap-3 mb-4">
               <div className="bg-blue-600 text-white rounded-full p-2">
                 <Copy className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-base">Time Slots Will Be Copied From <span className="text-blue-600 font-medium">{getActiveTabName()}</span> To</p>
+                <p className="text-sm sm:text-base">Time Slots Will Be Copied From <span className="text-blue-600 font-medium">{getActiveTabName()}</span> To</p>
               </div>
             </div>
             
@@ -565,7 +565,7 @@ const WorkingHoursDialog = ({
                     }
                     className="border-blue-600 data-[state=checked]:bg-blue-600"
                   />
-                  <label htmlFor="takeaway" className="text-base">Takeaway</label>
+                  <label htmlFor="takeaway" className="text-sm sm:text-base">Takeaway</label>
                 </div>
               )}
               
@@ -579,7 +579,7 @@ const WorkingHoursDialog = ({
                     }
                     className="border-blue-600 data-[state=checked]:bg-blue-600"
                   />
-                  <label htmlFor="delivery" className="text-base">Delivery</label>
+                  <label htmlFor="delivery" className="text-sm sm:text-base">Delivery</label>
                 </div>
               )}
             </div>
@@ -589,14 +589,14 @@ const WorkingHoursDialog = ({
                 type="button" 
                 variant="outline" 
                 onClick={() => setIsCopyDialogOpen(false)}
-                className="text-red-500 border-red-500 hover:bg-red-50"
+                className="text-red-500 border-red-500 hover:bg-red-50 text-xs sm:text-sm"
               >
                 CANCEL
               </Button>
               <Button 
                 type="button" 
                 onClick={handleCopyConfirm}
-                className="bg-blue-600 text-white hover:bg-blue-700"
+                className="bg-blue-600 text-white hover:bg-blue-700 text-xs sm:text-sm"
               >
                 COPY
               </Button>

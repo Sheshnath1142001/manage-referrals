@@ -15,11 +15,21 @@ import { ProductAttribute, AttributeType } from "@/types/productAttributes";
 import { UseMutationResult } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 
+interface AttributeFormData {
+  name: string;
+  display_name: string;
+  attribute_type: AttributeType;
+  is_required: boolean;
+  min_selections: number;
+  max_selections: number;
+  status: "Active" | "Inactive";
+}
+
 interface AttributeDialogProps {
   isOpen: boolean;
   isEditing: boolean;
-  formData: Partial<ProductAttribute>;
-  onFormDataChange: (data: Partial<ProductAttribute>) => void;
+  formData: AttributeFormData;
+  onFormDataChange: (data: AttributeFormData) => void;
   onSubmit: (e: React.FormEvent) => void;
   onClose: () => void;
   mutation: UseMutationResult<any, unknown, any, unknown>;
@@ -111,13 +121,13 @@ export function AttributeDialog({
                 <Label className="text-sm font-medium">Status</Label>
                 {isViewMode ? (
                   <div className="h-9 px-3 py-2 border rounded-md flex items-center">
-                    <Badge variant={String(formData.status) === "Active" || formData.status === 1 ? "default" : "secondary"}>
-                      {String(formData.status) === "Active" || formData.status === 1 ? "Active" : "Inactive"}
+                    <Badge variant={formData.status === "Active" ? "default" : "secondary"}>
+                      {formData.status}
                     </Badge>
                   </div>
                 ) : (
                   <Select
-                    value={String(formData.status || "Active")}
+                    value={formData.status}
                     onValueChange={(value) => onFormDataChange({...formData, status: value as "Active" | "Inactive"})}
                     disabled={isViewMode}
                   >

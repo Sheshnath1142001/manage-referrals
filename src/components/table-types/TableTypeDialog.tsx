@@ -14,6 +14,7 @@ import { useGetRestaurants } from "@/hooks/useGetRestaurants";
 const formSchema = z.object({
   type: z.string().min(1, "Type is required"),
   status: z.boolean().default(true),
+  restaurant_ids: z.array(z.number()).min(1, "At least one restaurant must be selected"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -42,6 +43,7 @@ export function TableTypeDialog({
     defaultValues: {
       type: "",
       status: true,
+      restaurant_ids: [],
     },
   });
 
@@ -50,23 +52,22 @@ export function TableTypeDialog({
       form.reset({
         type: tableType.type,
         status: tableType.status === 1,
+        restaurant_ids: tableType.restaurant_id ? [tableType.restaurant_id] : [],
       });
     } else {
       form.reset({
         type: "",
         status: true,
+        restaurant_ids: [],
       });
     }
   }, [tableType, form]);
 
   const handleSubmit = (values: FormValues) => {
-    const payload: any = {
+    const payload = {
       table_type: values.type,
-      status: values.status ? 1 : 0
+      status: values.status ? 1 : 0,
     };
-    if (showLocationSelect && form.getValues('restaurant_id')) {
-      payload.restaurant_id = form.getValues('restaurant_id');
-    }
     onSubmit(payload);
   };
 
@@ -95,28 +96,35 @@ export function TableTypeDialog({
               )}
             />
 
-            {showLocationSelect && (
-              <FormField
-                control={form.control}
-                name="restaurant_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location</FormLabel>
+            <FormField
+              control={form.control}
+              name="restaurant_ids"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Restaurants</FormLabel>
+                  <FormControl>
                     <select
-                      className="h-9 bg-white border border-gray-300 w-full rounded px-2"
-                      value={field.value || ""}
-                      onChange={field.onChange}
-                    >
-                      <option value="">Select Location</option>
-                      {availableRestaurants.map((restaurant) => (
-                        <option key={restaurant.id} value={restaurant.id}>{restaurant.name}</option>
-                      ))}
-                    </select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
+  className="h-9 bg-white border border-gray-300 w-full rounded px-2"
+  value={field.value[0] || ""}
+  disabled={!!tableType}  // Disable in edit mode
+  onChange={(e) => {
+    const value = e.target.value ? [parseInt(e.target.value)] : [];
+    field.onChange(value);
+  }}
+>
+  <option value="">Select Restaurant</option>
+  {availableRestaurants.map((restaurant) => (
+    <option key={restaurant.id} value={restaurant.id}>
+      {restaurant.name}
+    </option>
+  ))}
+</select>
+
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subWeeks, subMonths, subYears, addDays } from 'date-fns';
@@ -20,31 +19,29 @@ export const useCategorySalesReport = ({
   
   // Get date range based on selected date and period type
   const getDateRangeForPeriod = () => {
-    const today = new Date();
-    
     switch (periodType) {
-      case 1: // Day - Last 7 days
+      case 1: // Day - Week containing the selected date
         return { 
-          startDate: startOfWeek(today, { weekStartsOn: 0 }), // Current week's Sunday
-          endDate: endOfWeek(today, { weekStartsOn: 0 }) // Current week's Saturday
+          startDate: startOfWeek(selectedDate, { weekStartsOn: 0 }), // Selected date's week's Sunday
+          endDate: endOfWeek(selectedDate, { weekStartsOn: 0 }) // Selected date's week's Saturday
         };
-      case 2: // Week - Last 7 weeks
-        const currentWeekStart = startOfWeek(today, { weekStartsOn: 0 });
-        const startDate = startOfWeek(subWeeks(today, 6), { weekStartsOn: 0 });
+      case 2: // Week - Last 7 weeks from selected date
+        const currentWeekStart = startOfWeek(selectedDate, { weekStartsOn: 0 });
+        const startDate = startOfWeek(subWeeks(selectedDate, 6), { weekStartsOn: 0 });
         return { 
           startDate,
           endDate: endOfWeek(currentWeekStart, { weekStartsOn: 0 })
         };
-      case 3: // Month - Last 7 months
-        const currentMonthStart = startOfMonth(today);
-        const monthStartDate = startOfMonth(subMonths(today, 6));
+      case 3: // Month - Last 7 months from selected date
+        const currentMonthStart = startOfMonth(selectedDate);
+        const monthStartDate = startOfMonth(subMonths(selectedDate, 6));
         return { 
           startDate: monthStartDate,
           endDate: endOfMonth(currentMonthStart)
         };
-      case 4: // Year - Last 7 years
-        const currentYearStart = startOfYear(today);
-        const yearStartDate = startOfYear(subYears(today, 6));
+      case 4: // Year - Last 7 years from selected date
+        const currentYearStart = startOfYear(selectedDate);
+        const yearStartDate = startOfYear(subYears(selectedDate, 6));
         return { 
           startDate: yearStartDate,
           endDate: endOfYear(currentYearStart)

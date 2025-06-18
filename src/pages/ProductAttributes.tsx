@@ -168,10 +168,10 @@ const ProductAttributes = () => {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       {/* Filter section and add button */}
-      <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="flex-1">
+      <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex-1 min-w-0">
           <AttributeFilters 
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
@@ -180,7 +180,7 @@ const ProductAttributes = () => {
           />
         </div>
         
-        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
           <Button 
             onClick={() => setIsAddingAttribute(true)}
             className="bg-[#1E293B] hover:bg-[#0f172a] text-white h-9 w-9 rounded-full"
@@ -233,10 +233,10 @@ const ProductAttributes = () => {
             name: viewingAttribute.name,
             display_name: viewingAttribute.display_name,
             attribute_type: viewingAttribute.attribute_type,
-            is_required: viewingAttribute.is_required,
+            is_required: viewingAttribute.is_required === 1,
             min_selections: viewingAttribute.min_selections,
             max_selections: viewingAttribute.max_selections,
-            status: viewingAttribute.status
+            status: viewingAttribute.status === 1 ? "Active" : "Inactive"
           }}
           onFormDataChange={() => {}} // Read-only
           onSubmit={(e) => {

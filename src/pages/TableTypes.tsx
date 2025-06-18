@@ -43,10 +43,11 @@ export default function TableTypes() {
 
   // Create mutation
   const createMutation = useMutation({
-    mutationFn: (data: { table_type: string; status: number }) => 
+    mutationFn: (data: { type: string; status: number; restaurant_ids: number[] }) => 
       tableTypesApi.createTableType({
-        table_type: data.table_type,
-        status: data.status
+        type: data.type,
+        status: data.status,
+        restaurant_ids: data.restaurant_ids
       }),
     onSuccess: () => {
       toast({
@@ -67,11 +68,12 @@ export default function TableTypes() {
 
   // Update mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: { table_type: string; status: number } }) =>
-      tableTypesApi.updateTableType(id, {
+    mutationFn: ({ id, data }: { id: number; data: { table_type: string; status: number } }) => {
+      return tableTypesApi.updateTableType(id, {
         table_type: data.table_type,
         status: data.status
-      }),
+      });
+    },
     onSuccess: () => {
       toast({
         title: "Success",
@@ -147,7 +149,11 @@ export default function TableTypes() {
         data
       });
     } else {
-      await createMutation.mutateAsync(data);
+      await createMutation.mutateAsync({
+        type: data.table_type,
+        status: data.status,
+        restaurant_ids: []
+      });
     }
   };
 
@@ -225,11 +231,9 @@ export default function TableTypes() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-2 justify-end">
-                      {!["indoor", "outdoor", "rooftop"].includes(tableType.type.toLowerCase()) && (
-                        <Button variant="ghost" size="icon" onClick={() => handleEdit(tableType)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      )}
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(tableType)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -257,7 +261,6 @@ export default function TableTypes() {
         tableType={selectedTableType}
         isSubmitting={createMutation.isLoading || updateMutation.isLoading}
         availableRestaurants={availableRestaurants}
-        showLocationSelect={!selectedTableType}
       />
     </div>
   );

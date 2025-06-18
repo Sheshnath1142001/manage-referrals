@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   RefreshCw,
@@ -16,6 +15,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
 import { useNavigate } from "react-router-dom";
 import { useGetRestaurants } from "@/hooks/useGetRestaurants";
 import { useCashCardReport } from "@/hooks/reports/useCashCardReport";
@@ -75,34 +75,33 @@ const CashCardReport = () => {
   // Generate array of dates for the display based on period type
   const getDisplayDates = () => {
     const dates: Date[] = [];
-    const today = new Date();
     
     switch (periodType) {
       case ReportPeriodType.Day:
-        // Current week (Sunday to Saturday)
-        const currentWeekStart = startOfWeek(today, { weekStartsOn: 0 });
+        // Week containing the selected date (Sunday to Saturday)
+        const selectedWeekStart = startOfWeek(selectedDate, { weekStartsOn: 0 });
         for (let i = 0; i < 7; i++) {
-          dates.push(addDays(currentWeekStart, i));
+          dates.push(addDays(selectedWeekStart, i));
         }
         break;
       case ReportPeriodType.Week:
-        // Last 7 weeks
+        // Last 7 weeks from the selected date
         for (let i = 6; i >= 0; i--) {
-          const weekStart = startOfWeek(subWeeks(today, i), { weekStartsOn: 0 });
+          const weekStart = startOfWeek(subWeeks(selectedDate, i), { weekStartsOn: 0 });
           dates.push(weekStart);
         }
         break;
       case ReportPeriodType.Month:
-        // Last 7 months
+        // Last 7 months from the selected date
         for (let i = 6; i >= 0; i--) {
-          const monthStart = startOfMonth(subMonths(today, i));
+          const monthStart = startOfMonth(subMonths(selectedDate, i));
           dates.push(monthStart);
         }
         break;
       case ReportPeriodType.Year:
-        // Last 7 years
+        // Last 7 years from the selected date
         for (let i = 6; i >= 0; i--) {
-          const yearStart = startOfYear(subYears(today, i));
+          const yearStart = startOfYear(subYears(selectedDate, i));
           dates.push(yearStart);
         }
         break;
@@ -116,7 +115,9 @@ const CashCardReport = () => {
       case ReportPeriodType.Day:
         return format(date, "yyyy-MM-dd");
       case ReportPeriodType.Week:
-        return format(date, "yyyy-MM-dd");
+        // For week periods, return Monday date to match API response
+        const mondayDate = addDays(date, 1); // Add 1 day to get Monday
+        return format(mondayDate, "yyyy-MM-dd");
       case ReportPeriodType.Month:
         return format(date, "MMM yyyy");
       case ReportPeriodType.Year:
@@ -139,12 +140,12 @@ const CashCardReport = () => {
           </>
         );
       case ReportPeriodType.Week:
+        // Show week range (Sunday to Saturday)
+        const weekEnd = addDays(date, 6); // Add 6 days to get Saturday
         return (
           <>
-            {format(date, "EEE")}
-            <div className="text-xs font-normal">
-              {format(date, "MMM dd")}
-            </div>
+           {format(date, "dd-MM-yyyy")}
+            
           </>
         );
       case ReportPeriodType.Month:
@@ -200,8 +201,15 @@ const CashCardReport = () => {
         }
       });
       
+      // Format the date label for display
+      let dateLabel = dateStr;
+      if (periodType === ReportPeriodType.Week) {
+        const weekEnd = addDays(date, 6);
+        dateLabel = `${format(date, "dd-MM-yyyy")} to ${format(weekEnd, "dd-MM-yyyy")}`;
+      }
+      
       return {
-        date: dateStr,
+        date: dateLabel,
         cash: cashTotal,
         card: cardTotal
       };
@@ -316,45 +324,57 @@ const CashCardReport = () => {
           <h1 style={{ fontSize: '24px', marginBottom: '10px' }}>Cash & Card Report</h1>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6 no-print">
-          <Select
-            value={selectedLocation}
-            onValueChange={handleLocationChange}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select location" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="0">All Locations</SelectItem>
-              {locations.map((location) => (
-                <SelectItem key={location.id} value={location.id.toString()}>
-                  {location.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="space-y-4 mb-6 no-print">
+          {/* Filters Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Select
+              value={selectedLocation}
+              onValueChange={handleLocationChange}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select location" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">All Locations</SelectItem>
+                {locations.map((location) => (
+                  <SelectItem key={location.id} value={location.id.toString()}>
+                    {location.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <Select
-            value={periodType.toString()}
-            onValueChange={handlePeriodChange}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select period" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1">Day</SelectItem>
-              <SelectItem value="2">Week</SelectItem>
-              <SelectItem value="3">Month</SelectItem>
-              <SelectItem value="4">Year</SelectItem>
-            </SelectContent>
-          </Select>
+            <div className="w-full">
+              <DatePicker
+                date={selectedDate}
+                onSelect={handleDateChange}
+                placeholder="Select date"
+              />
+            </div>
 
-          <TableChartToggle 
-            value={selectedView}
-            onValueChange={handleViewChange}
-          />
+            <Select
+              value={periodType.toString()}
+              onValueChange={handlePeriodChange}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select period" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">Day</SelectItem>
+                <SelectItem value="2">Week</SelectItem>
+                <SelectItem value="3">Month</SelectItem>
+                <SelectItem value="4">Year</SelectItem>
+              </SelectContent>
+            </Select>
 
-          <div className="flex justify-end gap-2 col-span-2">
+            <TableChartToggle 
+              value={selectedView}
+              onValueChange={handleViewChange}
+            />
+          </div>
+
+          {/* Action Buttons Row - Always visible */}
+          <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={handlePrint} className="w-10 h-10 p-0">
               <PrinterIcon className="h-4 w-4" />
             </Button>
@@ -415,21 +435,21 @@ const CashCardReport = () => {
             </div>
           </div>
         ) : (
-          <div className="rounded-md border overflow-hidden">
-            <Table className="print-table">
+          <div className="rounded-md border overflow-x-auto">
+            <Table className="print-table min-w-full">
               <TableHeader className="bg-[#0F172A]">
                 <TableRow>
-                  <TableHead className="text-white font-medium rounded-tl-lg">Location</TableHead>
-                  <TableHead className="text-white font-medium">Attributes</TableHead>
+                  <TableHead className="text-white font-medium rounded-tl-lg whitespace-nowrap">Location</TableHead>
+                  <TableHead className="text-white font-medium whitespace-nowrap">Attributes</TableHead>
                   {getDisplayDates().map((date, index) => (
                     <TableHead 
                       key={date.toISOString()} 
-                      className="text-white font-medium text-right"
+                      className="text-white font-medium text-right whitespace-nowrap"
                     >
                       {formatDateHeader(date)}
                     </TableHead>
                   ))}
-                  <TableHead className="text-white font-medium text-right rounded-tr-lg">Total</TableHead>
+                  <TableHead className="text-white font-medium text-right rounded-tr-lg whitespace-nowrap">Total</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -450,24 +470,24 @@ const CashCardReport = () => {
                       <React.Fragment key={restaurantId}>
                         {/* Sales Row */}
                         <TableRow>
-                          <TableCell rowSpan={3} className="font-medium">
+                          <TableCell rowSpan={3} className="font-medium whitespace-nowrap">
                             {restaurantName}
                           </TableCell>
-                          <TableCell className="text-purple-600">Sales</TableCell>
+                          <TableCell className="text-purple-600 whitespace-nowrap">Sales</TableCell>
                           {getDisplayDates().map((date) => {
                             const dateStr = formatDisplayDate(date);
                             const dayData = restaurant[dateStr];
                             const sales = dayData?.sale || 0;
                             totalSales += sales;
                             return (
-                              <TableCell key={`${dateStr}-sales`} className="text-right">
+                              <TableCell key={`${dateStr}-sales`} className="text-right whitespace-nowrap">
                                 <span className="text-purple-600">
                                   {formatCurrency(sales)}
                                 </span>
                               </TableCell>
                             );
                           })}
-                          <TableCell className="text-right font-medium">
+                          <TableCell className="text-right font-medium whitespace-nowrap">
                             <span className="text-purple-600">
                               {formatCurrency(totalSales)}
                             </span>
@@ -476,21 +496,21 @@ const CashCardReport = () => {
 
                         {/* Cash Row */}
                         <TableRow>
-                          <TableCell className="text-green-600">Cash</TableCell>
+                          <TableCell className="text-green-600 whitespace-nowrap">Cash</TableCell>
                           {getDisplayDates().map((date) => {
                             const dateStr = formatDisplayDate(date);
                             const dayData = restaurant[dateStr];
                             const cashAmount = dayData?.total_cash_payment_amount || 0;
                             totalCashAmount += cashAmount;
                             return (
-                              <TableCell key={`${dateStr}-cash`} className="text-right">
+                              <TableCell key={`${dateStr}-cash`} className="text-right whitespace-nowrap">
                                 <span className="text-green-600">
                                   {formatCurrency(cashAmount)}
                                 </span>
                               </TableCell>
                             );
                           })}
-                          <TableCell className="text-right font-medium">
+                          <TableCell className="text-right font-medium whitespace-nowrap">
                             <span className="text-green-600">
                               {formatCurrency(totalCashAmount)}
                             </span>
@@ -499,21 +519,21 @@ const CashCardReport = () => {
 
                         {/* Card Row */}
                         <TableRow>
-                          <TableCell className="text-blue-600">Card</TableCell>
+                          <TableCell className="text-blue-600 whitespace-nowrap">Card</TableCell>
                           {getDisplayDates().map((date) => {
                             const dateStr = formatDisplayDate(date);
                             const dayData = restaurant[dateStr];
                             const cardAmount = dayData?.total_card_payment_amount || 0;
                             totalCardAmount += cardAmount;
                             return (
-                              <TableCell key={`${dateStr}-card`} className="text-right">
+                              <TableCell key={`${dateStr}-card`} className="text-right whitespace-nowrap">
                                 <span className="text-blue-600">
                                   {formatCurrency(cardAmount)}
                                 </span>
                               </TableCell>
                             );
                           })}
-                          <TableCell className="text-right font-medium">
+                          <TableCell className="text-right font-medium whitespace-nowrap">
                             <span className="text-blue-600">
                               {formatCurrency(totalCardAmount)}
                             </span>

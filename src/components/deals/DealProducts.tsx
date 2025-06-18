@@ -22,6 +22,8 @@ interface DealProduct extends Partial<ApiDealProduct> {
   quantity_min?: number;
   quantity_max?: number;
   discount?: number;
+  discount_percent?: number;
+  discount_amount?: number;
   is_active?: boolean;
   product_ids?: number[];
   category_ids?: number[];
@@ -36,6 +38,7 @@ interface DealProductsProps {
   onProductsChange: (products: DealProduct[]) => void;
   disabled?: boolean;
   restaurantId: number;
+  onValidationChange?: (isValid: boolean) => void;
 }
 
 export function DealProducts({ dealId, initialProducts, componentTypes, onProductsChange, disabled, restaurantId }: DealProductsProps) {
@@ -58,7 +61,28 @@ export function DealProducts({ dealId, initialProducts, componentTypes, onProduc
         }
         return p;
       });
-      setProducts(normed);
+      
+      // If no products exist (new deal), create a default one
+      if (normed.length === 0) {
+        const defaultProduct: DealProduct = {
+          id: Date.now(),
+          deal_id: dealId,
+          product_id: undefined,
+          category_id: undefined,
+          product_ids: [],
+          category_ids: [],
+          component_type_id: undefined,
+          quantity_min: 1,
+          quantity_max: 1,
+          discount: 0,
+          is_active: true,
+          selection_type: undefined,
+        };
+        setProducts([defaultProduct]);
+        onProductsChange([defaultProduct]);
+      } else {
+        setProducts(normed);
+      }
 
       // 1. Sync component type dropdowns
       const types: { [key: number]: string } = {};
@@ -87,6 +111,28 @@ export function DealProducts({ dealId, initialProducts, componentTypes, onProduc
       });
     }
   }, [initialProducts]);
+
+  // Add default product if none exist (for new deals)
+  useEffect(() => {
+    if (products.length === 0 && !loading) {
+      const defaultProduct: DealProduct = {
+        id: Date.now(),
+        deal_id: dealId,
+        product_id: undefined,
+        category_id: undefined,
+        product_ids: [],
+        category_ids: [],
+        component_type_id: undefined,
+        quantity_min: 1,
+        quantity_max: 1,
+        discount: 0,
+        is_active: true,
+        selection_type: undefined,
+      };
+      setProducts([defaultProduct]);
+      onProductsChange([defaultProduct]);
+    }
+  }, [products.length, loading, dealId, onProductsChange]);
 
   useEffect(() => {
     if (!restaurantId || isNaN(Number(restaurantId))) {
@@ -274,26 +320,29 @@ export function DealProducts({ dealId, initialProducts, componentTypes, onProduc
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
         <h3 className="text-lg font-medium">Products</h3>
-        <Button onClick={handleAddProduct} disabled={disabled || loading} type="button">
+        <Button onClick={handleAddProduct} disabled={disabled || loading} type="button" className="w-full sm:w-auto">
           Add Product
         </Button>
       </div>
 
       {products.map((product) => (
-        <Card key={product.id} className="p-4">
+        <Card key={product.id} className="p-3 sm:p-4">
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label>Component Type</Label>
+                <Label className="flex items-center gap-1 text-sm sm:text-base">
+                  Component Type
+                  <span className="text-red-500">*</span>
+                </Label>
                 <Select
                   value={productTypes[product.id] || ''}
                   onValueChange={(value) => handleComponentTypeChange(product.id, value)}
                   disabled={disabled || loading}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select component type" />
+                  <SelectTrigger className={`text-sm sm:text-base ${!productTypes[product.id] ? "border-red-500" : ""}`}>
+                    <SelectValue placeholder="Select component type (required)" />
                   </SelectTrigger>
                   <SelectContent>
                     {componentTypes.map((type) => (
@@ -303,24 +352,27 @@ export function DealProducts({ dealId, initialProducts, componentTypes, onProduc
                     ))}
                   </SelectContent>
                 </Select>
+                {!productTypes[product.id] && (
+                  <p className="text-sm text-red-500 mt-1">Component Type is required</p>
+                )}
               </div>
 
               {productTypes[product.id] && (
                 <div>
-                  <Label>Selection Type</Label>
+                  <Label className="text-sm sm:text-base">Selection Type</Label>
                   <RadioGroup
-                    className="flex flex-row items-center gap-6"
+                    className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6 mt-2"
                     value={getSelectionType(product)}
                     onValueChange={(value) => handleSelectionTypeChange(product.id, value as 'product' | 'category')}
                     disabled={disabled || loading}
                   >
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="product" id={`product-${product.id}`} />
-                      <Label htmlFor={`product-${product.id}`}>Product</Label>
+                      <Label htmlFor={`product-${product.id}`} className="text-sm sm:text-base">Product</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="category" id={`category-${product.id}`} />
-                      <Label htmlFor={`category-${product.id}`}>Category</Label>
+                      <Label htmlFor={`category-${product.id}`} className="text-sm sm:text-base">Category</Label>
                     </div>
                   </RadioGroup>
                 </div>
@@ -329,7 +381,7 @@ export function DealProducts({ dealId, initialProducts, componentTypes, onProduc
 
             {productTypes[product.id] && (
               <div>
-                <Label>
+                <Label className="text-sm sm:text-base">
                   {(() => {
                     const isProductMode = product.product_id !== null || (product.product_ids && product.product_ids.length > 0);
                     return isProductMode ? (isMultiSelectionType(product.component_type_id) ? 'Select Products' : 'Select Product') : (isMultiSelectionType(product.component_type_id) ? 'Select Categories' : 'Select Category');
@@ -381,36 +433,36 @@ export function DealProducts({ dealId, initialProducts, componentTypes, onProduc
                     }}
                     disabled={disabled || loading}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="text-sm sm:text-base">
                       <SelectValue placeholder={`Select ${product.product_id !== null ? 'product' : 'category'}`} />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-w-[90vw] sm:max-w-none w-[90vw] sm:w-auto">
                       {product.product_id === null && (
                         <div className="p-2">
                           <Input
                             placeholder="Search categories..."
                             value={categorySearch}
                             onChange={e => setCategorySearch(e.target.value)}
-                            className="mb-2"
+                            className="mb-2 text-sm sm:text-base"
                             disabled={loading}
                           />
                         </div>
                       )}
                       {product.product_id !== null
                         ? (availableProducts.length === 0 ? (
-                            <div className="p-2 text-muted-foreground">No products available</div>
+                            <div className="p-2 text-muted-foreground text-sm sm:text-base">No products available</div>
                           ) : (
                             availableProducts.map((p) => (
-                              <SelectItem key={p.id} value={p.id.toString()}>
+                              <SelectItem key={p.id} value={p.id.toString()} className="text-sm sm:text-base">
                                 {p.name}
                               </SelectItem>
                             ))
                           ))
                         : (availableCategories.length === 0 ? (
-                            <div className="p-2 text-muted-foreground">No categories available</div>
+                            <div className="p-2 text-muted-foreground text-sm sm:text-base">No categories available</div>
                           ) : (
                             availableCategories.map((c) => (
-                              <SelectItem key={c.id} value={c.id.toString()}>
+                              <SelectItem key={c.id} value={c.id.toString()} className="text-sm sm:text-base">
                                 {c.name}
                               </SelectItem>
                             ))
@@ -422,25 +474,27 @@ export function DealProducts({ dealId, initialProducts, componentTypes, onProduc
             )}
 
             {productTypes[product.id] && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <Label>Min Quantity</Label>
+                  <Label className="text-sm sm:text-base">Min Quantity</Label>
                   <Input
                     type="number"
                     min="1"
                     value={product.quantity_min}
                     onChange={(e) => handleProductChange(product.id, 'quantity_min', Number(e.target.value))}
                     disabled={disabled || loading}
+                    className="text-sm sm:text-base"
                   />
                 </div>
                 <div>
-                  <Label>Max Quantity</Label>
+                  <Label className="text-sm sm:text-base">Max Quantity</Label>
                   <Input
                     type="number"
                     min="1"
                     value={product.quantity_max}
                     onChange={(e) => handleProductChange(product.id, 'quantity_max', Number(e.target.value))}
                     disabled={disabled || loading}
+                    className="text-sm sm:text-base"
                   />
                 </div>
               </div>
@@ -448,12 +502,12 @@ export function DealProducts({ dealId, initialProducts, componentTypes, onProduc
 
             {/* Discount fields for Discounted Item */}
             {product.component_type_id===2 && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2 flex items-center gap-6">
-                  <Label>Discount Type</Label>
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6">
+                  <Label className="text-sm sm:text-base">Discount Type</Label>
                   {(()=>{const currentType = discountTypes[product.id] ?? 'percent'; return (
                   <RadioGroup
-                    className="flex flex-row items-center gap-6"
+                    className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6"
                     value={currentType}
                     onValueChange={(val:any)=>{
                       const v = val as 'percent' | 'amount'
@@ -481,11 +535,11 @@ export function DealProducts({ dealId, initialProducts, componentTypes, onProduc
                   >
                     <div className="flex items-center gap-2">
                       <RadioGroupItem value="percent" id={`pct-${product.id}`}/>
-                      <Label htmlFor={`pct-${product.id}`}>Percent (%)</Label>
+                      <Label htmlFor={`pct-${product.id}`} className="text-sm sm:text-base">Percent (%)</Label>
                     </div>
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2">
                       <RadioGroupItem value="amount" id={`amt-${product.id}`}/>
-                      <Label htmlFor={`amt-${product.id}`}>Amount ($)</Label>
+                      <Label htmlFor={`amt-${product.id}`} className="text-sm sm:text-base">Amount ($)</Label>
                     </div>
                   </RadioGroup>
                   )})()}
@@ -503,6 +557,7 @@ export function DealProducts({ dealId, initialProducts, componentTypes, onProduc
                       handleProductChange(product.id,'discount_percent',val);
                     }}
                     placeholder="Percentage"
+                    className="text-sm sm:text-base"
                   />
                 ):(
                   <Input
@@ -516,6 +571,7 @@ export function DealProducts({ dealId, initialProducts, componentTypes, onProduc
                       handleProductChange(product.id,'discount_amount',val);
                     }}
                     placeholder="Amount"
+                    className="text-sm sm:text-base"
                   />
                 ) }
               </div>
@@ -524,7 +580,7 @@ export function DealProducts({ dealId, initialProducts, componentTypes, onProduc
             {/* Price adjustment for Price Adjusted Item */}
             {product.component_type_id===6 && (
               <div>
-                <Label>Price Adjustment ($)</Label>
+                <Label className="text-sm sm:text-base">Price Adjustment ($)</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -534,6 +590,7 @@ export function DealProducts({ dealId, initialProducts, componentTypes, onProduc
                     handleProductChange(product.id,'price_adjustment',isNaN(val)?0:val);
                   }}
                   disabled={disabled||loading}
+                  className="text-sm sm:text-base"
                 />
               </div>
             )}
@@ -543,6 +600,7 @@ export function DealProducts({ dealId, initialProducts, componentTypes, onProduc
                 variant="destructive"
                 onClick={() => handleRemoveProduct(product.id)}
                 disabled={disabled || loading}
+                className="w-full sm:w-auto"
               >
                 Remove
               </Button>
