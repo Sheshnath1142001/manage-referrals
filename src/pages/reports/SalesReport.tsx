@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { 
   Download,
@@ -886,41 +887,53 @@ const SalesReport: React.FC = () => {
                     <Table className="print-table">
                       <TableHeader>
                         <TableRow>
-                          {getColumns().map((column) => (
+                          <TableHead className="bg-[#1E293B] text-white font-medium text-left sticky left-0 z-10 min-w-[150px]">
+                            Location
+                          </TableHead>
+                          {getHeaders().map((header) => (
                             <TableHead 
-                              key={column.name}
-                              className="bg-primary text-white font-medium"
+                              key={header}
+                              className="bg-[#1E293B] text-white font-medium text-center min-w-[120px]"
                             >
-                              {column.name === "Location" || column.name === "Total" 
-                                ? column.label 
-                                : (reportType === ReportType.Year ? column.label : formatDateForDisplay(column.label))}
+                              {reportType === ReportType.Year ? header : formatDateForDisplay(header)}
                             </TableHead>
                           ))}
+                          <TableHead className="bg-[#1E293B] text-white font-medium text-center min-w-[100px]">
+                            Total
+                          </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {[...tableData]
                           .sort((a, b) => Number(b.Total) - Number(a.Total))
                           .map((row, rowIndex) => (
-                          <TableRow key={rowIndex}>
-                            {getColumns().map((column) => (
-                              <TableCell key={`${rowIndex}-${column.name}`} className={column.name !== "Location" ? "text-right" : ""}>
-                                {column.name === "Location" 
-                                  ? row[column.field] 
-                                  : `$ ${row[column.field]}`}
+                          <TableRow key={rowIndex} className="hover:bg-gray-50">
+                            <TableCell className="font-medium text-left sticky left-0 bg-white z-10 border-r">
+                              {row.Location}
+                            </TableCell>
+                            {getHeaders().map((header) => (
+                              <TableCell key={`${rowIndex}-${header}`} className="text-center">
+                                ${parseFloat(String(row[header] || "0")).toFixed(2)}
                               </TableCell>
                             ))}
+                            <TableCell className="text-center font-semibold">
+                              ${parseFloat(String(row.Total)).toFixed(2)}
+                            </TableCell>
                           </TableRow>
                         ))}
                         {/* Total Row */}
-                        <TableRow className="font-bold">
-                          <TableCell>Total</TableCell>
+                        <TableRow className="font-bold bg-gray-100 border-t-2">
+                          <TableCell className="sticky left-0 bg-gray-100 z-10 border-r">
+                            Total
+                          </TableCell>
                           {getHeaders().map((header, index) => (
-                            <TableCell key={index} className="text-right">
-                              $ {objVerticalSum[header]}
+                            <TableCell key={index} className="text-center">
+                              ${parseFloat(String(objVerticalSum[header] || "0")).toFixed(2)}
                             </TableCell>
                           ))}
-                          <TableCell className="text-right">$ {sumOfTotal.toFixed(2)}</TableCell>
+                          <TableCell className="text-center">
+                            ${sumOfTotal.toFixed(2)}
+                          </TableCell>
                         </TableRow>
                       </TableBody>
                     </Table>
