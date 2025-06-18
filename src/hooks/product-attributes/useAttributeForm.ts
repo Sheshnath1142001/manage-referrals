@@ -51,7 +51,7 @@ export function useAttributeForm() {
     },
     onError: (error) => {
       toast.error("Failed to create product attribute");
-      console.error(error);
+      
     }
   });
 
@@ -77,7 +77,7 @@ export function useAttributeForm() {
     },
     onError: (error) => {
       toast.error("Failed to update product attribute");
-      console.error(error);
+      
     }
   });
 
@@ -90,7 +90,7 @@ export function useAttributeForm() {
     },
     onError: (error) => {
       toast.error("Failed to update attribute sequence");
-      console.error(error);
+      
     }
   });
 
@@ -113,7 +113,7 @@ export function useAttributeForm() {
       setIsAddingAttribute(false);
       setIsEditingAttribute(false);
     } catch (error) {
-      console.error('Failed to save attribute:', error);
+      
     }
   };
 

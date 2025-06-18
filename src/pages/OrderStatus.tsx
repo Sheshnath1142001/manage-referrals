@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Pencil, RefreshCw, Plus } from "lucide-react";
+import { Pencil, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
@@ -22,6 +22,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useGetRestaurants } from "@/hooks/useGetRestaurants";
 import { Restaurant } from "@/services/api/restaurants";
+import { OrdersPagination } from "@/components/orders/OrdersPagination";
+import { useAuth } from "@/hooks/use-auth";
 
 interface OrderStatus {
   id: number;
@@ -32,6 +34,7 @@ interface OrderStatus {
   order_status_bind_restaurants: any[];
   custom_label?: string;
   custom_label_description?: string;
+  custom_label_record_id?: number; // ID of the custom label record for PATCH requests
 }
 
 interface ApiResponse {
@@ -43,24 +46,36 @@ const apiBaseUrl = import.meta.env.API_BASE_URL || 'https://pratham-respos-testb
 
 const OrderStatus = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const tenantId = user.restaurant_id;
+  console.log({ tenantId })
   const { restaurants, isLoading: isLoadingRestaurants, refreshRestaurants } = useGetRestaurants();
   const [orderStatuses, setOrderStatuses] = useState<OrderStatus[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState("all");
+  const [selectedLocation, setSelectedLocation] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingStatus, setEditingStatus] = useState<{
     id: number;
     status_name?: string;
     custom_label: string;
     custom_label_description: string;
+    custom_label_record_id?: number;
   } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Set default location to first restaurant when restaurants are loaded
+  useEffect(() => {
+    if (restaurants.length > 0 && !selectedLocation) {
+      setSelectedLocation(restaurants[0].id.toString());
+    }
+  }, [restaurants, selectedLocation]);
 
   // Fetch order statuses
-  const fetchOrderStatuses = useCallback(async () => {
+  const fetchOrderStatuses = useCallback(async (searchQuery?: string) => {
     try {
       setIsLoading(true);
       const adminData = localStorage.getItem('Admin');
@@ -72,8 +87,13 @@ const OrderStatus = () => {
       
       let url = `${apiBaseUrl}/order-statuses?page=${currentPage}&per_page=${itemsPerPage}`;
       
-      if (selectedLocation !== "all") {
-        url += `&restaurant_id=${selectedLocation}`;
+      if (user.restaurant_id) {
+        url += `&restaurant_id=${user.restaurant_id}`;
+      }
+
+      // Add search parameter if provided
+      if (searchQuery && searchQuery.trim()) {
+        url += `&status_name=${encodeURIComponent(searchQuery.trim())}`;
       }
 
       const response = await fetch(url, {
@@ -93,8 +113,9 @@ const OrderStatus = () => {
       const processedOrderStatuses = data.order_statuses.map(status => {
         let customLabel = "";
         let customLabelDescription = "";
+        let customLabelRecordId = undefined;
         if (status.order_status_bind_restaurants && status.order_status_bind_restaurants.length > 0) {
-          const restaurantId = selectedLocation !== "all" ? parseInt(selectedLocation) : null;
+          const restaurantId = selectedLocation ? parseInt(selectedLocation) : null;
           let customBinding = status.order_status_bind_restaurants.find(
             binding => binding.restaurant_id === restaurantId
           );
@@ -105,12 +126,14 @@ const OrderStatus = () => {
           if (customBinding) {
             customLabel = customBinding.custom_status_label || "";
             customLabelDescription = customBinding.description || "";
+            customLabelRecordId = customBinding.id; // Store the custom label record ID
           }
         }
         return {
           ...status,
           custom_label: customLabel,
-          custom_label_description: customLabelDescription
+          custom_label_description: customLabelDescription,
+          custom_label_record_id: customLabelRecordId
         };
       });
       
@@ -120,7 +143,7 @@ const OrderStatus = () => {
       setOrderStatuses(sortedStatuses);
       setTotalItems(data.total);
     } catch (error) {
-      console.error("Error fetching order statuses:", error);
+      
       toast({
         title: "Error",
         description: "Failed to load order statuses. Please try again.",
@@ -129,15 +152,29 @@ const OrderStatus = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, itemsPerPage, selectedLocation, toast]);
+  }, [currentPage, itemsPerPage, selectedLocation, toast, user.restaurant_id]);
 
   // Initial data load
   useEffect(() => {
-    fetchOrderStatuses();
+    if (selectedLocation) {
+      fetchOrderStatuses();
+    }
   }, [currentPage, itemsPerPage, selectedLocation]);
 
+  // Debounced search effect
+  useEffect(() => {
+    if (!selectedLocation) return;
+    
+    const debounceTimer = setTimeout(() => {
+      setCurrentPage(1); // Reset to first page when searching
+      fetchOrderStatuses(searchTerm);
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(debounceTimer);
+  }, [searchTerm, selectedLocation, fetchOrderStatuses]);
+
   const handleRefresh = () => {
-    fetchOrderStatuses();
+    fetchOrderStatuses(searchTerm);
     refreshRestaurants(); // Also refresh restaurants list
     toast({
       title: "Refreshing data...",
@@ -145,32 +182,14 @@ const OrderStatus = () => {
     });
   };
 
-  const handleAddStatus = () => {
-    toast({
-      title: "Add Status",
-      description: "Add new status functionality will be implemented here",
-    });
-  };
-
   const handleEditStatus = (status: OrderStatus) => {
-    // Find the binding for the selected location
-    let customLabel = "";
-    let customLabelDescription = "";
-    if (status.order_status_bind_restaurants && status.order_status_bind_restaurants.length > 0) {
-      const restaurantId = selectedLocation !== "all" ? parseInt(selectedLocation) : null;
-      const customBinding = status.order_status_bind_restaurants.find(
-        binding => binding.restaurant_id === restaurantId
-      );
-      if (customBinding) {
-        customLabel = customBinding.custom_status_label || "";
-        customLabelDescription = customBinding.description || "";
-      }
-    }
+    // Use the processed custom labels directly from the status object
     setEditingStatus({
       id: status.id,
       status_name: status.status_name,
-      custom_label: customLabel,
-      custom_label_description: customLabelDescription
+      custom_label: status.custom_label || "",
+      custom_label_description: status.custom_label_description || "",
+      custom_label_record_id: status.custom_label_record_id
     });
     setIsEditDialogOpen(true);
   };
@@ -187,42 +206,77 @@ const OrderStatus = () => {
       
       const { token } = JSON.parse(adminData);
       
-      // Prepare request payload
+      // Prepare request payload - simplified for PATCH request
       const payload = {
-        original_status_id: editingStatus.id,
         custom_status_label: editingStatus.custom_label.trim(),
-        description: editingStatus.custom_label_description.trim(),
-        restaurant_id: selectedLocation !== "all" ? parseInt(selectedLocation) : null
+        description: editingStatus.custom_label_description.trim()
       };
       
-      console.log("Updating order status with payload:", payload);
       
-      const response = await fetch(`${apiBaseUrl}/label-custom-order-status`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
+      
+      // Check if we have an existing custom label record ID for PATCH
+      if (editingStatus.custom_label_record_id) {
+        // Use PATCH method for existing custom label
+        const response = await fetch(`${apiBaseUrl}/label-custom-order-status/${editingStatus.custom_label_record_id}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
 
-      // Handle API errors
-      if (!response.ok) {
-        let errorMessage = 'Failed to update status';
-        try {
-          const errorData = await response.json();
-          if (errorData?.message) {
-            errorMessage = errorData.message;
+        if (!response.ok) {
+          let errorMessage = 'Failed to update status';
+          try {
+            const errorData = await response.json();
+            if (errorData?.message) {
+              errorMessage = errorData.message;
+            }
+            
+          } catch (parseError) {
+            
           }
-          console.error("API Error Response:", errorData);
-        } catch (parseError) {
-          console.error("Error parsing API error response");
+          throw new Error(errorMessage);
         }
-        throw new Error(errorMessage);
-      }
 
-      const responseData = await response.json();
-      console.log("Update successful:", responseData);
+        const responseData = await response.json();
+        
+      } else {
+        // Use POST method for creating new custom label
+        const createPayload = {
+          original_status_id: editingStatus.id,
+          custom_status_label: editingStatus.custom_label.trim(),
+          description: editingStatus.custom_label_description.trim(),
+          restaurant_id: tenantId ? tenantId : null
+        };
+
+        const response = await fetch(`${apiBaseUrl}/label-custom-order-status`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(createPayload),
+        });
+
+        if (!response.ok) {
+          let errorMessage = 'Failed to create custom label';
+          try {
+            const errorData = await response.json();
+            if (errorData?.message) {
+              errorMessage = errorData.message;
+            }
+            
+          } catch (parseError) {
+            
+          }
+          throw new Error(errorMessage);
+        }
+
+        const responseData = await response.json();
+        
+      }
       
       toast({
         title: "Success",
@@ -232,10 +286,10 @@ const OrderStatus = () => {
       setIsEditDialogOpen(false);
       
       // Immediately refresh to show the changes
-      fetchOrderStatuses();
+      fetchOrderStatuses(searchTerm);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      console.error("Error updating status:", error);
+      
       toast({
         title: "Error",
         description: errorMessage || "Failed to update custom label. Please try again.",
@@ -246,7 +300,14 @@ const OrderStatus = () => {
     }
   };
 
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(parseInt(value));
+    setCurrentPage(1);
+  };
 
   // Add this effect to close the dialog if location changes
   useEffect(() => {
@@ -255,47 +316,25 @@ const OrderStatus = () => {
 
   return (
     <div className="p-6">
+      {/* Search Field and Refresh Button Header */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">Order Status</h1>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={handleAddStatus}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Add Status
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleRefresh}
-            className="flex items-center gap-2"
-            disabled={isLoading || isLoadingRestaurants}
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoading || isLoadingRestaurants ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
+        <div className="flex-1 max-w-md">
+          <Input
+            placeholder="Search by order status..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full"
+          />
         </div>
-      </div>
-
-      {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div>
-          <label className="text-xs text-gray-500 mb-1 block">Location</label>
-          <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-            <SelectTrigger className="h-10 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
-              <SelectValue placeholder="All Locations" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Locations</SelectItem>
-              {restaurants.map((restaurant) => (
-                <SelectItem key={restaurant.id} value={restaurant.id.toString()}>
-                  {restaurant.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleRefresh}
+          disabled={isLoading || isLoadingRestaurants}
+          className="h-10 w-10 ml-4"
+        >
+          <RefreshCw className={`h-4 w-4 ${isLoading || isLoadingRestaurants ? "animate-spin" : ""}`} />
+        </Button>
       </div>
 
       {/* Table */}
@@ -320,7 +359,7 @@ const OrderStatus = () => {
               {orderStatuses.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-4">
-                    No order statuses found
+                    {searchTerm ? "No order statuses match your search" : "No order statuses found"}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -361,21 +400,14 @@ const OrderStatus = () => {
         </div>
       )}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center gap-2 mt-4">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-            <Button
-              key={page}
-              variant={page === currentPage ? "default" : "outline"}
-              size="sm"
-              onClick={() => setCurrentPage(page)}
-            >
-              {page}
-            </Button>
-          ))}
-        </div>
-      )}
+      {/* Updated Pagination using OrdersPagination component */}
+      <OrdersPagination
+        currentPage={currentPage}
+        totalItems={totalItems}
+        itemsPerPage={itemsPerPage}
+        onPageChange={handlePageChange}
+        onItemsPerPageChange={handleItemsPerPageChange}
+      />
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
@@ -383,51 +415,40 @@ const OrderStatus = () => {
           <DialogHeader>
             <DialogTitle>Edit Custom Label for "{editingStatus?.status_name || 'Status'}"</DialogTitle>
           </DialogHeader>
-          {selectedLocation === "all" ? (
-            <div className="py-4">
-              <div className="bg-amber-50 p-3 rounded-md border border-amber-200 text-amber-700">
-                <p className="text-sm font-medium mb-2">Restaurant Selection Required</p>
-                <p className="text-xs">
-                  Please select a specific restaurant from the dropdown menu before editing custom labels.
-                </p>
-              </div>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="custom_label">Custom Label</Label>
+              <Input
+                id="custom_label"
+                value={editingStatus?.custom_label || ""}
+                onChange={(e) => setEditingStatus(prev => prev ? {
+                  ...prev,
+                  custom_label: e.target.value
+                } : null)}
+                placeholder="Enter custom label"
+                className={!editingStatus?.custom_label?.trim() ? "border-red-300" : ""}
+              />
+              {!editingStatus?.custom_label?.trim() && (
+                <p className="text-xs text-red-500 mt-1">Custom label is required</p>
+              )}
             </div>
-          ) : (
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="custom_label">Custom Label</Label>
-                <Input
-                  id="custom_label"
-                  value={editingStatus?.custom_label || ""}
-                  onChange={(e) => setEditingStatus(prev => prev ? {
-                    ...prev,
-                    custom_label: e.target.value
-                  } : null)}
-                  placeholder="Enter custom label"
-                  className={!editingStatus?.custom_label?.trim() ? "border-red-300" : ""}
-                />
-                {!editingStatus?.custom_label?.trim() && (
-                  <p className="text-xs text-red-500 mt-1">Custom label is required</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="custom_label_description">
-                  Custom Label Description
-                  <span className="text-gray-400 text-xs ml-2">(Optional)</span>
-                </Label>
-                <Textarea
-                  id="custom_label_description"
-                  value={editingStatus?.custom_label_description || ""}
-                  onChange={(e) => setEditingStatus(prev => prev ? {
-                    ...prev,
-                    custom_label_description: e.target.value
-                  } : null)}
-                  placeholder="Enter a description that will be shown to customers (optional)"
-                  rows={3}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="custom_label_description">
+                Custom Label Description
+                <span className="text-gray-400 text-xs ml-2">(Optional)</span>
+              </Label>
+              <Textarea
+                id="custom_label_description"
+                value={editingStatus?.custom_label_description || ""}
+                onChange={(e) => setEditingStatus(prev => prev ? {
+                  ...prev,
+                  custom_label_description: e.target.value
+                } : null)}
+                placeholder="Enter a description that will be shown to customers (optional)"
+                rows={3}
+              />
             </div>
-          )}
+          </div>
           <DialogFooter>
             <Button
               variant="outline"
@@ -438,7 +459,7 @@ const OrderStatus = () => {
             </Button>
             <Button
               onClick={handleUpdateStatus}
-              disabled={isSubmitting || !editingStatus || !editingStatus.custom_label.trim() || selectedLocation === "all"}
+              disabled={isSubmitting || !editingStatus || !editingStatus.custom_label.trim()}
             >
               {isSubmitting ? (
                 <>

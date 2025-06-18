@@ -46,9 +46,17 @@ const ProductAttributes = () => {
     toggleAttributeExpand
   } = useAttributesList();
 
+  // Refresh function for drag and drop updates
+  const handleRefresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['product-attributes'] });
+    if (expandedAttribute) {
+      await queryClient.invalidateQueries({ queryKey: ['attribute-values', expandedAttribute] });
+    }
+  };
+
   // Debug expanded attribute
   useEffect(() => {
-    console.log("Expanded attribute ID:", expandedAttribute);
+    
   }, [expandedAttribute]);
 
   const {
@@ -82,13 +90,12 @@ const ProductAttributes = () => {
   // Get attribute values for the expanded attribute
   const {
     attributeValues,
-    isLoadingValues,
-    refetchValues
+    isLoadingValues
   } = useAttributeValues(expandedAttribute);
 
   // Debug attribute values
   useEffect(() => {
-    console.log("Attribute values from hook:", attributeValues);
+    
   }, [attributeValues]);
 
   // Get the current expanded attribute object to pass to useAttributeValueForm
@@ -145,7 +152,7 @@ const ProductAttributes = () => {
       // Close the dialog
       setIsAddingValue(false);
     } catch (error) {
-      console.error('Failed to create attribute value:', error);
+      
       toast({
         title: "Error",
         description: "Failed to add attribute value",
@@ -156,14 +163,14 @@ const ProductAttributes = () => {
 
   // Wrap attribute expand to ensure we only pass the ID
   const handleToggleExpand = (attribute: ProductAttribute) => {
-    console.log("Toggling expansion for attribute:", attribute);
+    
     toggleAttributeExpand(attribute.id);
   };
 
   return (
     <div className="p-6">
       {/* Filter section and add button */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex-1">
           <AttributeFilters 
             searchTerm={searchTerm}
@@ -173,14 +180,15 @@ const ProductAttributes = () => {
           />
         </div>
         
-        <Button 
-          onClick={() => setIsAddingAttribute(true)}
-          className="bg-[#6E41E2] hover:bg-[#5835B0] text-white px-4 py-2 flex items-center gap-2 h-9 rounded-md ml-4"
-          title="Add New"
-        >
-          <Plus className="h-4 w-4" />
-          Add Attribute
-        </Button>
+        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+          <Button 
+            onClick={() => setIsAddingAttribute(true)}
+            className="bg-[#1E293B] hover:bg-[#0f172a] text-white h-9 w-9 rounded-full"
+            title="Add Attribute"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Main content */}
@@ -200,6 +208,7 @@ const ProductAttributes = () => {
           onViewAttribute={handleViewAttribute}
           onAddAttributeValue={handleAddAttributeValue}
           onEditAttributeValue={handleEditAttributeValue}
+          onRefresh={handleRefresh}
         />
       </div>
 

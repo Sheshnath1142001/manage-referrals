@@ -7,11 +7,21 @@ export const useCategoryMutations = () => {
   
   const createCategoryMutation = useMutation({
     mutationFn: (categoryData: FormData) => {
-      console.log('Creating category with data:', Object.fromEntries(categoryData.entries()));
+      // ✅ FIXED: Don't convert FormData to object - it destroys file data
+      // Instead, log FormData contents properly for debugging
+      
+      for (const [key, value] of categoryData.entries()) {
+        if (value instanceof File) {
+          
+        } else {
+          
+        }
+      }
+      
       return categoriesApi.createCategory(categoryData);
     },
     onSuccess: (response) => {
-      console.log('Category created successfully:', response);
+      
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       toast({
         title: "Success",
@@ -19,7 +29,7 @@ export const useCategoryMutations = () => {
       });
     },
     onError: (error: any) => {
-      console.error('Failed to create category:', error);
+      
       if (error.response) {
         console.error('Error response:', {
           status: error.response.status,
@@ -36,20 +46,20 @@ export const useCategoryMutations = () => {
   });
 
   const updateCategoryMutation = useMutation({
-    mutationFn: (categoryData: FormData) => {
+    mutationFn: (categoryData: { id: string; category: string; status: string }) => {
       if (!categoryData) {
         return Promise.reject('Invalid data format');
       }
-      const id = categoryData.get('id')?.toString() || '';
+      const { id, ...data } = categoryData;
       if (!id) {
         return Promise.reject('Category ID is required for update');
       }
       
-      console.log('Updating category with ID:', id, 'Data:', Object.fromEntries(categoryData.entries()));
-      return categoriesApi.updateCategory(id, categoryData);
+      
+      return categoriesApi.updateCategory(id, data);
     },
     onSuccess: (response) => {
-      console.log('Category updated successfully:', response);
+      
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       toast({
         title: "Success",
@@ -57,7 +67,7 @@ export const useCategoryMutations = () => {
       });
     },
     onError: (error: any) => {
-      console.error('Failed to update category:', error);
+      
       if (error.response) {
         console.error('Error response:', {
           status: error.response.status,
@@ -84,7 +94,7 @@ export const useCategoryMutations = () => {
       });
     },
     onError: (error) => {
-      console.error('Failed to update category sequence:', error);
+      
       toast({
         title: "Error",
         description: "Failed to update category order. Please try again.",
@@ -103,7 +113,7 @@ export const useCategoryMutations = () => {
       });
     },
     onError: (error) => {
-      console.error('Failed to import categories:', error);
+      
       toast({
         title: "Error",
         description: "Failed to import categories. Please try again.",

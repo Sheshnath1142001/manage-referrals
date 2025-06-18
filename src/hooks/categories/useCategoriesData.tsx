@@ -30,9 +30,10 @@ export const useCategoriesData = () => {
     queryFn: async () => {
       setIsLoading(true);
       try {
+        const isShowingAll = pageSize === 0 || pageSize === -1;
         const params: any = { 
-          page: currentPage, 
-          per_page: pageSize
+          page: isShowingAll ? 1 : currentPage, // If showing all, always use page 1
+          per_page: isShowingAll ? 99999 : pageSize // If pageSize is 0 or -1 (all), use 99999
         };
         
         // Only add status to params if it's not "all"
@@ -49,9 +50,9 @@ export const useCategoriesData = () => {
           params.seq_no = seqNoSearchTerm;
         }
         
-        console.log("Fetching categories with params:", params);
+        
         const response = await categoriesApi.getCategories(params);
-        console.log("Categories API response:", response);
+        
         setApiResponse(response); // Store the full API response
         
         // Process API data
@@ -59,7 +60,7 @@ export const useCategoriesData = () => {
         
         return response;
       } catch (err) {
-        console.error("Failed to fetch categories:", err);
+        
         toast({
           title: "Error",
           description: "Failed to load categories. Using fallback data.",
@@ -73,13 +74,14 @@ export const useCategoriesData = () => {
     // Add these options to ensure the query runs properly
     refetchOnWindowFocus: false,
     retry: 1,
-    staleTime: 30000
+    staleTime: 0, // Always fetch fresh data
+    refetchOnMount: true // Always refetch when component mounts
   });
   
   const processApiResponse = (apiData: any) => {
     if (!apiData) return;
     
-    console.log("Processing API data:", apiData);
+    
     
     let total = 0;
     let categoriesData: any[] = [];
@@ -128,10 +130,10 @@ export const useCategoriesData = () => {
         image: item.image || ''
       }));
       
-      console.log("Transformed categories:", transformedCategories);
+      
       setCategories(transformedCategories);
     } else {
-      console.warn("Could not extract categories from API response:", apiData);
+      
       // If API call succeeded but no categories, set empty
       setCategories([]);
       setTotalItems(0);

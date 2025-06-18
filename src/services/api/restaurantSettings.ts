@@ -1,4 +1,5 @@
 
+
 import { api } from './client';
 
 export interface RestaurantSettings {
@@ -100,7 +101,6 @@ export const getRestaurantSettings = async (restaurantId: number): Promise<any> 
     const response = await api.get(`/restaurant-settings?restaurant_id=${restaurantId}`);
     return response;
   } catch (error) {
-    console.error('Error fetching restaurant settings:', error);
     throw error;
   }
 };
@@ -128,13 +128,10 @@ export const updateRestaurantSettings = async (restaurantId: number, data: Resta
       // Add paring_secret with fallback value
       paring_secret: data.paring_secret || "default_secret",
     };
-
-    console.log('Updating restaurant settings with payload:', payload);
     // Changed endpoint to use restaurant_id instead of settings_id
     const response = await api.patch(`/restaurant-settings/${restaurantId}`, payload);
     return response;
   } catch (error) {
-    console.error('Error updating restaurant settings:', error);
     throw error;
   }
 };
@@ -143,3 +140,4 @@ export const restaurantSettingsApi = {
   getRestaurantSettings,
   updateRestaurantSettings
 };
+

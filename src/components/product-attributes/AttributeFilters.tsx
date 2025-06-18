@@ -27,7 +27,7 @@ export function AttributeFilters({
   };
 
   return (
-    <div className="flex flex-wrap items-end gap-3 mb-6">
+    <div className="grid gap-3 mb-0 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
       <div className="w-auto min-w-[200px]">
         <label className="text-xs text-gray-500 mb-1 block">Attribute Name</label>
         <div className="relative">
@@ -36,7 +36,7 @@ export function AttributeFilters({
             placeholder="Search by attribute name"
             value={searchTerm}
             onChange={handleSearchInputChange}
-            className="pl-8 pr-8 h-9 bg-white border border-gray-300"
+            className="pl-8 pr-8 h-9 bg-white border border-gray-300 w-full"
           />
           {searchTerm && (
             <button 
@@ -50,10 +50,11 @@ export function AttributeFilters({
         </div>
       </div>
 
-      <div className="w-auto min-w-[130px]">
+      {/* Status */}
+      <div className="w-full sm:w-auto">
         <label className="text-xs text-gray-500 mb-1 block">Status</label>
         <Select onValueChange={onFilterChange} defaultValue="All">
-          <SelectTrigger className="h-9 bg-white border border-gray-300">
+          <SelectTrigger className="h-9 bg-white border border-gray-300 w-full sm:w-[130px]">
             <SelectValue placeholder="Select status" />
           </SelectTrigger>
           <SelectContent>

@@ -1,3 +1,4 @@
+
 import {
   Table,
   TableHeader,
@@ -21,6 +22,7 @@ interface Column {
   label: string;
   align: string;
   sortable?: boolean;
+  hideOnMobile?: boolean;
 }
 
 interface ItemsTableProps {
@@ -37,6 +39,7 @@ interface ItemsTableProps {
   toggleSelectAll: (isSelected: boolean) => void;
   updateBulkStatus: (status: number) => Promise<void>;
   onBulkEdit: () => void;
+  onClone: () => void;
 }
 
 export const ItemsTable = ({
@@ -53,8 +56,8 @@ export const ItemsTable = ({
   toggleSelectAll,
   updateBulkStatus,
   onBulkEdit,
+  onClone,
 }: ItemsTableProps) => {
-  console.log({  items })
   const columns: Column[] = [
     {
       name: "id",
@@ -62,7 +65,8 @@ export const ItemsTable = ({
       field: 'id',
       label: "ID",
       align: "left",
-      sortable: true
+      sortable: true,
+      hideOnMobile: true
     },
     {
       name: "name",
@@ -75,8 +79,9 @@ export const ItemsTable = ({
       name: "quantity",
       required: true,
       field: 'quantity',
-      label: "Quantity",
-      align: "right"
+      label: "Qty",
+      align: "right",
+      hideOnMobile: true
     },
     {
       name: "price",
@@ -90,7 +95,8 @@ export const ItemsTable = ({
       required: true,
       field: 'online_price',
       label: "Online Price",
-      align: "right"
+      align: "right",
+      hideOnMobile: true
     },
     {
       name: "barcode",
@@ -103,13 +109,15 @@ export const ItemsTable = ({
       name: "category",
       field: 'category',
       label: "Category",
-      align: "left"
+      align: "left",
+      hideOnMobile: true
     },
     {
       name: "seq_no",
       field: 'seq_no',
       label: "Seq No",
-      align: "right"
+      align: "right",
+      hideOnMobile: true
     },
     {
       name: "status",
@@ -146,7 +154,6 @@ export const ItemsTable = ({
       
       // Refresh the items list without opening the view dialog
     } catch (error) {
-      console.error("Error updating sequence:", error);
       toast({
         title: "Error",
         description: "Failed to update item sequence. Please try again.",
@@ -160,14 +167,15 @@ export const ItemsTable = ({
   const handleSelectAllChange = (checked: boolean) => {
     toggleSelectAll(checked);
   };
+  
   return (
     <div className="space-y-4">
       {selectedItems.length > 0 && (
-        <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-gray-50 rounded-lg">
           <span className="text-sm text-gray-600">
             {selectedItems.length} {selectedItems.length === 1 ? 'item' : 'items'} selected
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -189,52 +197,64 @@ export const ItemsTable = ({
             >
               Bulk Edit
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onClone}
+            >
+              Clone
+            </Button>
           </div>
         </div>
       )}
 
       <div className="rounded-md border">
-        <DragDropContext onDragEnd={handleDragEnd}>
-          <Table>
-            <TableHeader className="overflow-hidden rounded-t-[8px]">
-              <TableRow className="bg-[#1E293B] hover:bg-[#1E293B]">
-                <TableHead className="text-white font-medium w-[40px] first:rounded-tl-[8px]">
-                  <Checkbox 
-                    checked={areAllItemsSelected}
-                    onCheckedChange={handleSelectAllChange}
-                    className="border-white"
-                  />
-                </TableHead>
-                <TableHead className="text-white font-medium w-[40px]"></TableHead>
-                {columns.map((column, index) => (
-                  <TableHead 
-                    key={column.name} 
-                    className={`text-white font-medium ${column.align === 'right' ? 'text-right' : ''} ${
-                      index === columns.length - 1 ? 'last:rounded-tr-[8px]' : ''
-                    }`}
-                  >
-                    {column.label}
+        {/* Mobile Responsive Table Container */}
+        <div className="overflow-x-auto">
+          <DragDropContext onDragEnd={handleDragEnd}>
+            <Table className="min-w-full">
+              <TableHeader className="overflow-hidden rounded-t-[8px]">
+                <TableRow className="bg-[#1E293B] hover:bg-[#1E293B]">
+                  <TableHead className="text-white font-medium w-[40px] first:rounded-tl-[8px]">
+                    <Checkbox 
+                      checked={areAllItemsSelected}
+                      onCheckedChange={handleSelectAllChange}
+                      className="border-white"
+                    />
                   </TableHead>
-                ))}
-                <TableHead className="text-white font-medium text-right w-[100px] last:rounded-tr-[8px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
+                  <TableHead className="text-white font-medium w-[40px]"></TableHead>
+                  {columns.map((column, index) => (
+                    <TableHead 
+                      key={column.name} 
+                      className={`text-white font-medium ${column.align === 'right' ? 'text-right' : ''} ${
+                        column.hideOnMobile ? 'hidden sm:table-cell' : ''
+                      } ${
+                        index === columns.length - 1 ? 'last:rounded-tr-[8px]' : ''
+                      }`}
+                    >
+                      {column.label}
+                    </TableHead>
+                  ))}
+                  <TableHead className="text-white font-medium text-right w-[100px] last:rounded-tr-[8px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
 
-            <Droppable droppableId="items">
-              {(provided) => (
-                <ItemsTableBody
-                  isLoading={isLoading}
-                  paginatedItems={items}
-                  columns={columns}
-                  provided={provided}
-                  handleItemAction={handleItemAction}
-                  selectedItems={selectedItems}
-                  toggleItemSelection={toggleItemSelection}
-                />
-              )}
-            </Droppable>
-          </Table>
-        </DragDropContext>
+              <Droppable droppableId="items">
+                {(provided) => (
+                  <ItemsTableBody
+                    isLoading={isLoading}
+                    paginatedItems={items}
+                    columns={columns}
+                    provided={provided}
+                    handleItemAction={handleItemAction}
+                    selectedItems={selectedItems}
+                    toggleItemSelection={toggleItemSelection}
+                  />
+                )}
+              </Droppable>
+            </Table>
+          </DragDropContext>
+        </div>
 
         <CategoryPagination
           currentPage={currentPage}
@@ -247,3 +267,4 @@ export const ItemsTable = ({
     </div>
   );
 };
+

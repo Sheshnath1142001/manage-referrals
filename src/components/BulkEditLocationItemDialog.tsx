@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { X } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, MinusCircle } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -89,7 +89,7 @@ export const BulkEditLocationItemDialog = ({
 
   // Fetch tags
   const { data: tagsData, isLoading: isLoadingTags } = useQuery({
-    queryKey: ['tags'],
+    queryKey: ['bulk-edit-tags'],
     queryFn: async () => {
       const response = await api.get('/tags', { 
         params: {
@@ -97,13 +97,33 @@ export const BulkEditLocationItemDialog = ({
           page: 1
         }
       });
-      return response.data.tags || [];
+      
+      
+      // Handle different response structures - API client returns response.data directly
+      // Use type assertion since API client interceptor makes response structure unpredictable
+      const apiResponse = response as any;
+      if (apiResponse.tags && Array.isArray(apiResponse.tags)) {
+        return apiResponse.tags;
+      } else if (Array.isArray(apiResponse)) {
+        return apiResponse;
+      }
+      
+      
+      return [];
     },
     enabled: isOpen // Only fetch when dialog is open
   });
 
   // Ensure availableTags is always an array
   const availableTags = Array.isArray(tagsData) ? tagsData : [];
+  
+  // Debug logging
+  useEffect(() => {
+    if (isOpen) {
+      
+      
+    }
+  }, [availableTags, isLoadingTags, isOpen]);
 
   // Prepare discount types for dropdown
   const discountTypeOptions = [
@@ -203,7 +223,7 @@ export const BulkEditLocationItemDialog = ({
       });
       
       // Make bulk update request
-      console.log("Sending bulk update payload:", bulkUpdatePayload);
+      
       await locationItemsApi.bulkUpdate(bulkUpdatePayload);
       
       // Show success message
@@ -219,7 +239,7 @@ export const BulkEditLocationItemDialog = ({
       onOpenChange(false);
       onBulkUpdateSuccess();
     } catch (error) {
-      console.error("Error updating items:", error);
+      
       
       // Handle validation errors
       if (error.response?.data) {
@@ -293,7 +313,7 @@ export const BulkEditLocationItemDialog = ({
       
       // Make bulk update request
       if (bulkUpdatePayload.length > 0) {
-        console.log("Sending payload:", bulkUpdatePayload);
+        
         await locationItemsApi.bulkUpdate(bulkUpdatePayload);
       }
       
@@ -310,7 +330,7 @@ export const BulkEditLocationItemDialog = ({
       onOpenChange(false);
       onBulkUpdateSuccess();
     } catch (error) {
-      console.error("Error updating items:", error);
+      
       
       // Handle validation errors
       if (error.response?.data) {
@@ -357,24 +377,17 @@ export const BulkEditLocationItemDialog = ({
   // Get item current tags as an array of tag IDs
   const getItemTags = (item: LocationItem): string[] => {
     if (!item.restaurant_product_tags) return [];
-    return item.restaurant_product_tags.map(tag => tag.id);
+    return item.restaurant_product_tags.filter(tag => tag && tag.id).map(tag => tag.id);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-full w-full h-[100vh] p-0 m-0 rounded-none overflow-hidden flex flex-col">
-        <DialogHeader className="px-6 pt-6 flex flex-row items-center justify-between border-b pb-4">
+        <DialogHeader className="px-6 pt-6 border-b pb-4">
           <DialogTitle className="text-xl">Bulk Edit Location Items</DialogTitle>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => onOpenChange(false)}
-            className="h-8 w-8"
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </DialogHeader>
 
+        {/* Main content area - scrollable */}
         <div className="flex flex-col flex-1 overflow-hidden">
           {/* Tabs for bulk vs individual edit */}
           <Tabs defaultValue="bulk" className="w-full h-full flex flex-col" onValueChange={(value) => setIsBulkMode(value === "bulk")}>
@@ -461,8 +474,11 @@ export const BulkEditLocationItemDialog = ({
                 <div>
                   <Label htmlFor="bulk-tags">Tags</Label>
                   <MultiSelect
-                    options={Array.isArray(availableTags) ? availableTags.map(tag => ({ label: tag.tag, value: tag.id })) : []}
-                    selected={bulkFormData.tags}
+                    options={availableTags.map(tag => {
+                      
+                      return { label: tag.tag, value: tag.id };
+                    })}
+                    value={bulkFormData.tags}
                     onChange={(values) => handleFormChange("tags", values)}
                     placeholder="Select tags"
                     className="h-9 bg-white border border-gray-300 mt-2"
@@ -488,7 +504,7 @@ export const BulkEditLocationItemDialog = ({
               </div>
 
               {/* Show preview of changes */}
-              <div className="mt-6 flex-1 overflow-auto">
+              <div className="mt-6">
                 <h3 className="text-lg font-semibold mb-4">Preview Changes</h3>
                 <div className="border rounded-md overflow-hidden">
                   <Table>
@@ -516,7 +532,7 @@ export const BulkEditLocationItemDialog = ({
                             {bulkFormData.discount ? parseFloat(bulkFormData.discount).toFixed(2) : "Unchanged"}
                           </TableCell>
                           <TableCell>
-                            {item.restaurant_product_tags?.map(tag => tag.tag).join(", ") || "None"}
+                            {item.restaurant_product_tags?.filter(tag => tag && tag.tag).map(tag => tag.tag).join(", ") || "None"}
                           </TableCell>
                           <TableCell className={bulkFormData.tags.length > 0 ? "font-semibold text-blue-600" : "text-gray-400 italic"}>
                             {bulkFormData.tags.length > 0 ? getTagNames(bulkFormData.tags) : "Unchanged"}
@@ -610,7 +626,7 @@ export const BulkEditLocationItemDialog = ({
                         <TableCell>
                           <MultiSelect
                             options={Array.isArray(availableTags) ? availableTags.map(tag => ({ label: tag.tag, value: tag.id })) : []}
-                            selected={individualFormData[item.id]?.tags || getItemTags(item)}
+                            value={individualFormData[item.id]?.tags || getItemTags(item)}
                             onChange={(values) => handleIndividualChange(item.id, "tags", values)}
                             placeholder="Select tags"
                             className="h-9 bg-white border border-gray-300"
@@ -642,28 +658,28 @@ export const BulkEditLocationItemDialog = ({
               </div>
             </TabsContent>
           </Tabs>
+        </div>
 
-          {/* Footer with actions */}
-          <div className="p-4 border-t bg-white flex justify-between items-center">
-            <div>
-              <span className="text-sm text-gray-500">
-                Editing {selectedItems.length} item{selectedItems.length > 1 ? 's' : ''}
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => onOpenChange(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={isBulkMode ? handleBulkSubmit : handleIndividualSubmit}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Saving..." : "Save Changes"}
-              </Button>
-            </div>
+        {/* Fixed Footer with actions - always visible */}
+        <div className="p-4 border-t bg-white flex justify-between items-center shrink-0">
+          <div>
+            <span className="text-sm text-gray-500">
+              Editing {selectedItems.length} item{selectedItems.length > 1 ? 's' : ''}
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={isBulkMode ? handleBulkSubmit : handleIndividualSubmit}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Saving..." : "Save Changes"}
+            </Button>
           </div>
         </div>
       </DialogContent>

@@ -1,4 +1,3 @@
-
 import {
   Dialog,
   DialogContent,
@@ -13,6 +12,7 @@ import { ItemDialogFooter } from "./ItemDialogFooter";
 import { useQuery } from "@tanstack/react-query";
 import { getRestaurantsForProduct } from "@/services/api/items/restaurantsForProduct";
 import { Badge } from "@/components/ui/badge";
+import { useEffect } from "react";
 
 interface ItemDialogProps {
   isOpen: boolean;
@@ -26,7 +26,7 @@ interface ItemDialogProps {
   allCategories: Array<{id: number, category: string}>;
   categories: Array<{id: number, category: string}>;
   quantityUnits: Array<{id: number, unit: string}>;
-  locations: Array<{id: number, name: string}>;
+  locations: Array<{id: number, name: string, status: number}>;
   discountTypes: Array<{id: number, type: string}>;
 }
 
@@ -51,6 +51,16 @@ export const ItemDialog = ({
     queryFn: () => getRestaurantsForProduct(editingItem.id),
     enabled: isOpen && !!editingItem?.id && (isViewMode || !!editingItem),
   });
+
+  // Populate locations from API response in edit/view mode
+  useEffect(() => {
+    if ((isViewMode || editingItem) && restaurantsForProduct.length > 0 && !isLoadingRestaurants) {
+      const locationIds = restaurantsForProduct.map(item => item.restaurants.id.toString());
+      if (locationIds.length > 0 && formData.locations.length === 0) {
+        updateFormField("locations", locationIds);
+      }
+    }
+  }, [restaurantsForProduct, isLoadingRestaurants, isViewMode, editingItem, formData.locations, updateFormField]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -80,35 +90,6 @@ export const ItemDialog = ({
             locations={locations}
             discountTypes={discountTypes}
           />
-
-          {/* Available Locations Section - Show only in view/edit mode */}
-          {(isViewMode || editingItem) && (
-            <div className="mt-6 p-4 border rounded-lg bg-gray-50">
-              <h3 className="text-lg font-semibold mb-3">Available Locations</h3>
-              {isLoadingRestaurants ? (
-                <div className="text-sm text-gray-500">Loading locations...</div>
-              ) : restaurantsForProduct.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {restaurantsForProduct.map((item, index) => (
-                    <Badge 
-                      key={index} 
-                      variant="outline" 
-                      className={`px-3 py-1 ${
-                        item.restaurants.status === 1 
-                          ? 'bg-green-100 text-green-800 border-green-300' 
-                          : 'bg-gray-100 text-gray-600 border-gray-300'
-                      }`}
-                    >
-                      {item.restaurants.name}
-                      {item.restaurants.status !== 1 && ' (Inactive)'}
-                    </Badge>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-sm text-gray-500 italic">No locations assigned</div>
-              )}
-            </div>
-          )}
         </form>
 
         <ItemDialogFooter
@@ -118,6 +99,7 @@ export const ItemDialog = ({
           onOpenChange={onOpenChange}
           resetForm={resetForm}
           fetchItems={fetchItems}
+          updateFormField={updateFormField}
         />
       </DialogContent>
     </Dialog>

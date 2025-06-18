@@ -46,7 +46,7 @@ export const useQuantityUnits = () => {
       setQuantityUnits(responseData.quantity_units || []);
       setTotal(responseData.total || 0);
     } catch (error) {
-      console.error('Error fetching quantity units:', error);
+      
       toast({
         title: "Error",
         description: "Failed to load quantity units. Please try again.",

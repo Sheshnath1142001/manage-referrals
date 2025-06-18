@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Item, ItemFormData } from "@/components/items/types";
 import { attachmentsApi } from "@/services/api/attachments";
@@ -36,16 +35,45 @@ export function useItemForm() {
     }));
   };
 
-  const resetForm = () => {
-    setFormData(defaultFormData);
-    setIsItemDialogOpen(false);
+  const resetForm = (locations?: Array<{id: number, name: string, status: number}>, categories?: Array<{id: number, category: string}>) => {
+    let defaultLocationIds: string[] = [];
+    if (locations && locations.length > 0) {
+      const firstActiveLocation = locations.find(location => location.status === 1);
+      if (firstActiveLocation) {
+        defaultLocationIds = [firstActiveLocation.id.toString()];
+      }
+    }
+
+    // Set default category if available
+    let defaultCategoryId = 0;
+    if (categories && categories.length > 0) {
+      defaultCategoryId = categories[0].id;
+    }
+    
+    setFormData({
+      ...defaultFormData,
+      locations: defaultLocationIds,
+      category_id: defaultCategoryId
+    });
+    // setIsItemDialogOpen(false);
     setEditingItem(null);
     setIsViewMode(false);
   };
 
+  // Function to set default location when creating new item
+  const setDefaultLocation = (locations: Array<{id: number, name: string, status: number}>) => {
+    // Only set default location for new items (not when editing existing items)
+    if (!editingItem && locations.length > 0 && formData.locations.length === 0) {
+      const firstActiveLocation = locations.find(location => location.status === 1);
+      if (firstActiveLocation) {
+        updateFormField("locations", [firstActiveLocation.id.toString()]);
+      }
+    }
+  };
+
   const handleItemAction = async (item: Item, action: 'view' | 'edit') => {
-    console.log('handleItemAction called with:', { item, action });
-    console.log('Item ID:', item.id, 'Type:', typeof item.id);
+    
+    
     
     setEditingItem(item);
     setIsViewMode(action === 'view');
@@ -59,64 +87,63 @@ export function useItemForm() {
       try {
         const parsedData = JSON.parse(adminData);
         token = parsedData.token;
-        console.log('Token found:', token ? 'Yes' : 'No');
+        
         if (!token) {
-          console.error('No token found in admin data');
+          
           return;
         }
       } catch (error) {
-        console.error('Error parsing admin data:', error);
+        
         return;
       }
     } else {
-      console.error('No admin data found in localStorage');
+      
       return;
     }
 
-    // Set basic form data with token
+    // Set basic form data with token - locations will be populated by API response
     setFormData({
-  name: item.name || "",
-  category_id: category_id,
-  quantity: item.quantity ? item.quantity.toString() : "0",
-  quantity_unit_id: Number(item.quantity_unit_id || item.quantity_unit || 0),
-  barcode: item.barcode || "",
-  price: item.price ? item.price.toString() : "0",
-  online_price: item.online_price ? item.online_price.toString() : "0",
-  locations: [],
-  module_type: 2,
-  discount_type_id: Number(item.discount_type_id || item.discount_type || 0),
-  discount: item.discount || "0",
-  online_discount: item.online_discount || "0",
-  description: item.description || "",
-  image: null,
-  imagePreview: "",
-  imageToken: token,
-  status: item.status === 1 ? 1 : 0
-});
-
+      name: item.name || "",
+      category_id: category_id,
+      quantity: item.quantity ? item.quantity.toString() : "0",
+      quantity_unit_id: Number(item.quantity_unit_id || item.quantity_unit || 0),
+      barcode: item.barcode || "",
+      price: item.price ? item.price.toString() : "0",
+      online_price: item.online_price ? item.online_price.toString() : "0",
+      locations: [], // Will be populated by API response in ItemDialog
+      module_type: 2,
+      discount_type_id: Number(item.discount_type_id || item.discount_type || 0),
+      discount: item.discount || "0",
+      online_discount: item.online_discount || "0",
+      description: item.description || "",
+      image: null,
+      imagePreview: "",
+      imageToken: token,
+      status: item.status === 1 ? 1 : 0
+    });
 
     // Fetch image from attachments API using the proper service
     try {
-      console.log('=== STARTING ATTACHMENTS API CALL ===');
-      console.log('Fetching attachments for module_id:', item.id, 'module_type: 2');
-      console.log('API Base URL:', import.meta.env.API_BASE_URL);
+      
+      
+      
       
       const response = await attachmentsApi.getAttachments({
         module_type: 2,
         module_id: item.id
       });
 
-      console.log('=== ATTACHMENTS API RESPONSE ===');
-      console.log('Full response:', response);
-      console.log('Response type:', typeof response);
+      
+      
+      
 
       const attachments = response.attachment || [];
-      console.log('Parsed attachments:', attachments);
-      console.log('Number of attachments:', attachments.length);
+      
+      
       
       if (attachments.length > 0 && attachments[0].upload_path) {
         const imageUrl = attachments[0].upload_path;
-        console.log('Found image URL:', imageUrl);
+        
         
         setFormData(prev => ({
           ...prev,
@@ -124,14 +151,14 @@ export function useItemForm() {
           imageToken: token
         }));
       } else {
-        console.log('No attachments found');
+        
       }
     } catch (error: any) {
-      console.error('=== ATTACHMENTS API ERROR ===');
-      console.error('Error fetching attachments:', error);
-      console.error('Error details:', error.response?.data);
-      console.error('Error status:', error.response?.status);
-      console.error('Error message:', error.message);
+      
+      
+      
+      
+      
     }
     
     setIsItemDialogOpen(true);
@@ -147,6 +174,7 @@ export function useItemForm() {
     formData,
     updateFormField,
     resetForm,
-    handleItemAction
+    handleItemAction,
+    setDefaultLocation
   };
 }

@@ -123,7 +123,7 @@ export const useRefundReport = ({ restaurantId, selectedDate = new Date(), perio
               token = admin.token;
             }
           } catch (error) {
-            console.error('Error parsing admin data:', error);
+            
           }
         }
         
@@ -140,7 +140,7 @@ export const useRefundReport = ({ restaurantId, selectedDate = new Date(), perio
 
         return response.data;
       } catch (error) {
-        console.error("Error fetching report data:", error);
+        
         throw error;
       }
     },

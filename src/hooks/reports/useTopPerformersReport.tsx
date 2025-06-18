@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { reportsApi } from '@/services/api/reports';
-import { format, startOfWeek, endOfWeek } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subWeeks, subMonths, subYears } from 'date-fns';
 
 interface UseTopPerformersReportParams {
   restaurantId: string | number;
   selectedDate?: Date;
   userId?: string | number;
+  periodType?: string;
 }
 
 interface PerformerData {
@@ -30,19 +31,74 @@ interface ApiResponse {
   total: number;
 }
 
+// We can now use the main ReportParams interface since we added user_id to it
+
 export const useTopPerformersReport = ({ 
   restaurantId, 
   selectedDate = new Date(),
-  userId = '0'
+  userId = '0',
+  periodType = 'day'
 }: UseTopPerformersReportParams) => {
-  // Get week dates based on selected date
-  const getCurrentWeekDates = () => {
-    const sunday = startOfWeek(selectedDate, { weekStartsOn: 0 });
-    const saturday = endOfWeek(selectedDate, { weekStartsOn: 0 });
-    return { sunday, saturday };
+  
+  // Function to get date range based on period type
+  const getDateRangeForPeriod = () => {
+    const currentDate = selectedDate;
+    
+    switch (periodType) {
+      case "day":
+        // For day: get current week (Sunday to Saturday)
+        const weekStart = startOfWeek(currentDate, { weekStartsOn: 0 });
+        const weekEnd = endOfWeek(currentDate, { weekStartsOn: 0 });
+        return {
+          start_date: format(weekStart, "yyyy-MM-dd"),
+          end_date: format(weekEnd, "yyyy-MM-dd"),
+          report_type: 1
+        };
+      
+      case "week":
+        // For week: get from 7 weeks ago to current week
+        const sevenWeeksAgo = subWeeks(currentDate, 6);
+        const currentWeekStart = startOfWeek(sevenWeeksAgo, { weekStartsOn: 0 });
+        const currentWeekEnd = endOfWeek(currentDate, { weekStartsOn: 0 });
+        return {
+          start_date: format(currentWeekStart, "yyyy-MM-dd"),
+          end_date: format(currentWeekEnd, "yyyy-MM-dd"),
+          report_type: 2
+        };
+      
+      case "month":
+        // For month: get from 6 months ago to current month
+        const sixMonthsAgo = subMonths(currentDate, 6);
+        const monthStart = startOfMonth(sixMonthsAgo);
+        const monthEnd = endOfMonth(currentDate);
+        return {
+          start_date: format(monthStart, "yyyy-MM-dd"),
+          end_date: format(monthEnd, "yyyy-MM-dd"),
+          report_type: 3
+        };
+      
+      case "year":
+        // For year: get from 2019 to current year
+        const yearStart = new Date(2019, 0, 1); // January 1, 2019
+        const yearEnd = endOfYear(currentDate);
+        return {
+          start_date: format(yearStart, "yyyy-MM-dd"),
+          end_date: format(yearEnd, "yyyy-MM-dd"),
+          report_type: 4
+        };
+      
+      default:
+        const defaultStart = startOfWeek(currentDate, { weekStartsOn: 0 });
+        const defaultEnd = endOfWeek(currentDate, { weekStartsOn: 0 });
+        return {
+          start_date: format(defaultStart, "yyyy-MM-dd"),
+          end_date: format(defaultEnd, "yyyy-MM-dd"),
+          report_type: 1
+        };
+    }
   };
 
-  const { sunday, saturday } = getCurrentWeekDates();
+  const { start_date, end_date, report_type } = getDateRangeForPeriod();
   
   // Use React Query for data fetching with proper caching
   const { 
@@ -51,27 +107,29 @@ export const useTopPerformersReport = ({
     error, 
     refetch 
   } = useQuery({
-    queryKey: ['reports', 'top-performers', format(sunday, "yyyy-MM-dd"), format(saturday, "yyyy-MM-dd"), restaurantId, userId],
+    queryKey: ['reports', 'top-performers', start_date, end_date, restaurantId, userId, periodType],
     queryFn: async () => {
       try {
         console.log("Fetching top performers with params:", {
-          start_date: format(sunday, "yyyy-MM-dd"),
-          end_date: format(saturday, "yyyy-MM-dd"),
+          start_date,
+          end_date,
           restaurant_id: parseInt(restaurantId.toString()),
-          user_id: userId
+          user_id: userId,
+          report_type,
+          period_type: periodType
         });
         
-        const response = await reportsApi.getTopPerformersReport({
-          report_type: 1,
-          start_date: format(sunday, "yyyy-MM-dd"),
-          end_date: format(saturday, "yyyy-MM-dd"),
+        const params = {
+          report_type,
+          start_date,
+          end_date,
           restaurant_id: parseInt(restaurantId.toString()),
           week_start_date: "Sunday",
           user_id: userId.toString()
-        });
-
-        console.log("Top performers API raw response:", response);
+        };
         
+        const response = await reportsApi.getTopPerformersReport(params);
+
         // Direct structure like: { data: { "1053": { "2025-04-30": { ... } } } }
         if (response && response.data) {
           console.log("Response data structure:", {
@@ -83,7 +141,7 @@ export const useTopPerformersReport = ({
           
           // Case 1: Data is nested under data.data
           if (response.data.data && typeof response.data.data === 'object') {
-            console.log("Case 1: Using nested data.data", response.data.data);
+            
             return {
               data: response.data.data || {},
               total: response.data.total || 0
@@ -92,7 +150,7 @@ export const useTopPerformersReport = ({
           
           // Case 2: Data is directly at the top level in data
           if (Object.keys(response.data).some(key => !isNaN(Number(key)))) {
-            console.log("Case 2: Using direct data", response.data);
+            
             return {
               data: response.data,
               total: Object.keys(response.data).length
@@ -100,12 +158,12 @@ export const useTopPerformersReport = ({
           }
           
           // Case 3: Data might be in an unexpected format, try to extract
-          console.log("Case 3: Attempting to extract data from unexpected format");
+          
           const keys = Object.keys(response.data);
           for (const key of keys) {
             const value = response.data[key];
             if (typeof value === 'object' && value !== null) {
-              console.log(`Found object at key ${key}, trying this as data`, value);
+              
               return {
                 data: value,
                 total: Object.keys(value).length
@@ -115,18 +173,19 @@ export const useTopPerformersReport = ({
         }
         
         // Return an empty result if we can't recognize the structure
-        console.warn('Unexpected response format from top performers API:', response);
+        
         return {
           data: {},
           total: 0
         };
       } catch (error) {
-        console.error("Error fetching report data:", error);
+        
         throw error;
       }
     },
-    refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000 // 5 minutes cache
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    staleTime: 0 // Remove caching to always fetch fresh data
   });
 
   // Format currency
@@ -146,9 +205,9 @@ export const useTopPerformersReport = ({
     error,
     refetch,
     weekDates: {
-      sunday,
-      saturday
+      sunday: new Date(start_date),
+      saturday: new Date(end_date)
     },
     formatCurrency
   };
-}; 
+};

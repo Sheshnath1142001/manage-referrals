@@ -1,19 +1,16 @@
+
 import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogClose,
   DialogHeader,
   DialogTitle,
-  DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { MultiSelect } from "@/components/ui/multi-select";
-import type { OptionType as Option } from "@/components/ui/multi-select";
 import {
   Select,
   SelectContent,
@@ -23,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/services/api/client";
+import { tagsService } from "@/services/api/items/tags";
 import { useQuery } from "@tanstack/react-query";
 
 interface EditLocationItemDialogProps {
@@ -70,37 +68,49 @@ const EditLocationItemDialog = ({
 
   const { toast } = useToast();
 
+  // Helper function to map API discount type to form discount type
+  const mapApiDiscountTypeToForm = (apiType: string) => {
+    if (apiType === "Percent") return "Percentage";
+    if (apiType === "Flat") return "Flat";
+    return "Flat"; // default fallback
+  };
+
+  // Debug: Monitor formData changes
+  useEffect(() => {
+    
+  }, [formData]);
+
   // Fetch tags from API
-  const { data: tagsData, isLoading: isTagsLoading, refetch: refetchTags } = useQuery({
+  const { data: tagsData, isLoading: isTagsLoading } = useQuery({
     queryKey: ['tags'],
-    queryFn: async () => {
-      const response = await api.get('/tags', { params: { per_page: 999999, page: 1 } });
-      console.log('Tags API response:', response);
-      return response;
-    },
-    select: (res) => res.tags || [],
+    queryFn: () => tagsService.getTags({ per_page: 999999, page: 1 }),
+    select: (res: any) => (res as any)?.tags || (res as any)?.data || [],
   });
   
   // Convert tags to options for MultiSelect
-  const tagOptions: Option[] = (tagsData || []).map((tag: any) => ({
+  const tagOptions = (tagsData || []).map((tag: any) => ({
     label: tag.tag,
     value: tag.id,
   }));
 
   useEffect(() => {
     if (item) {
-      const tagIds = item.tags?.map(tagName => {
+      const tagIds = item.tags?.filter(tagName => tagName && typeof tagName === 'string').map(tagName => {
         // Find the tag ID based on the tag name
-        const foundTag = tagsData?.find((tag: any) => tag.tag === tagName);
+        const foundTag = tagsData?.find((tag: any) => tag && tag.tag === tagName);
         return foundTag?.id || tagName;
       }) || [];
+
+      // Map "Percent" from API to "Percentage" for the form
+      const mappedDiscountType = mapApiDiscountTypeToForm(item.discountType);
+       // Debug log
 
       setFormData({
         id: item.id || "",
         name: item.name || "",
         price: item.price || "",
         onlinePrice: item.onlinePrice || "",
-        discountType: item.discountType || "Flat",
+        discountType: mappedDiscountType,
         discount: item.discount || "",
         onlineDiscount: item.onlineDiscount || "",
         tags: tagIds,
@@ -157,8 +167,8 @@ const EditLocationItemDialog = ({
 
     if (onSubmit) {
       // Convert tag IDs back to tag names for the API
-      const tagNames = formData.tags.map(tagId => {
-        const foundTag = tagsData?.find((tag: any) => tag.id === tagId);
+      const tagNames = formData.tags.filter(tagId => tagId).map(tagId => {
+        const foundTag = tagsData?.find((tag: any) => tag && tag.id === tagId);
         return foundTag?.tag || tagId;
       });
 
@@ -173,18 +183,21 @@ const EditLocationItemDialog = ({
 
   const handleReset = () => {
     if (item) {
-      const tagIds = item.tags?.map(tagName => {
+      const tagIds = item.tags?.filter(tagName => tagName && typeof tagName === 'string').map(tagName => {
         // Find the tag ID based on the tag name
-        const foundTag = tagsData?.find((tag: any) => tag.tag === tagName);
+        const foundTag = tagsData?.find((tag: any) => tag && tag.tag === tagName);
         return foundTag?.id || tagName;
       }) || [];
+
+      // Map "Percent" from API to "Percentage" for the form
+      const mappedDiscountType = mapApiDiscountTypeToForm(item.discountType);
 
       setFormData({
         id: item.id || "",
         name: item.name || "",
         price: item.price || "",
         onlinePrice: item.onlinePrice || "",
-        discountType: item.discountType || "Flat",
+        discountType: mappedDiscountType,
         discount: item.discount || "",
         onlineDiscount: item.onlineDiscount || "",
         tags: tagIds,
@@ -215,47 +228,41 @@ const EditLocationItemDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px] p-0 overflow-hidden flex flex-col max-h-[90vh]">
-        <DialogHeader className="bg-black text-white p-4 sticky top-0 z-10">
-          <div className="flex justify-between items-center">
-            <DialogTitle className="text-xl font-bold">Edit Location Items</DialogTitle>
-            <DialogClose className="h-8 w-8 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center">
-              <X className="h-5 w-5" />
-              <span className="sr-only">Close</span>
-            </DialogClose>
-          </div>
+      <DialogContent className="sm:max-w-[900px]">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold">
+            Edit Location Items
+          </DialogTitle>
         </DialogHeader>
-
-        <div className="p-6 space-y-4 overflow-y-auto flex-1">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
+        
+        <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-6">
+          {/* Main fields in 3 columns */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name" className="font-semibold">
-                Name*:
-              </Label>
+              <Label htmlFor="name">Name*</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => handleChange("name", e.target.value)}
                 placeholder="Enter item name"
+                required
+                disabled
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="price" className="font-semibold">
-                Price*:
-              </Label>
+              <Label htmlFor="price">Price*</Label>
               <Input
                 id="price"
                 value={formData.price}
                 onChange={(e) => handleChange("price", e.target.value)}
                 placeholder="$ 0"
+                required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="onlinePrice" className="font-semibold">
-                Online Price:
-              </Label>
+              <Label htmlFor="onlinePrice">Online Price</Label>
               <Input
                 id="onlinePrice"
                 value={formData.onlinePrice}
@@ -263,17 +270,15 @@ const EditLocationItemDialog = ({
                 placeholder="$ 0"
               />
             </div>
-            
+          </div>
+
+          {/* Discount fields in 3 columns */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="discountType" className="font-semibold">
-                Discount Type:
-              </Label>
-              <Select 
-                value={formData.discountType} 
-                onValueChange={(value) => handleChange("discountType", value)}
-              >
-                <SelectTrigger id="discountType">
-                  <SelectValue placeholder="Select type" />
+              <Label htmlFor="discountType">Discount Type</Label>
+              <Select value={formData.discountType} onValueChange={(value) => handleChange("discountType", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select discount type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Flat">Flat</SelectItem>
@@ -283,9 +288,7 @@ const EditLocationItemDialog = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="discount" className="font-semibold">
-                Discount:
-              </Label>
+              <Label htmlFor="discount">Discount</Label>
               <Input
                 id="discount"
                 value={formData.discount}
@@ -295,9 +298,7 @@ const EditLocationItemDialog = ({
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="onlineDiscount" className="font-semibold">
-                Online Discount:
-              </Label>
+              <Label htmlFor="onlineDiscount">Online Discount</Label>
               <Input
                 id="onlineDiscount"
                 value={formData.onlineDiscount}
@@ -305,85 +306,72 @@ const EditLocationItemDialog = ({
                 placeholder="0"
               />
             </div>
+          </div>
 
-            <div className="space-y-2 col-span-3">
-              <Label className="font-semibold">
-                Tags:
-              </Label>
-              <div className="flex flex-col space-y-2">
-                {isTagsLoading ? (
-                  <div className="text-sm text-gray-500">Loading tags...</div>
-                ) : (
-                  <MultiSelect
-                    options={tagOptions}
-                    selected={formData.tags}
-                    onChange={(values) => handleChange("tags", values)}
-                    placeholder="Select tags"
-                    className="w-full"
-                  />
-                )}
-              </div>
+          {/* Tags Section */}
+          <div className="space-y-2">
+            <Label>Tags</Label>
+            {isTagsLoading ? (
+              <div className="text-sm text-muted-foreground">Loading tags...</div>
+            ) : (
+              <MultiSelect
+                options={tagOptions}
+                value={formData.tags}
+                onChange={(values) => handleChange("tags", values)}
+                placeholder="Select tags"
+              />
+            )}
+          </div>
+
+          {/* Toggle Switches */}
+          <div className="flex items-center gap-8 mt-6">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="active" className="font-medium">Active</Label>
+              <Switch
+                id="active"
+                checked={formData.active}
+                onCheckedChange={(checked) => handleChange("active", checked)}
+              />
             </div>
 
-            <div className="space-y-2">
-              <Label className="font-semibold flex items-center gap-2">
-                Active:
-                <Switch 
-                  checked={formData.active}
-                  onCheckedChange={(checked) => handleChange("active", checked)}
-                />
-              </Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="online" className="font-medium">Available Online</Label>
+              <Switch
+                id="online"
+                checked={formData.online}
+                onCheckedChange={(checked) => handleChange("online", checked)}
+              />
             </div>
 
-            <div className="space-y-2">
-              <Label className="font-semibold flex items-center gap-2">
-                Available Online:
-                <Switch 
-                  checked={formData.online}
-                  onCheckedChange={(checked) => handleChange("online", checked)}
-                />
-              </Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="restrictAttributes" className="font-medium">Restrict Attribute Combinations</Label>
+              <Switch
+                id="restrictAttributes"
+                checked={formData.restrictAttributeCombinations}
+                onCheckedChange={(checked) => handleChange("restrictAttributeCombinations", checked)}
+              />
             </div>
 
-            <div className="space-y-2">
-              <Label className="font-semibold flex items-center gap-2">
-                Restrict Attribute Combinations:
-                <Switch 
-                  checked={formData.restrictAttributeCombinations}
-                  onCheckedChange={(checked) => handleChange("restrictAttributeCombinations", checked)}
-                />
-              </Label>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="font-semibold flex items-center gap-2">
-                Offer Half & Half:
-                <Switch 
-                  checked={formData.isOfferHalfNHalf}
-                  onCheckedChange={(checked) => handleChange("isOfferHalfNHalf", checked)}
-                />
-              </Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="offerHalfHalf" className="font-medium">Offer Half & Half</Label>
+              <Switch
+                id="offerHalfHalf"
+                checked={formData.isOfferHalfNHalf}
+                onCheckedChange={(checked) => handleChange("isOfferHalfNHalf", checked)}
+              />
             </div>
           </div>
-        </div>
 
-        <DialogFooter className="bg-gray-100 p-4 border-t border-gray-200">
-          <div className="flex justify-end gap-2">
-            <Button 
-              type="button"
-              variant="outline" 
-              onClick={handleReset}
-            >
-              Reset
+          {/* Form Actions */}
+          <div className="flex justify-end gap-4 pt-4">
+            <Button type="button" variant="outline" onClick={handleReset}>
+              RESET
             </Button>
-            <Button 
-              type="button"
-              onClick={handleSubmit}
-            >
-              Save
+            <Button type="submit">
+              SUBMIT
             </Button>
           </div>
-        </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, startOfToday, endOfToday, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
-import { ArrowLeft, RefreshCw, Download, Eye, Printer } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Download, Eye, Printer, PrinterIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -12,20 +12,52 @@ import { useAttendanceReport } from '@/hooks/useAttendanceReport';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import { useStaffMembers } from '@/hooks/useStaffMembers';
 
+interface DailyRecord {
+  date: string;
+  clock_in: string;
+  clock_out: string;
+  total_hours_formatted: string;
+}
+
+interface DetailUser {
+  user_name: string;
+  daily_records: DailyRecord[];
+}
+
+interface TableRow {
+  user_name: string;
+  user_role: string;
+  user_email: string;
+  days_present: number;
+  total_hours_formatted: string;
+  date?: string;
+  clock_in?: string;
+  clock_out?: string;
+}
+
+interface AttendanceReportResponse {
+  report: TableRow[];
+}
+
+type ViewType = 'custom' | 'today' | 'week' | 'month';
+type ReportFormat = 'summary' | 'daily';
+type TimePeriodOption = 'custom' | 'today' | 'this_week' | 'this_month';
+
 const timePeriodOptions = [
-  { value: 'custom', label: 'Custom Range' },
-  { value: 'today', label: 'Today' },
-  { value: 'this_week', label: 'This Week' },
-  { value: 'this_month', label: 'This Month' },
+  { value: 'custom' as TimePeriodOption, label: 'Custom Range' },
+  { value: 'today' as TimePeriodOption, label: 'Today' },
+  { value: 'this_week' as TimePeriodOption, label: 'This Week' },
+  { value: 'this_month' as TimePeriodOption, label: 'This Month' },
 ];
 const staffMemberOptions = [
   { value: '0', label: 'All Staff' },
 ];
 const formatOptions = [
-  { value: 'summary', label: 'Summary View' },
-  { value: 'daily', label: 'Daily View' },
+  { value: 'summary' as ReportFormat, label: 'Summary View' },
+  { value: 'daily' as ReportFormat, label: 'Daily View' },
 ];
 
 const AttendanceReport = () => {
@@ -33,19 +65,20 @@ const AttendanceReport = () => {
   const { toast } = useToast();
   const { restaurants: locations } = useGetRestaurants();
   const [selectedLocation, setSelectedLocation] = useState("0");
-  const [selectedTimePeriod, setSelectedTimePeriod] = useState('custom');
+  const [selectedTimePeriod, setSelectedTimePeriod] = useState<TimePeriodOption>('custom');
   const [selectedStaff, setSelectedStaff] = useState('0');
-  const [selectedFormat, setSelectedFormat] = useState('summary');
+  const [selectedFormat, setSelectedFormat] = useState<ReportFormat>('summary');
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [endDate, setEndDate] = useState<Date>(new Date());
   const [isStartDatePickerOpen, setIsStartDatePickerOpen] = useState(false);
   const [isEndDatePickerOpen, setIsEndDatePickerOpen] = useState(false);
+  const [detailUser, setDetailUser] = useState<DetailUser | null>(null);
 
   const { data: attendanceData, isLoading, error, fetchReport } = useAttendanceReport();
   const { staff, loading: staffLoading } = useStaffMembers();
 
   // Map selectedTimePeriod to API view_type
-  const getViewType = (selectedTimePeriod: string) => {
+  const getViewType = (selectedTimePeriod: TimePeriodOption): ViewType => {
     switch (selectedTimePeriod) {
       case 'today': return 'today';
       case 'this_week': return 'week';
@@ -56,8 +89,8 @@ const AttendanceReport = () => {
 
   useEffect(() => {
     fetchReport({
-      view_type: getViewType(selectedTimePeriod),
-      format: selectedFormat,
+      view_type: 'custom',
+      format: 'summary',
       per_page: 1000,
       location_id: selectedLocation === "0" ? undefined : selectedLocation,
       start_date: format(startDate, 'yyyy-MM-dd'),
@@ -71,14 +104,17 @@ const AttendanceReport = () => {
 
   const handleRefresh = () => {
     fetchReport({
-      view_type: getViewType(selectedTimePeriod),
-      format: selectedFormat,
+      view_type: 'custom',
+      format: 'summary',
       per_page: 1000,
       location_id: selectedLocation === "0" ? undefined : selectedLocation,
       start_date: format(startDate, 'yyyy-MM-dd'),
       end_date: format(endDate, 'yyyy-MM-dd')
     });
-    toast({ title: "Refreshing data..." });
+    toast({ 
+      title: "Refreshing data...",
+      description: "Please wait while we fetch the latest data."
+    });
   };
 
   const handleLocationChange = (value: string) => {
@@ -86,7 +122,7 @@ const AttendanceReport = () => {
   };
 
   // Handle time period change
-  const handleTimePeriodChange = (value: string) => {
+  const handleTimePeriodChange = (value: TimePeriodOption) => {
     setSelectedTimePeriod(value);
     if (value === 'today') {
       setStartDate(startOfToday());
@@ -104,18 +140,21 @@ const AttendanceReport = () => {
   // CSV Download for main table
   const handleDownloadCSV = () => {
     if (!tableData || tableData.length === 0) {
-      toast({ title: 'No data to export' });
+      toast({ 
+        title: 'No data to export',
+        description: 'Please select a valid date range and try again.'
+      });
       return;
     }
     let csv = '';
     if (selectedFormat === 'summary') {
       csv += 'Employee Name,Role,Email,Days Present,Total Hours\n';
-      tableData.forEach((row: any) => {
+      tableData.forEach((row: TableRow) => {
         csv += `"${row.user_name || ''}","${row.user_role || ''}","${row.user_email || ''}","${row.days_present ?? ''}","${row.total_hours_formatted ?? ''}"\n`;
       });
     } else {
       csv += 'Date,Employee Name,Role,Email,Clock In,Clock Out,Total Hours\n';
-      tableData.forEach((row: any) => {
+      tableData.forEach((row: TableRow) => {
         csv += `"${row.date ? format(new Date(row.date), 'yyyy-MM-dd') : ''}","${row.user_name || ''}","${row.user_role || ''}","${row.user_email || ''}","${row.clock_in ? format(new Date(row.clock_in), 'HH:mm') : ''}","${row.clock_out ? format(new Date(row.clock_out), 'HH:mm') : ''}","${row.total_hours_formatted ?? ''}"\n`;
       });
     }
@@ -130,16 +169,14 @@ const AttendanceReport = () => {
 
   // PDF Download/Print for main table
   const handleDownloadPDF = async (print = false) => {
-    if (!attendanceData || attendanceData.report.length === 0) {
-      toast({ title: 'No data to export' });
+    if (!attendanceData || !('report' in attendanceData) || !Array.isArray(attendanceData.report) || attendanceData.report.length === 0) {
+      toast({ 
+        title: 'No data to export',
+        description: 'Please select a valid date range and try again.'
+      });
       return;
     }
-    const { default: jsPDF } = await import('jspdf');
-    const autoTable = (await import('jspdf-autotable')).default;
     const doc = new jsPDF();
-    if (typeof doc.autoTable !== 'function' && typeof autoTable === 'function') {
-      autoTable(doc);
-    }
     let columns = [];
     let rows = [];
     if (selectedFormat === 'summary') {
@@ -161,7 +198,7 @@ const AttendanceReport = () => {
         { header: 'Clock Out', dataKey: 'clock_out' },
         { header: 'Total Hours', dataKey: 'total_hours_formatted' },
       ];
-      rows = attendanceData.report.map((row: any) => ({
+      rows = attendanceData.report.map((row: TableRow) => ({
         ...row,
         date: row.date ? format(new Date(row.date), 'yyyy-MM-dd') : '',
         clock_in: row.clock_in ? format(new Date(row.clock_in), 'HH:mm') : '',
@@ -169,7 +206,7 @@ const AttendanceReport = () => {
       }));
     }
     doc.text('Attendance Report', 14, 15);
-    doc.autoTable({
+    (doc as any).autoTable({
       head: [columns.map(col => col.header)],
       body: rows.map(row => columns.map(col => row[col.dataKey])),
       startY: 20,
@@ -185,11 +222,14 @@ const AttendanceReport = () => {
   // CSV Download for detail dialog
   const handleDetailCSV = () => {
     if (!detailUser || !detailUser.daily_records || detailUser.daily_records.length === 0) {
-      toast({ title: 'No data to export' });
+      toast({ 
+        title: 'No data to export',
+        description: 'Please select a valid date range and try again.'
+      });
       return;
     }
     let csv = 'Date,Clock In,Clock Out,Total Hours\n';
-    detailUser.daily_records.forEach((rec: any) => {
+    detailUser.daily_records.forEach((rec: DailyRecord) => {
       csv += `"${rec.date ? format(new Date(rec.date), 'yyyy-MM-dd') : ''}","${rec.clock_in ? format(new Date(rec.clock_in), 'HH:mm') : ''}","${rec.clock_out ? format(new Date(rec.clock_out), 'HH:mm') : ''}","${rec.total_hours_formatted ?? ''}"\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -204,29 +244,27 @@ const AttendanceReport = () => {
   // PDF Download/Print for detail dialog
   const handleDetailPDF = async (print = false) => {
     if (!detailUser || !detailUser.daily_records || detailUser.daily_records.length === 0) {
-      toast({ title: 'No data to export' });
+      toast({ 
+        title: 'No data to export',
+        description: 'Please select a valid date range and try again.'
+      });
       return;
     }
-    const { default: jsPDF } = await import('jspdf');
-    const autoTable = (await import('jspdf-autotable')).default;
     const doc = new jsPDF();
-    if (typeof doc.autoTable !== 'function' && typeof autoTable === 'function') {
-      autoTable(doc);
-    }
     const columns = [
       { header: 'Date', dataKey: 'date' },
       { header: 'Clock In', dataKey: 'clock_in' },
       { header: 'Clock Out', dataKey: 'clock_out' },
       { header: 'Total Hours', dataKey: 'total_hours_formatted' },
     ];
-    const rows = detailUser.daily_records.map((rec: any) => ({
+    const rows = detailUser.daily_records.map((rec: DailyRecord) => ({
       ...rec,
       date: rec.date ? format(new Date(rec.date), 'yyyy-MM-dd') : '',
       clock_in: rec.clock_in ? format(new Date(rec.clock_in), 'HH:mm') : '',
       clock_out: rec.clock_out ? format(new Date(rec.clock_out), 'HH:mm') : '',
     }));
     doc.text(`Attendance Details: ${detailUser.user_name || ''}`, 14, 15);
-    doc.autoTable({
+    (doc as any).autoTable({
       head: [columns.map(col => col.header)],
       body: rows.map(row => columns.map(col => row[col.dataKey])),
       startY: 20,
@@ -240,29 +278,85 @@ const AttendanceReport = () => {
   };
 
   // Use attendanceData.report for table data
-  const tableData = attendanceData?.report || [];
+  const tableData = ((attendanceData as unknown) as AttendanceReportResponse)?.report || [];
+
+  const handlePrint = () => {
+    window.print();
+  };
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={handleBack} className="p-0 hover:bg-transparent">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-xl font-bold">Cloak In Out Report</h1>
-        </div>
-        <div className="text-sm text-[#9b87f5] font-medium">
-          ADMIN
-        </div>
+    <div className="p-6 print-container">
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          
+          .print-container,
+          .print-container * {
+            visibility: visible;
+          }
+          
+          .print-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+          }
+          
+          .no-print {
+            display: none !important;
+          }
+          
+          .print-header {
+            display: block !important;
+            margin-bottom: 20px;
+            text-align: center;
+          }
+          
+          .print-table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          
+          .print-table th,
+          .print-table td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: left;
+            font-size: 12px;
+          }
+          
+          .print-table th {
+            background-color: #d1d5db !important;
+            color: #111827 !important;
+            font-weight: bold;
+          }
+          
+          .print-table .text-right {
+            text-align: right;
+          }
+          
+          .print-info {
+            margin-bottom: 15px;
+            font-size: 14px;
+          }
+        }
+        `
+      }} />
+
+      {/* Print Header - Only visible when printing */}
+      <div className="print-header" style={{ display: 'none' }}>
+        <h1 style={{ fontSize: '24px', marginBottom: '10px' }}>Cloak In Out Report</h1>
       </div>
 
-      {/* Filter Bar */}
-      <div className="flex flex-wrap gap-4 items-end mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 no-print">
         {/* Time Period */}
-        <div className="flex flex-col gap-1.5 min-w-[180px]">
-          <span className="text-xs font-medium text-gray-600">Time Period</span>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium">Time Period</span>
           <Select value={selectedTimePeriod} onValueChange={handleTimePeriodChange}>
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Custom Range" />
             </SelectTrigger>
             <SelectContent>
@@ -272,22 +366,23 @@ const AttendanceReport = () => {
             </SelectContent>
           </Select>
         </div>
+
         {selectedTimePeriod === 'custom' && (
           <>
             {/* Start Date */}
-            <div className="flex flex-col gap-1.5 min-w-[180px]">
-              <span className="text-xs font-medium text-gray-600">Start Date</span>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium">Start Date</span>
               <Popover open={isStartDatePickerOpen} onOpenChange={setIsStartDatePickerOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant={"outline"}
                     className={cn(
-                      "justify-start text-left font-normal w-full",
+                      "w-full justify-start text-left font-normal",
                       !startDate && "text-muted-foreground"
                     )}
                   >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
                     {startDate ? format(startDate, "yyyy-MM-dd") : <span>Pick a date</span>}
-                    <CalendarIcon className="ml-2 h-4 w-4" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -295,30 +390,29 @@ const AttendanceReport = () => {
                     mode="single"
                     selected={startDate}
                     onSelect={(date) => {
-                      if (date) {
-                        setStartDate(date);
-                        setIsStartDatePickerOpen(false);
-                      }
+                      setStartDate(date);
+                      setIsStartDatePickerOpen(false);
                     }}
                     initialFocus
                   />
                 </PopoverContent>
               </Popover>
             </div>
+
             {/* End Date */}
-            <div className="flex flex-col gap-1.5 min-w-[180px]">
-              <span className="text-xs font-medium text-gray-600">End Date</span>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium">End Date</span>
               <Popover open={isEndDatePickerOpen} onOpenChange={setIsEndDatePickerOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant={"outline"}
                     className={cn(
-                      "justify-start text-left font-normal w-full",
+                      "w-full justify-start text-left font-normal",
                       !endDate && "text-muted-foreground"
                     )}
                   >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
                     {endDate ? format(endDate, "yyyy-MM-dd") : <span>Pick a date</span>}
-                    <CalendarIcon className="ml-2 h-4 w-4" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -326,10 +420,8 @@ const AttendanceReport = () => {
                     mode="single"
                     selected={endDate}
                     onSelect={(date) => {
-                      if (date) {
-                        setEndDate(date);
-                        setIsEndDatePickerOpen(false);
-                      }
+                      setEndDate(date);
+                      setIsEndDatePickerOpen(false);
                     }}
                     initialFocus
                   />
@@ -338,11 +430,12 @@ const AttendanceReport = () => {
             </div>
           </>
         )}
+
         {/* Location Selector */}
-        <div className="flex flex-col gap-1.5 min-w-[220px]">
-          <span className="text-xs font-medium text-gray-600">Location</span>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium">Location</span>
           <Select value={selectedLocation} onValueChange={handleLocationChange}>
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Select location" />
             </SelectTrigger>
             <SelectContent>
@@ -355,11 +448,12 @@ const AttendanceReport = () => {
             </SelectContent>
           </Select>
         </div>
+
         {/* Staff Member Selector */}
-        <div className="flex flex-col gap-1.5 min-w-[180px]">
-          <span className="text-xs font-medium text-gray-600">Staff Member</span>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium">Staff Member</span>
           <Select value={selectedStaff} onValueChange={setSelectedStaff} disabled={staffLoading}>
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="All Staff" />
             </SelectTrigger>
             <SelectContent>
@@ -370,24 +464,38 @@ const AttendanceReport = () => {
             </SelectContent>
           </Select>
         </div>
+
         {/* Format Selector */}
-        <div className="flex flex-col gap-1.5 min-w-[180px]">
-          <span className="text-xs font-medium text-gray-600">Format</span>
-          <Select value={selectedFormat} onValueChange={setSelectedFormat}>
-            <SelectTrigger>
-              <SelectValue placeholder="Summary View" />
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium">Format</span>
+          <Select
+            value={selectedFormat}
+            onValueChange={(value: ReportFormat) => setSelectedFormat(value)}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select format" />
             </SelectTrigger>
             <SelectContent>
-              {formatOptions.map(opt => (
-                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+              {formatOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
+
         {/* Action Buttons */}
-        <div className="flex gap-2 ml-auto">
-          <Button variant="outline" onClick={handleDownloadCSV} className="p-2"><Download className="h-5 w-5" /></Button>
-          <Button variant="outline" onClick={handleRefresh} className="p-2"><RefreshCw className="h-5 w-5" /></Button>
+        <div className="flex justify-end items-end gap-2 lg:col-span-2 sm:col-span-2">
+          <Button variant="outline" onClick={handleDownloadCSV} className="w-10 h-10 p-0" title="Download CSV">
+            <Download className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" onClick={handlePrint} className="w-10 h-10 p-0" title="Print">
+            <PrinterIcon className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" onClick={handleRefresh} className="w-10 h-10 p-0" title="Refresh">
+            <RefreshCw className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 

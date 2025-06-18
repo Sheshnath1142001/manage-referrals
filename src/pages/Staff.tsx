@@ -25,7 +25,7 @@ const Staff = () => {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["staff", page, pageSize, filters.status, filters.search],
     queryFn: async () => {
-      console.log("Fetching with filters:", filters);
+      
       
       // Don't send status at all when "all" is selected
       let statusValue = undefined;
@@ -44,7 +44,7 @@ const Staff = () => {
         undefined
       );
       
-      console.log("API result:", result);
+      
       return result;
     },
   });

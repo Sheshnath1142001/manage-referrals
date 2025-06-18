@@ -59,14 +59,14 @@ export const useEverydaySalesReport = ({ restaurantId, selectedDate = new Date()
           restaurant_id: parseInt(restaurantId.toString())
         });
 
-        console.log("Everyday sales API response:", response);
+        
         
         // Handle direct response format
         if (response && response.data) {
           if (typeof response.data === 'object') {
             // Case 1: Data is directly in the response.data
             if (Object.keys(response.data).some(key => !isNaN(Number(key)))) {
-              console.log("Using direct data format", response.data);
+              
               return {
                 data: response.data
               };
@@ -74,7 +74,7 @@ export const useEverydaySalesReport = ({ restaurantId, selectedDate = new Date()
             
             // Case 2: Data is nested in response.data.data
             if (response.data.data && typeof response.data.data === 'object') {
-              console.log("Using nested data format", response.data.data);
+              
               return {
                 data: response.data.data
               };
@@ -83,12 +83,12 @@ export const useEverydaySalesReport = ({ restaurantId, selectedDate = new Date()
         }
         
         // Return empty result if we can't recognize the structure
-        console.warn('Unexpected response format from everyday sales API:', response);
+        
         return {
           data: {}
         };
       } catch (error) {
-        console.error("Error fetching report data:", error);
+        
         throw error;
       }
     },

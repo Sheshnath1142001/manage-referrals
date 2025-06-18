@@ -106,7 +106,7 @@ const ModifierCategoryTable = () => {
         await fetchModifierCategories();
       }
     } catch (error) {
-      console.error("Error updating sequence:", error);
+      
       toast({
         title: "Reordering Failed",
         description: "Failed to update the category sequence on the server.",
@@ -119,7 +119,7 @@ const ModifierCategoryTable = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+    <div className="bg-white rounded-lg shadow-md border border-gray-200 relative overflow-x-auto">
       <DragDropContext onDragStart={() => setIsDragging(true)} onDragEnd={onDragEnd}>
         <Table>
           <TableHeader>

@@ -37,8 +37,10 @@ export interface LocationItemsApiParams {
   page?: number;
   per_page?: number;
   restaurant_id?: string;
-  status?: string;
+  status?: string | number;
   search?: string;
+  category_id?: number;
+  product_name?: string;
 }
 
 export interface UpdateLocationItemData {

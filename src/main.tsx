@@ -3,13 +3,6 @@ import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
-// Log environment variables for debugging
-console.log("Environment variables:", {
-  API_BASE_URL: import.meta.env.API_BASE_URL,
-  VERSION_NO: import.meta.env.VERSION_NO,
-  BASE_URL: import.meta.env.BASE_URL
-});
-
 // Suppress specific warning about defaultProps in memo components
 const originalError = console.error;
 console.error = (...args) => {
@@ -22,21 +15,19 @@ console.error = (...args) => {
 // Error boundary for catching runtime errors
 const renderApp = () => {
   try {
-    console.log("Starting to render the application...");
     // This ensures we have a proper mounting point
     const rootElement = document.getElementById("root");
 
     if (!rootElement) {
-      console.error("Fatal error: Root element not found in document. Make sure there's a div with id 'root' in index.html");
+      
     } else {
-      console.log("Root element found, mounting React app...");
       ReactDOM.createRoot(rootElement).render(
         <App />
       );
-      console.log("React app mounted successfully");
+      
     }
   } catch (error) {
-    console.error("Failed to render the application:", error);
+    
     // Display a fallback UI for critical errors
     const rootElement = document.getElementById("root");
     if (rootElement) {

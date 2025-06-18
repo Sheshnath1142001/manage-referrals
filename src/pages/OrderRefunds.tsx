@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { format, parseISO } from "date-fns";
-import { Eye, RefreshCw } from "lucide-react";
+import { Eye, RefreshCw, CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { 
@@ -17,6 +17,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface Restaurant {
   id: number;
@@ -75,6 +82,8 @@ const OrderRefunds = () => {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<RefundedOrder | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [fromDate, setFromDate] = useState<Date | undefined>();
+  const [toDate, setToDate] = useState<Date | undefined>();
 
   // Fetch restaurants for location filter
   const fetchRestaurants = useCallback(async () => {
@@ -99,7 +108,7 @@ const OrderRefunds = () => {
       const data = await response.json();
       setRestaurants(data.restaurants.filter((restaurant: Restaurant) => restaurant.status === 1));
     } catch (error) {
-      console.error("Error fetching restaurants:", error);
+      
       toast({
         title: "Error",
         description: "Failed to load restaurants. Please refresh the page.",
@@ -125,6 +134,14 @@ const OrderRefunds = () => {
         url += `&restaurant_id=${selectedLocation}`;
       }
 
+      if (fromDate) {
+        url += `&created_at_from=${format(fromDate, 'yyyy/MM/dd')}`;
+      }
+
+      if (toDate) {
+        url += `&created_at_to=${format(toDate, 'yyyy/MM/dd')}`;
+      }
+
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -140,7 +157,7 @@ const OrderRefunds = () => {
       setRefundedOrders(data.refunded_orders);
       setTotalItems(data.total);
     } catch (error) {
-      console.error("Error fetching refunded orders:", error);
+      
       toast({
         title: "Error",
         description: "Failed to load refunded orders. Please try again.",
@@ -149,7 +166,7 @@ const OrderRefunds = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, itemsPerPage, selectedLocation, toast]);
+  }, [currentPage, itemsPerPage, selectedLocation, fromDate, toDate, toast]);
 
   useEffect(() => {
     fetchRestaurants();
@@ -199,6 +216,52 @@ const OrderRefunds = () => {
             ))}
           </SelectContent>
         </Select>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "w-full justify-start text-left font-normal",
+                !fromDate && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {fromDate ? format(fromDate, "PPP") : "From Date"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0">
+            <Calendar
+              mode="single"
+              selected={fromDate}
+              onSelect={setFromDate}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "w-full justify-start text-left font-normal",
+                !toDate && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {toDate ? format(toDate, "PPP") : "To Date"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0">
+            <Calendar
+              mode="single"
+              selected={toDate}
+              onSelect={setToDate}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Table */}

@@ -1,4 +1,3 @@
-
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -35,9 +34,11 @@ const ModifierFilters = ({
   handleAddNew,
 }: ModifierFiltersProps) => {
   return (
-    <div className="mb-6 flex justify-between flex-wrap gap-3">
-      <div className="flex space-x-2 items-end flex-1 min-w-[300px]">
-        <div className="w-auto min-w-[200px]">
+    <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      {/* Filter inputs */}
+      <div className="grid gap-3 flex-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        {/* Modifier Name */}
+        <div className="w-full">
           <label className="text-xs text-gray-500 mb-1 block">Modifier Name</label>
           <div className="relative">
             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -59,7 +60,8 @@ const ModifierFilters = ({
           </div>
         </div>
         
-        <div className="w-auto min-w-[120px]">
+        {/* Sequence No */}
+        <div className="w-full">
           <label className="text-xs text-gray-500 mb-1 block">Sequence No</label>
           <div className="relative">
             <Input
@@ -81,13 +83,14 @@ const ModifierFilters = ({
           </div>
         </div>
         
-        <div className="w-auto min-w-[150px]">
+        {/* Category */}
+        <div className="w-full sm:w-auto">
           <label className="text-xs text-gray-500 mb-1 block">Category</label>
           <Select 
             value={categoryFilter} 
             onValueChange={(value) => setCategoryFilter(value)}
           >
-            <SelectTrigger className="w-[180px] h-9 bg-white border border-gray-300">
+            <SelectTrigger className="h-9 bg-white border border-gray-300 w-full sm:w-[180px]">
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
             <SelectContent>
@@ -101,13 +104,14 @@ const ModifierFilters = ({
           </Select>
         </div>
         
-        <div className="w-auto min-w-[120px]">
+        {/* Status */}
+        <div className="w-full sm:w-auto">
           <label className="text-xs text-gray-500 mb-1 block">Status</label>
           <Select 
             value={statusFilter} 
             onValueChange={(value) => setStatusFilter(value as "Active" | "Inactive" | "all")}
           >
-            <SelectTrigger className="w-[130px] h-9 bg-white border border-gray-300">
+            <SelectTrigger className="h-9 bg-white border border-gray-300 w-full sm:w-[130px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -119,7 +123,8 @@ const ModifierFilters = ({
         </div>
       </div>
       
-      <div className="flex items-end gap-2">
+      {/* Action buttons */}
+      <div className="flex flex-wrap items-center gap-2 lg:justify-end">
         <Button 
           variant="outline" 
           size="icon" 

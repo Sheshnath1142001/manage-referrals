@@ -88,7 +88,7 @@ export const AssignAttributesDialog = ({
   };
 
   const handleSubmit = () => {
-    console.log('Saving attributes:', addedAttributes);
+    
     onOpenChange(false);
   };
 

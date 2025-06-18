@@ -15,6 +15,7 @@ interface ItemTableRowProps {
     label: string;
     align: string;
     sortable?: boolean;
+    hideOnMobile?: boolean;
   }[];
   handleItemAction: (item: Item, action: 'view' | 'edit') => void;
   isSelected?: boolean;
@@ -50,6 +51,11 @@ export const ItemTableRow = ({
     if (field === 'category') {
       return (item as any).categories?.category || 'Uncategorized';
     }
+
+    // Special handling for barcode
+    if (field === 'barcode') {
+      return item.barcode || 'N/A';
+    }
     
     return (item as any)[field];
   };
@@ -82,7 +88,11 @@ export const ItemTableRow = ({
           {columns.map((column) => (
             <TableCell 
               key={column.name} 
-              className={`${column.name === 'name' ? 'font-medium' : ''} ${column.align === 'right' ? 'text-right' : ''}`}
+              className={`${column.name === 'name' ? 'font-medium' : ''} ${
+                column.align === 'right' ? 'text-right' : ''
+              } ${
+                column.hideOnMobile ? 'hidden sm:table-cell' : ''
+              }`}
             >
               {column.name === 'status' ? (
                 <span 
@@ -96,6 +106,10 @@ export const ItemTableRow = ({
                 </span>
               ) : column.name === 'price' || column.name === 'online_price' ? (
                 `$${getCellValue(item, column.field)}`
+              ) : column.name === 'barcode' ? (
+                <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">
+                  {getCellValue(item, column.field)}
+                </code>
               ) : (
                 getCellValue(item, column.field)
               )}

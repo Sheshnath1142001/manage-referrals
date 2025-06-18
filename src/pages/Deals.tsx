@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Plus, Eye, RefreshCw, Trash } from "lucide-react";
+import { Edit, Plus, Eye, RefreshCw, Trash, AlertTriangle } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -11,6 +11,14 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useGetRestaurants } from "@/hooks/useGetRestaurants";
 import { useGetDeals } from "@/hooks/useGetDeals";
@@ -33,6 +41,9 @@ const Deals = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | undefined>(undefined);
   const [viewOnly, setViewOnly] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [dealToDelete, setDealToDelete] = useState<Deal | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Hooks
   const { restaurants, isLoading: isLoadingRestaurants } = useGetRestaurants();
@@ -40,11 +51,20 @@ const Deals = () => {
   const { toast } = useToast();
   console.log({ restaurants, isLoadingRestaurants })
   // Set the first restaurant as default when restaurants are loaded
+  // useEffect(() => {
+  //   console.log({ length: restaurants?.length > 0, selectedRestaurantId, isLoadingRestaurants })
+  //   if (restaurants?.length > 0 && !selectedRestaurantId && !isLoadingRestaurants) {
+  //     setSelectedRestaurantId(Number(restaurants[0].id));
+  //   }
+  // }, [restaurants?.length, selectedRestaurantId, isLoadingRestaurants]);
+
   useEffect(() => {
-    if (restaurants && restaurants.length > 0 && !selectedRestaurantId) {
+    // Only auto-select if we have restaurants and no restaurant is currently selected
+    if (restaurants.length > 0 && selectedRestaurantId === null) {
       setSelectedRestaurantId(Number(restaurants[0].id));
     }
-  }, [restaurants, selectedRestaurantId]);
+  }, [restaurants.length, selectedRestaurantId]); // Watch length and selection state
+
   console.log({  restaurants })
   // Fetch deals
   const { deals, totalItems, isLoading, refreshDeals } = useGetDeals({
@@ -90,23 +110,40 @@ const Deals = () => {
   };
 
   // Handle delete deal
-  const handleDelete = async (dealId: number) => {
-    if (confirm("Are you sure you want to delete this deal?")) {
-      try {
-        await dealsApi.deleteDeal(dealId);
-        toast({
-          title: "Deal deleted",
-          description: "The deal has been deleted successfully.",
-        });
-        refreshDeals();
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to delete the deal.",
-          variant: "destructive",
-        });
-      }
+  const handleDelete = (deal: Deal) => {
+    setDealToDelete(deal);
+    setDeleteDialogOpen(true);
+  };
+
+  // Confirm delete deal
+  const confirmDelete = async () => {
+    if (!dealToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      await dealsApi.deleteDeal(dealToDelete.id);
+      toast({
+        title: "Deal deleted",
+        description: "The deal has been deleted successfully.",
+      });
+      refreshDeals();
+      setDeleteDialogOpen(false);
+      setDealToDelete(null);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete the deal.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
     }
+  };
+
+  // Cancel delete
+  const cancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setDealToDelete(null);
   };
 
   // Handle form submit
@@ -135,101 +172,106 @@ const Deals = () => {
 
   return (
     <div className="p-6">
-      <div className="flex flex-col space-y-4 md:space-y-0 md:flex-row gap-4 mb-6">
-        {/* Restaurant selection */}
-        <div className="flex-1 max-w-xs">
-          <Select 
-            value={selectedRestaurantId?.toString() || ""} 
-            onValueChange={(value) => setSelectedRestaurantId(Number(value))}
-            disabled={isLoadingRestaurants}
+      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        {/* Filter inputs */}
+        <div className="grid gap-3 flex-1 sm:grid-cols-2 md:flex md:flex-wrap md:gap-4">
+          {/* Restaurant selection */}
+          <div className="w-full sm:w-auto">
+            <Select 
+              value={selectedRestaurantId?.toString() || ""} 
+              onValueChange={(value) => setSelectedRestaurantId(Number(value))}
+              disabled={isLoadingRestaurants}
+            >
+              <SelectTrigger className="h-9 bg-white border border-gray-300 w-full sm:w-[180px]">
+                <SelectValue placeholder="Select Restaurant" />
+              </SelectTrigger>
+              <SelectContent>
+                {restaurants.map((restaurant) => (
+                  <SelectItem key={restaurant.id} value={restaurant.id.toString()}>
+                    {restaurant.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Deal Type selection */}
+          <div className="w-full sm:w-auto">
+            <Select 
+              value={selectedDealTypeId?.toString() || "all"} 
+              onValueChange={(value) => setSelectedDealTypeId(value === "all" ? null : Number(value))}
+              disabled={isLoadingDealTypes}
+            >
+              <SelectTrigger className="h-9 bg-white border border-gray-300 w-full sm:w-[180px]">
+                <SelectValue placeholder="All Deal Types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Deal Types</SelectItem>
+                {dealTypes.map((dealType) => (
+                  <SelectItem key={dealType.id} value={dealType.id.toString()}>
+                    {dealType.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Search input */}
+          <div className="w-full md:w-72">
+            <Input
+              placeholder="Search deals..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-9 bg-white border border-gray-300 w-full"
+            />
+          </div>
+
+          {/* Active deals only switch */}
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="active-deals"
+              checked={activeOnly}
+              onCheckedChange={setActiveOnly}
+            />
+            <label htmlFor="active-deals" className="text-sm">Active Only</label>
+          </div>
+
+          {/* Current deals only switch */}
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="current-deals"
+              checked={currentOnly}
+              onCheckedChange={setCurrentOnly}
+            />
+            <label htmlFor="current-deals" className="text-sm">Current Only</label>
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex flex-wrap items-center gap-2 md:justify-end">
+          <Button 
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 border border-gray-300"
+            onClick={handleRefresh}
           >
-            <SelectTrigger>
-              <SelectValue placeholder="Select Restaurant" />
-            </SelectTrigger>
-            <SelectContent>
-              {restaurants.map((restaurant) => (
-                <SelectItem key={restaurant.id} value={restaurant.id.toString()}>
-                  {restaurant.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+            <RefreshCw className="h-4 w-4" />
+          </Button>
 
-        {/* Deal Type selection */}
-        <div className="flex-1 max-w-xs">
-          <Select 
-            value={selectedDealTypeId?.toString() || "all"} 
-            onValueChange={(value) => setSelectedDealTypeId(value === "all" ? null : Number(value))}
-            disabled={isLoadingDealTypes}
+          <Button 
+            variant="default"
+            size="icon" 
+            className="bg-primary hover:bg-primary/90 text-white h-9 w-9 rounded-full"
+            onClick={handleAddNew}
+            disabled={!selectedRestaurantId}
           >
-            <SelectTrigger>
-              <SelectValue placeholder="All Deal Types" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Deal Types</SelectItem>
-              {dealTypes.map((dealType) => (
-                <SelectItem key={dealType.id} value={dealType.id.toString()}>
-                  {dealType.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <Plus className="h-4 w-4" />
+          </Button>
         </div>
-
-        {/* Search input */}
-        <div className="flex-1">
-          <Input
-            placeholder="Search deals..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-
-        {/* Active deals only switch */}
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="active-deals"
-            checked={activeOnly}
-            onCheckedChange={setActiveOnly}
-          />
-          <label htmlFor="active-deals">Active Deals Only</label>
-        </div>
-
-        {/* Current deals only switch */}
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="current-deals"
-            checked={currentOnly}
-            onCheckedChange={setCurrentOnly}
-          />
-          <label htmlFor="current-deals">Current Deals Only</label>
-        </div>
-
-        {/* Refresh button */}
-        <Button 
-          variant="refresh"
-          className="flex items-center gap-2"
-          onClick={handleRefresh}
-        >
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
-
-        {/* Add new deal button */}
-        <Button 
-          variant="default"
-          size="icon" 
-          className="bg-primary hover:bg-primary/90 text-white rounded-full"
-          onClick={handleAddNew}
-          disabled={!selectedRestaurantId}
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
       </div>
 
       {/* Deals table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-white rounded-lg shadow relative overflow-x-auto">
         <Table>
           <TableHeader className="bg-primary text-primary-foreground">
             <TableRow>
@@ -270,26 +312,14 @@ const Deals = () => {
                     </span>
                   </TableCell>
                   <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleView(deal)}
-                    >
-                      <Eye className="h-4 w-4 text-gray-500" />
+                    <Button variant="ghost" size="icon" onClick={() => handleView(deal)}>
+                      <Eye className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleEdit(deal)}
-                    >
-                      <Edit className="h-4 w-4 text-blue-500" />
+                    <Button variant="ghost" size="icon" onClick={() => handleEdit(deal)}>
+                      <Edit className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(deal.id)}
-                    >
-                      <Trash className="h-4 w-4 text-red-500" />
+                    <Button variant="ghost" size="icon" onClick={() => handleDelete(deal)}>
+                      <Trash className="h-4 w-4" />
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -319,6 +349,37 @@ const Deals = () => {
         restaurantId={selectedRestaurantId || 0}
         onSuccess={handleFormSubmit}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Confirm Delete
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete the deal "{dealToDelete?.name}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={cancelDelete}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete Deal"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

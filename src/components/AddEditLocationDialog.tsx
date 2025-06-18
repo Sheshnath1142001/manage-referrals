@@ -281,7 +281,7 @@ const AddEditLocationDialog = ({
             setFormData(prev => ({ ...prev, image: "" }));
           }
         } catch (error) {
-          console.error("Error fetching data:", error);
+          
           toast({
             title: "Error",
             description: "Failed to fetch location data",
@@ -354,7 +354,7 @@ const AddEditLocationDialog = ({
           const data = await response.json();
           setTimingDetails(data.restaurant_time_slots || []);
         } catch (error) {
-          console.error("Error fetching timing details:", error);
+          
           toast({
             title: "Error",
             description: "Failed to fetch timing details",
@@ -500,7 +500,7 @@ const AddEditLocationDialog = ({
         setFormData(prev => ({ ...prev, image: data.upload_path }));
       }
     } catch (error) {
-      console.error("Error uploading image:", error);
+      
       throw new Error('Failed to upload image');
     }
   };
@@ -568,7 +568,7 @@ const AddEditLocationDialog = ({
       
       onOpenChange(false);
     } catch (error) {
-      console.error("Error submitting form:", error);
+      
       toast({
         title: "Error",
         description: "Failed to save location",
@@ -654,7 +654,7 @@ const AddEditLocationDialog = ({
         setFormData(prev => ({ ...prev, image: response.attachment[0].upload_path }));
       }
     } catch (error) {
-      console.error("Error fetching location image:", error);
+      
     } finally {
       setIsLoadingImage(false);
     }
@@ -722,7 +722,7 @@ const AddEditLocationDialog = ({
         }
       }
     } catch (error) {
-      console.error("Error deleting image:", error);
+      
       toast({
         title: "Error",
         description: "Failed to delete image",

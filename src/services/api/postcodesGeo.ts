@@ -31,7 +31,7 @@ export const postcodesGeoApi = {
       // so response should directly be the PostcodesGeoResponse
       return response;
     } catch (error) {
-      console.error("Error fetching postcodes:", error);
+      
       throw error;
     }
   }

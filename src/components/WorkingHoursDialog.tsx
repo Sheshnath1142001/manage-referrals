@@ -33,6 +33,7 @@ interface WorkingHoursDialogProps {
 }
 
 const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const apiBaseUrl = import.meta.env.API_BASE_URL || 'https://pratham-respos-testbe-v34.achyutlabs.cloud/api';
 
 const WorkingHoursDialog = ({
   open,
@@ -98,7 +99,7 @@ const WorkingHoursDialog = ({
       }
 
       const response = await fetch(
-        `https://pratham-respos-testbe-v34.achyutlabs.cloud/api/restaurant-time-slots?restaurant_id=${restaurantId}`,
+        `${apiBaseUrl}/restaurant-time-slots?restaurant_id=${restaurantId}`,
         {
           headers: {
             'Accept': 'application/json',
@@ -115,7 +116,7 @@ const WorkingHoursDialog = ({
       const data = await response.json();
       transformApiDataToState(data.restaurant_time_slots || []);
     } catch (error) {
-      console.error('Error fetching time slots:', error);
+      
       toast({
         title: "Error",
         description: "Failed to load opening hours",
@@ -335,7 +336,7 @@ const WorkingHoursDialog = ({
       });
 
       const response = await fetch(
-        'https://pratham-respos-testbe-v34.achyutlabs.cloud/api/restaurant_time_slots',
+        `${apiBaseUrl}/restaurant_time_slots`,
         {
           method: 'PUT',
           headers: {
@@ -360,7 +361,7 @@ const WorkingHoursDialog = ({
       onSubmit();
       onOpenChange(false);
     } catch (error) {
-      console.error('Error updating time slots:', error);
+      
       toast({
         title: "Error",
         description: "Failed to update opening hours",

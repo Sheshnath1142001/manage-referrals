@@ -3,12 +3,12 @@ import { SidebarRail, useSidebar } from "@/components/ui/sidebar";
 
 export function SidebarLogo() {
   const navigate = useNavigate();
-  const { state } = useSidebar();
-  const isCollapsed = state === "collapsed";
+  const { state, isMobile } = useSidebar();
+  const isCollapsed = state === "collapsed" && !isMobile;
 
   return (
     <>
-      <div className="flex h-16 items-center justify-center px-4">
+      <div className="flex h-16 items-center px-4 border-b border-border/40">
         {isCollapsed ? (
           <div 
             className="flex items-center justify-center w-8 h-8 cursor-pointer"
@@ -39,12 +39,12 @@ export function SidebarLogo() {
                   e.currentTarget.style.display = 'none';
                 }}
               />
-              <span className="text-xl font-semibold">Pratham Admin</span>
+              <span className="text-xl font-semibold text-foreground">Pratham Admin</span>
             </div>
           </div>
         )}
       </div>
-      <SidebarRail />
+      {!isMobile && <SidebarRail />}
     </>
   );
 }

@@ -303,7 +303,7 @@ export const EditComboProductDialog: React.FC<EditComboProductDialogProps> = ({ 
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>Cancel</Button>
-            <Button type="submit" loading={loading}>Submit</Button>
+            <Button type="submit" disabled={loading}>{loading ? "Submitting..." : "Submit"}</Button>
           </div>
         </form>
       </DialogContent>

@@ -98,7 +98,7 @@ const Location = () => {
         const types = await restaurantsApi.getRestaurantTypes();
         setRestaurantTypes(types);
       } catch (error) {
-        console.error("Error fetching restaurant types:", error);
+        
       }
     };
     fetchRestaurantTypes();
@@ -187,7 +187,7 @@ const Location = () => {
       ? location.restaurant_order_type_otm.map(item => item.order_types.type)
       : [];
     
-    console.log('Setting editing location with service types:', serviceTypes);
+    
     
     setEditingLocation({
       ...location,
@@ -223,16 +223,16 @@ const Location = () => {
   };
 
   const handleSettings = async (location: Location) => {
-    console.log('Settings clicked for location:', location.id);
+    
     try {
       // Fetch restaurant settings from API
       const settingsResponse = await restaurantSettingsApi.getRestaurantSettings(location.id);
-      console.log('Restaurant settings response:', settingsResponse);
+      
       
       const settings = settingsResponse.restaurant_settings[0];
       
       if (settings) {
-        console.log('Mapping settings data:', settings);
+        
         // Set editing location with fetched settings data
         setEditingLocation({
           ...location,
@@ -264,7 +264,7 @@ const Location = () => {
       
       setIsSettingsDialogOpen(true);
     } catch (error) {
-      console.error("Error fetching restaurant settings:", error);
+      
       toast({
         title: "Error",
         description: "Failed to fetch restaurant settings. Using default values.",
@@ -323,7 +323,7 @@ const Location = () => {
       };
       restaurantData.restaurant_order_type_otm = serviceTypes.map(type => orderTypeMap[type]).filter(id => id);
 
-      console.log('Submitting restaurant data:', restaurantData);
+      
 
       if (editingLocation) {
         // Update existing location
@@ -492,7 +492,7 @@ const Location = () => {
           );
 
           if (!imageResponse.ok) {
-            console.error('Failed to upload image, but location was created');
+            
           }
         }
 
@@ -506,7 +506,7 @@ const Location = () => {
       setIsDialogOpen(false);
       fetchLocations();
     } catch (error) {
-      console.error("Error submitting form:", error);
+      
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to save location",
@@ -524,7 +524,7 @@ const Location = () => {
   const handleSettingsSubmit = async (settings: any) => {
     if (!editingLocation) return;
     
-    console.log('Submitting settings:', settings);
+    
     try {
       // Convert settings to match API format
       const apiData = {
@@ -561,7 +561,7 @@ const Location = () => {
       // Refresh the locations list
       fetchLocations();
     } catch (error) {
-      console.error("Error updating settings:", error);
+      
       toast({
         title: "Error",
         description: "Failed to update restaurant settings. Please try again.",
@@ -577,72 +577,74 @@ const Location = () => {
 
   return (
     <div className="p-6">
-      <div className="flex flex-col space-y-4 md:space-y-0 md:flex-row gap-4 mb-6 items-center">
-        {/* Name Filter */}
-        <div className="flex-1 max-w-xs">
-          <div className="relative">
-            <Input
-              placeholder="Search by name..."
-              value={nameFilter}
-              onChange={(e) => setNameFilter(e.target.value)}
-              className="h-10 bg-white border border-gray-300"
-            />
-            {nameFilter && (
-              <button
-                type="button"
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
-                onClick={() => setNameFilter("")}
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
+      {/* Responsive filter & action bar */}
+      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        {/* Filter inputs */}
+        <div className="grid gap-3 flex-1 sm:grid-cols-2 md:flex md:flex-wrap md:gap-4">
+          {/* Search by name */}
+          <div className="w-full md:w-72">
+            <div className="relative">
+              <Input
+                placeholder="Search by name..."
+                value={nameFilter}
+                onChange={(e) => setNameFilter(e.target.value)}
+                className="h-9 bg-white border border-gray-300 pl-3 pr-8 w-full"
+              />
+              {nameFilter && (
+                <button
+                  type="button"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+                  onClick={() => setNameFilter("")}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </div>
+          {/* Location Type Filter */}
+          <div className="w-full sm:w-auto">
+            <Select 
+              value={locationTypeFilter} 
+              onValueChange={setLocationTypeFilter}
+            >
+              <SelectTrigger className="h-9 bg-white border border-gray-300 w-full sm:w-[180px]">
+                <SelectValue placeholder="Location Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                {restaurantTypes
+                  .filter((type) => type.type !== "BRAND")
+                  .map((type) => (
+                    <SelectItem key={type.id} value={type.id.toString()}>
+                      {type.type}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {/* Status Filter */}
+          <div className="w-full sm:w-auto">
+            <Select 
+              value={statusFilter} 
+              onValueChange={(value) => setStatusFilter(value)}
+            >
+              <SelectTrigger className="h-9 bg-white border border-gray-300 w-full sm:w-[130px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="1">Active</SelectItem>
+                <SelectItem value="0">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
-
-        {/* Location Type Filter */}
-        <div className="flex-1 max-w-xs">
-          <Select 
-            value={locationTypeFilter} 
-            onValueChange={setLocationTypeFilter}
-          >
-            <SelectTrigger className="h-10 bg-white border border-gray-300">
-              <SelectValue placeholder="Location Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              {restaurantTypes
-                .filter((type) => type.type !== "BRAND")
-                .map((type) => (
-                  <SelectItem key={type.id} value={type.id.toString()}>
-                    {type.type}
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Status Filter */}
-        <div className="flex-1 max-w-xs">
-          <Select 
-            value={statusFilter} 
-            onValueChange={(value) => setStatusFilter(value)}
-          >
-            <SelectTrigger className="h-10 bg-white border border-gray-300">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="1">Active</SelectItem>
-              <SelectItem value="0">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex items-center gap-2 ml-auto">
+        {/* Action buttons */}
+        <div className="flex flex-wrap items-center gap-2 md:justify-end">
           <Button
             variant="outline"
             size="icon"
-            className="h-10 w-10"
+            className="h-9 w-9 border border-gray-300"
             onClick={handleRefresh}
           >
             <RefreshCw className="h-4 w-4" />
@@ -650,7 +652,7 @@ const Location = () => {
           <Button 
             variant="default"
             size="icon" 
-            className="bg-primary hover:bg-primary/90 text-white rounded-full"
+            className="bg-primary hover:bg-primary/90 text-white h-9 w-9 rounded-full"
             onClick={handleAddNew}
           >
             <Plus className="h-4 w-4" />
@@ -658,7 +660,7 @@ const Location = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-white rounded-lg shadow relative overflow-x-auto">
         <Table>
           <TableHeader className="bg-primary text-primary-foreground">
             <TableRow>

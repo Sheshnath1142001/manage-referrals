@@ -51,7 +51,7 @@ export function TagDialog({ isOpen, onClose, mode, initialData, onSuccess }: Tag
       onSuccess?.();
       onClose();
     } catch (error) {
-      console.error('Error saving tag:', error);
+      
       toast({
         title: "Error",
         description: "Failed to save tag. Please try again.",

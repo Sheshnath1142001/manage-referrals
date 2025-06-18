@@ -2,6 +2,8 @@ import React from "react";
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { OrderHeader } from "./orders/details/OrderHeader";
@@ -70,7 +72,7 @@ interface OrderDetailsProps {
     orderType: string;
     createdAt: string;
     location: string;
-    items?: OrderItem[];
+    items?: any[];
     note?: string;
     discounts?: OrderDiscount[];
     surcharges?: OrderSurcharge[];

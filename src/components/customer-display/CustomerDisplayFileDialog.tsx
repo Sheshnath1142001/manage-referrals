@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,12 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, X, Upload } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { useCustomerDisplayOptions } from "@/hooks/useCustomerDisplayOptions";
 
 const fileSchema = z.object({
   file: z.any().optional(),
   fileName: z.string().min(1, "File name is required"),
-  aspectRatio: z.string().min(1, "Aspect ratio is required"),
-  group: z.string().min(1, "Group is required"),
+  aspectRatio: z.number().min(1, "Aspect ratio is required"),
+  group: z.number().min(1, "Group is required"),
 });
 
 type FileFormValues = z.infer<typeof fileSchema>;
@@ -41,16 +41,15 @@ export function CustomerDisplayFileDialog({
   const [files, setFiles] = useState<FileEntry[]>([]);
   const { toast } = useToast();
   
-  // Mock data for aspect ratios and customer groups
-  const aspectRatios = ["16:9", "4:3", "1:1", "21:9"];
-  const customerGroups = ["Default", "VIP", "Regular", "New Customers"];
+  // Fetch dynamic data for aspect ratios and customer groups
+  const { aspectRatios, groupTypes, isLoading: optionsLoading, error: optionsError } = useCustomerDisplayOptions();
 
   const form = useForm<FileFormValues>({
     resolver: zodResolver(fileSchema),
     defaultValues: {
       fileName: "",
-      aspectRatio: "",
-      group: "",
+      aspectRatio: 0,
+      group: 0,
     },
   });
 
@@ -81,22 +80,12 @@ export function CustomerDisplayFileDialog({
       
       setFiles([...files, newFile]);
       
-      toast({
-        title: "File added",
-        description: "File has been added to the list"
-      });
-      
       form.reset();
     })();
   };
 
   const handleRemoveFile = (id: string) => {
     setFiles(files.filter(file => file.id !== id));
-    toast({
-      title: "File removed",
-      description: "File has been removed from the list",
-      variant: "destructive"
-    });
   };
 
   const handleSubmit = () => {
@@ -112,10 +101,10 @@ export function CustomerDisplayFileDialog({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+    <Dialog open={isOpen} onOpenChange={isSubmitting ? undefined : onClose}>
+      <DialogContent className="w-[95vw] max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl">
             Add Files
           </DialogTitle>
         </DialogHeader>
@@ -124,9 +113,17 @@ export function CustomerDisplayFileDialog({
           You can upload only 30 images and 5 videos in total!
         </div>
 
+        {optionsError && (
+          <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
+            <p className="text-sm text-red-600">
+              Failed to load form options. Please refresh the page and try again.
+            </p>
+          </div>
+        )}
+
         <Form {...form}>
           <form className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <FormField
                 control={form.control}
                 name="file"
@@ -141,6 +138,7 @@ export function CustomerDisplayFileDialog({
                           accept="image/*,video/*"
                           onChange={handleFileChange}
                           className="w-full"
+                          disabled={isSubmitting}
                           {...field}
                         />
                       </div>
@@ -157,7 +155,7 @@ export function CustomerDisplayFileDialog({
                   <FormItem>
                     <FormLabel>File Name*</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter file name" {...field} />
+                      <Input placeholder="Enter file name" disabled={isSubmitting} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -165,23 +163,27 @@ export function CustomerDisplayFileDialog({
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="aspectRatio"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Aspect Ratio*</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select 
+                      onValueChange={(value) => field.onChange(Number(value))} 
+                      value={field.value?.toString()}
+                      disabled={optionsLoading || isSubmitting}
+                    >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select aspect ratio" />
+                          <SelectValue placeholder={optionsLoading ? "Loading..." : "Select aspect ratio"} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {aspectRatios.map((ratio) => (
-                          <SelectItem key={ratio} value={ratio}>
-                            {ratio}
+                          <SelectItem key={ratio.id} value={ratio.id.toString()}>
+                            {ratio.aspect_ratio}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -197,16 +199,20 @@ export function CustomerDisplayFileDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Group*</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select 
+                      onValueChange={(value) => field.onChange(Number(value))} 
+                      value={field.value?.toString()}
+                      disabled={optionsLoading || isSubmitting}
+                    >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select customer group" />
+                          <SelectValue placeholder={optionsLoading ? "Loading..." : "Select customer group"} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {customerGroups.map((group) => (
-                          <SelectItem key={group} value={group}>
-                            {group}
+                        {groupTypes.map((group) => (
+                          <SelectItem key={group.id} value={group.id.toString()}>
+                            {group.type}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -222,7 +228,8 @@ export function CustomerDisplayFileDialog({
                 type="button" 
                 variant="default" 
                 onClick={handleAddFile}
-                className="flex items-center gap-2"
+                disabled={isSubmitting}
+                className="flex items-center gap-2 w-full sm:w-auto"
               >
                 <Plus className="w-4 h-4" />
                 Add File
@@ -232,21 +239,21 @@ export function CustomerDisplayFileDialog({
         </Form>
 
         {files.length > 0 && (
-          <div className="mt-6 border rounded-md p-4">
-            <h3 className="text-lg font-medium mb-3">Files to Upload</h3>
+          <div className="mt-6 border rounded-md p-3 sm:p-4">
+            <h3 className="text-base sm:text-lg font-medium mb-3">Files to Upload ({files.length})</h3>
             <div className="space-y-3">
               {files.map((file) => (
-                <div key={file.id} className="flex items-center justify-between p-2 border rounded-md">
-                  <div className="flex items-center gap-2">
+                <div key={file.id} className="flex items-center justify-between p-2 border rounded-md gap-2">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
                     {file.previewUrl && (
-                      <div className="h-10 w-10 relative overflow-hidden rounded">
+                      <div className="h-8 w-8 sm:h-10 sm:w-10 relative overflow-hidden rounded flex-shrink-0">
                         <img src={file.previewUrl} alt={file.fileName} className="h-full w-full object-cover" />
                       </div>
                     )}
-                    <div>
-                      <p className="font-medium">{file.fileName}</p>
-                      <p className="text-xs text-gray-500">
-                        {file.aspectRatio} · {file.group}
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm sm:text-base truncate" title={file.fileName}>{file.fileName}</p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {aspectRatios.find(ar => ar.id === file.aspectRatio)?.aspect_ratio || file.aspectRatio} · {groupTypes.find(gt => gt.id === file.group)?.type || file.group}
                       </p>
                     </div>
                   </div>
@@ -255,6 +262,8 @@ export function CustomerDisplayFileDialog({
                     variant="ghost" 
                     size="icon" 
                     onClick={() => handleRemoveFile(file.id)}
+                    disabled={isSubmitting}
+                    className="flex-shrink-0 h-8 w-8"
                   >
                     <X className="h-4 w-4 text-red-500" />
                   </Button>
@@ -264,11 +273,13 @@ export function CustomerDisplayFileDialog({
           </div>
         )}
 
-        <div className="flex justify-between mt-4">
+        <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-2 mt-4">
           <Button 
             type="button" 
             variant="outline" 
             onClick={onClose}
+            disabled={isSubmitting}
+            className="w-full sm:w-auto order-2 sm:order-1"
           >
             Cancel
           </Button>
@@ -276,10 +287,34 @@ export function CustomerDisplayFileDialog({
             type="button" 
             disabled={isSubmitting || files.length === 0} 
             onClick={handleSubmit}
+            className="relative w-full sm:w-auto order-1 sm:order-2"
           >
-            {isSubmitting ? "Submitting..." : "Submit"}
+            {isSubmitting ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                  <span className="hidden sm:inline">Uploading...</span>
+                  <span className="sm:hidden">Uploading {files.length} {files.length === 1 ? 'file' : 'files'}...</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <Upload className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Upload {files.length} {files.length === 1 ? 'File' : 'Files'}</span>
+                <span className="sm:hidden">Upload {files.length}</span>
+              </>
+            )}
           </Button>
         </div>
+        
+        {/* Loading Overlay */}
+        {isSubmitting && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50 rounded-lg">
+            <div className="bg-white p-8 rounded-lg shadow-lg flex items-center justify-center">
+              <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

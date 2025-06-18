@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import { toast } from "@/hooks/use-toast";
 
@@ -13,17 +12,17 @@ export interface PaginatedResponse<T> {
 }
 
 // Get API base URL from environment with fallback
-const apiBaseUrl = import.meta.env.API_BASE_URL || 'https://pratham-respos-testbe-v34.achyutlabs.cloud/api';
-console.log('API Base URL:', apiBaseUrl);
+const apiBaseUrl = import.meta.env.API_BASE_URL || 'https://pratham-respos-testbe-v34.achyutlabs.au/api';
+
 
 // Function to get the user's current timezone
 const getUserTimezone = (): string => {
   try {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    console.log('User timezone detected:', timezone);
+    
     return timezone;
   } catch (error) {
-    console.error('Error detecting timezone:', error);
+    
     return 'UTC';
   }
 };
@@ -32,26 +31,26 @@ const getUserTimezone = (): string => {
 export const api = axios.create({
   baseURL: apiBaseUrl,
   headers: {
-    'Content-Type': 'application/json',
     'Accept': 'application/json',
     'X-Timezone': getUserTimezone()
+    // ✅ REMOVED: Don't set Content-Type globally - let each request decide
   }
 });
 
-console.log('Axios instance created with baseURL:', api.defaults.baseURL);
-console.log('Using timezone in API headers:', api.defaults.headers['X-Timezone']);
+
+
 
 // Add a response interceptor to handle common response processing
 api.interceptors.response.use(
   (response) => {
-    console.log('API Success Response:', response.config.url, response.status);
-    console.log('Response data structure:', JSON.stringify(response.data).substring(0, 200) + '...');
+    
+    
     
     // Return the actual response data directly
     return response.data;
   },
   (error) => {
-    console.error('API Error:', error);
+    
     
     let errorMessage = 'Something went wrong';
     
@@ -65,7 +64,7 @@ api.interceptors.response.use(
       }
       
       if (error.response.status === 401) {
-        console.log('401 Unauthorized - clearing local storage');
+        
         localStorage.removeItem('Admin');
         localStorage.removeItem('token');
         errorMessage = 'Your session has expired. Please log in again.';
@@ -94,39 +93,50 @@ api.interceptors.response.use(
 // Add a request interceptor to attach auth token
 api.interceptors.request.use(
   (config) => {
-    console.log('Making API request to:', config.url);
+    
     
     const adminData = localStorage.getItem('Admin');
-    console.log('Admin data from localStorage:', adminData ? 'Present' : 'Not present');
+    
     
     config.headers['X-Timezone'] = getUserTimezone();
     
-    // Set default headers
+    // ✅ FIXED: Only set Content-Type for non-FormData requests
     config.headers['Accept'] = 'application/json';
-    config.headers['Content-Type'] = 'application/json';
+    
+    // Check if this is a FormData request
+    if (!(config.data instanceof FormData)) {
+      // Only set Content-Type to JSON for non-FormData requests
+      config.headers['Content-Type'] = 'application/json';
+      
+    } else {
+      // For FormData, let the browser set Content-Type with boundary
+      
+      // Don't set Content-Type at all - browser will set it automatically
+      delete config.headers['Content-Type'];
+    }
     
     if (adminData) {
       try {
         const admin = JSON.parse(adminData);
         if (admin && admin.token) {
-          console.log('Auth token found, adding to request');
+          
           config.headers.Authorization = `Bearer ${admin.token}`;
         } else {
           // If no token in admin data, try to get it directly
           const token = localStorage.getItem('token');
           if (token) {
-            console.log('Token found directly in localStorage');
+            
             config.headers.Authorization = `Bearer ${token}`;
           } else {
-            console.warn('No auth token found');
+            
           }
         }
       } catch (error) {
-        console.error('Error parsing admin data:', error);
+        
         // Try to get token directly if parsing fails
         const token = localStorage.getItem('token');
         if (token) {
-          console.log('Token found directly in localStorage after parse error');
+          
           config.headers.Authorization = `Bearer ${token}`;
         }
         localStorage.removeItem('Admin');
@@ -135,7 +145,7 @@ api.interceptors.request.use(
       // If no admin data, try to get token directly
       const token = localStorage.getItem('token');
       if (token) {
-        console.log('Token found directly in localStorage (no admin data)');
+        
         config.headers.Authorization = `Bearer ${token}`;
       }
     }

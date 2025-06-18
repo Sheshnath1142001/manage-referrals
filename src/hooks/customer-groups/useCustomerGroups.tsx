@@ -49,7 +49,7 @@ export function useCustomerGroups() {
     },
     onError: (error) => {
       toast.error("Failed to create customer group");
-      console.error(error);
+      
     }
   });
 
@@ -71,7 +71,7 @@ export function useCustomerGroups() {
     },
     onError: (error) => {
       toast.error("Failed to update customer group");
-      console.error(error);
+      
     }
   });
 
@@ -84,7 +84,7 @@ export function useCustomerGroups() {
     },
     onError: (error) => {
       toast.error("Failed to delete customer group");
-      console.error(error);
+      
     }
   });
 

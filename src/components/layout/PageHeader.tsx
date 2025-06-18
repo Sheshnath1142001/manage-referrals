@@ -69,7 +69,7 @@ export const PageHeader = () => {
       });
       navigate("/login");
     } catch (error) {
-      console.error("Error during logout:", error);
+      
       toast({
         title: "Logout Error",
         description: "There was an issue logging out, but you've been logged out locally.",
@@ -82,14 +82,14 @@ export const PageHeader = () => {
   };
 
   return (
-    <div className="flex items-center gap-4">
-      <SidebarTrigger className="m-4" />
-      <h1 className="text-xl font-semibold">{getPageTitle()}</h1>
-      <div className="ml-auto mr-4 flex items-center gap-2">
+    <header className="flex items-center gap-2 sm:gap-4 px-3 sm:px-6 py-2 border-b border-gray-100 bg-white sticky top-0 z-30">
+      <SidebarTrigger className="mr-2 sm:mr-4" />
+      <h1 className="text-lg sm:text-xl font-semibold text-gray-800 truncate max-w-[50vw]">{getPageTitle()}</h1>
+      <div className="ml-auto flex items-center gap-1 sm:gap-2">
         <Link to="/profile">
           <Button variant="ghost" className="flex items-center gap-2 px-3">
             <UserCircle className="h-5 w-5" />
-            <span>{currentUser?.name || 'Admin'}</span>
+            <span className="hidden sm:inline">{currentUser?.name || 'Admin'}</span>
           </Button>
         </Link>
         <Button 
@@ -98,7 +98,7 @@ export const PageHeader = () => {
           onClick={() => setIsLogoutDialogOpen(true)}
         >
           <LogOut className="h-5 w-5" />
-          <span>Logout</span>
+          <span className="hidden sm:inline">Logout</span>
         </Button>
         
         <AlertDialog open={isLogoutDialogOpen} onOpenChange={setIsLogoutDialogOpen}>
@@ -122,6 +122,6 @@ export const PageHeader = () => {
           </AlertDialogContent>
         </AlertDialog>
       </div>
-    </div>
+    </header>
   );
 };

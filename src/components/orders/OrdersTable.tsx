@@ -63,7 +63,7 @@ export const OrdersTable = ({ orders, onViewOrder, onEditOrder }: OrdersTablePro
   };
   
   const handleViewOrderClick = (order: OrderData) => {
-    console.log('Viewing order with ID:', order.id);
+    
     onViewOrder(order.id);
   };
 

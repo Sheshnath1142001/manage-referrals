@@ -48,7 +48,7 @@ export function useAttributesList() {
     if (filterParams.name) newParams.set('atrribute', filterParams.name);
     newParams.set('page', filterParams.page.toString());
     newParams.set('per_page', filterParams.per_page.toString());
-    if (filterParams.status) newParams.set('status', filterParams.status);
+    if (filterParams.status !== undefined) newParams.set('status', filterParams.status.toString());
     
     setSearchParams(newParams);
   }, [filterParams, setSearchParams]);
@@ -58,7 +58,7 @@ export function useAttributesList() {
     queryKey: ['product-attributes', filterParams],
     queryFn: () => attributesService.getProductAttributes(filterParams)
       .then(response => {
-        console.log('API Response:', response);
+        
         // Handle response format variations
         if (response?.data?.data) {
           return {
@@ -105,9 +105,19 @@ export function useAttributesList() {
 
   // Handle filter change
   const handleFilterChange = (value: string) => {
+    let statusValue: number | undefined;
+    
+    if (value === "All") {
+      statusValue = undefined;
+    } else if (value === "Active") {
+      statusValue = 1;
+    } else if (value === "Inactive") {
+      statusValue = 0;
+    }
+    
     setFilterParams(prev => ({
       ...prev,
-      status: value === "All" ? undefined : value,
+      status: statusValue,
       page: 1 // Reset to first page when filter changes
     }));
   };

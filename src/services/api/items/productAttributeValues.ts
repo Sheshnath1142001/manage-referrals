@@ -9,6 +9,12 @@ export interface ProductAttributeValue {
   status: number;
 }
 
+// Interface for sequence update payload
+export interface UpdateAttributeValueSequencePayload {
+  id: number;
+  new_seq_no: number;
+}
+
 // Product attribute values related operations
 export const getProductAttributeValues = (params: any) => {
   // Format the params for the API endpoint
@@ -26,10 +32,11 @@ export const createProductAttributeValues = (data: any) =>
 export const updateProductAttributeValues = (params: any) => 
   api.put(`/v2/products/attribute-values/${params.id}`, params);
 
-export const updateProductAttributeValuesSeqNo = (params: any) => {
-  const data = new FormData();
-  data.append('seq_no', params.seq_no.toString());
-  return api.put(`/v2/products/attribute-values/${params.id}/sequence`, data);
+export const updateProductAttributeValuesSeqNo = (params: UpdateAttributeValueSequencePayload) => {
+  return api.patch('/v2/products/attribute-values-seq', {
+    id: params.id,
+    new_seq_no: params.new_seq_no
+  });
 };
 
 export const attributeValuesService = {

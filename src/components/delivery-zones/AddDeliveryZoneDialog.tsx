@@ -37,6 +37,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useGetRestaurants } from '@/hooks/useGetRestaurants';
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from '@/hooks/use-auth';
 
 interface DeliveryZoneFormDialogProps {
   open: boolean;
@@ -56,6 +57,7 @@ export function DeliveryZoneFormDialog({ open, onOpenChange, mode, initialData, 
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { restaurants } = useGetRestaurants();
+  const { user } = useAuth();
   
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -76,6 +78,9 @@ export function DeliveryZoneFormDialog({ open, onOpenChange, mode, initialData, 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const isViewMode = mode === 'view';
 
+  // Create tenant-specific key for cache invalidation
+  const tenantKey = user?.id ? `tenant_${user.id}_default` : 'anonymous';
+
   // Set default restaurant if available
   useEffect(() => {
     if (restaurants.length > 0 && !restaurantId) {
@@ -94,45 +99,45 @@ export function DeliveryZoneFormDialog({ open, onOpenChange, mode, initialData, 
     setPostcodeError("");
     
     const timeout = setTimeout(() => {
-      console.log("Searching postcodes for:", postcodeInput);
+      
       postcodesGeoApi.search(postcodeInput, 15)
         .then(res => {
-          console.log("Postcode API raw response:", res);
+          
           
           // Handle various possible response formats
           try {
             let validPostcodes = [];
             
             // Direct response structure: { success: true, data: [...] }
-            if (res?.success && Array.isArray(res.data)) {
-              validPostcodes = res.data;
-              console.log("Case 1: Direct response with success and data array");
+            if ((res as any)?.data?.success && Array.isArray((res as any).data.data)) {
+              validPostcodes = (res as any).data.data;
+              
             }
             // Axios wrapper: { data: { success: true, data: [...] } }
-            else if (res?.data?.success && Array.isArray(res.data.data)) {
-              validPostcodes = res.data.data;
-              console.log("Case 2: Axios wrapped response");
+            else if ((res as any)?.data?.data?.success && Array.isArray((res as any).data.data.data)) {
+              validPostcodes = (res as any).data.data.data;
+              
             }
             // Raw array: [...]
             else if (Array.isArray(res)) {
               validPostcodes = res;
-              console.log("Case 3: Raw array access");
+              
             }
             // Check if data is nested in different structure
             else if (res?.data && Array.isArray(res.data)) {
               validPostcodes = res.data;
-              console.log("Case 4: Direct data array access");
+              
             }
             // Unknown format
             else {
-              console.error("Cannot extract postcodes from response:", res);
+              
               validPostcodes = [];
             }
             
-            console.log("Setting options with data:", validPostcodes);
+            
             setPostcodeOptions(validPostcodes);
           } catch (parseError) {
-            console.error("Error parsing API response:", parseError);
+            
             setPostcodeOptions([]);
             setPostcodeError("Error processing response data");
           }
@@ -140,7 +145,7 @@ export function DeliveryZoneFormDialog({ open, onOpenChange, mode, initialData, 
           setPostcodeLoading(false);
         })
         .catch((error) => {
-          console.error("Failed to fetch postcodes:", error);
+          
           setPostcodeOptions([]);
           setPostcodeLoading(false);
           setPostcodeError("Failed to fetch postcodes");
@@ -223,12 +228,13 @@ export function DeliveryZoneFormDialog({ open, onOpenChange, mode, initialData, 
         title: "Success",
         description: "Delivery zone created successfully"
       });
-      queryClient.invalidateQueries({ queryKey: ['deliveryZones'] });
       handleReset();
       onOpenChange(false);
+      // Call parent onSubmit after dialog closes to avoid multiple renders
+        onSubmit({ success: true, action: 'create' }); 
     },
     onError: (error: any) => {
-      console.error("Error creating delivery zone:", error);
+      
       toast({
         title: "Error",
         description: error.message || "Failed to create delivery zone",
@@ -241,6 +247,7 @@ export function DeliveryZoneFormDialog({ open, onOpenChange, mode, initialData, 
     const errors: Record<string, string> = {};
     
     if (!name.trim()) errors.name = "Name is required";
+    if (!description.trim()) errors.description = "Description is required";
     if (!restaurantId) errors.restaurantId = "Restaurant is required";
     
     if (zoneType === "distance") {
@@ -269,6 +276,28 @@ export function DeliveryZoneFormDialog({ open, onOpenChange, mode, initialData, 
     
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
+  };
+
+  // Check if form is valid for button state
+  const isFormValid = () => {
+    // Check basic required fields
+    if (!name.trim() || !description.trim() || !restaurantId) return false;
+    
+    // Check zone type specific fields
+    if (zoneType === "distance") {
+      if (!fromDistance || !toDistance) return false;
+    } else if (zoneType === "area") {
+      if (!selectedPostcode) return false;
+    }
+    
+    // Check charge items
+    if (chargeItems.length === 0) return false;
+    
+    const hasValidCharges = chargeItems.every(item => 
+      item.min_order_amount.trim() !== "" && item.delivery_charge.trim() !== ""
+    );
+    
+    return hasValidCharges;
   };
 
   const handleReset = () => {
@@ -318,8 +347,7 @@ export function DeliveryZoneFormDialog({ open, onOpenChange, mode, initialData, 
         }
         return {
           min_order_amount: item.min_order_amount,
-          delivery_charge: item.delivery_charge,
-          status: 1
+          delivery_charge: item.delivery_charge
         };
       })
     };
@@ -356,7 +384,7 @@ export function DeliveryZoneFormDialog({ open, onOpenChange, mode, initialData, 
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">Name*</Label>
                 <Input
                 id="name"
                   value={name}
@@ -389,20 +417,21 @@ export function DeliveryZoneFormDialog({ open, onOpenChange, mode, initialData, 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">Description*</Label>
             <Input
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               disabled={isViewMode}
             />
+            {formErrors.description && <p className="text-sm text-red-500">{formErrors.description}</p>}
             </div>
 
           <div className="space-y-2">
-            <Label>Zone Type</Label>
+            <Label>Zone Type*</Label>
             <Select
               value={zoneType}
-              onValueChange={setZoneType}
+              onValueChange={(value: string) => setZoneType(value as "distance" | "area")}
               disabled={isViewMode}
             >
               <SelectTrigger>
@@ -418,7 +447,7 @@ export function DeliveryZoneFormDialog({ open, onOpenChange, mode, initialData, 
               {zoneType === "distance" && (
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="fromDistance">From Distance (km)</Label>
+                <Label htmlFor="fromDistance">From Distance* (km)</Label>
                     <Input
                   id="fromDistance"
                       type="number"
@@ -429,7 +458,7 @@ export function DeliveryZoneFormDialog({ open, onOpenChange, mode, initialData, 
                 {formErrors.fromDistance && <p className="text-sm text-red-500">{formErrors.fromDistance}</p>}
                   </div>
               <div className="space-y-2">
-                <Label htmlFor="toDistance">To Distance (km)</Label>
+                <Label htmlFor="toDistance">To Distance* (km)</Label>
                     <Input
                   id="toDistance"
                       type="number"
@@ -461,9 +490,9 @@ export function DeliveryZoneFormDialog({ open, onOpenChange, mode, initialData, 
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-full p-0">
-                      <Command>
+                      <Command shouldFilter={false}>
                         <CommandInput 
-                          placeholder="Search postcode..." 
+                          placeholder="Search postcode or suburb..." 
                           value={postcodeInput}
                           onValueChange={setPostcodeInput}
                         />
@@ -473,7 +502,7 @@ export function DeliveryZoneFormDialog({ open, onOpenChange, mode, initialData, 
                         {postcodeOptions.map((option) => (
                                 <CommandItem
                                   key={option.id}
-                            value={option.postcode}
+                            value={`${option.postcode} ${option.suburb}`}
                                   onSelect={() => {
                                     setSelectedPostcode(option);
                                     setOpenPostcodePopover(false);
@@ -518,7 +547,7 @@ export function DeliveryZoneFormDialog({ open, onOpenChange, mode, initialData, 
               {chargeItems.map((item, index) => (
               <div key={index} className="grid grid-cols-12 gap-4 items-start">
                 <div className="col-span-5 space-y-2">
-                  <Label htmlFor={`minOrderAmount_${index}`}>Minimum Order Amount</Label>
+                  <Label htmlFor={`minOrderAmount_${index}`}>Minimum Order Amount*</Label>
                   <Input
                     id={`minOrderAmount_${index}`}
                     type="number"
@@ -532,7 +561,7 @@ export function DeliveryZoneFormDialog({ open, onOpenChange, mode, initialData, 
                 </div>
                 
                 <div className="col-span-5 space-y-2">
-                  <Label htmlFor={`deliveryCharge_${index}`}>Delivery Charge</Label>
+                  <Label htmlFor={`deliveryCharge_${index}`}>Delivery Charge*</Label>
                   <Input
                     id={`deliveryCharge_${index}`}
                     type="number"
@@ -577,8 +606,12 @@ export function DeliveryZoneFormDialog({ open, onOpenChange, mode, initialData, 
             {isViewMode ? 'Close' : 'Cancel'}
             </Button>
           {!isViewMode && (
-            <Button type="submit" onClick={handleSubmit}>
-              {mode === 'add' ? 'Create' : 'Update'}
+            <Button 
+              type="submit" 
+              onClick={handleSubmit}
+              disabled={!isFormValid() || createMutation.isPending}
+            >
+              {createMutation.isPending ? 'Loading...' : (mode === 'add' ? 'Create' : 'Update')}
             </Button>
           )}
           </DialogFooter>

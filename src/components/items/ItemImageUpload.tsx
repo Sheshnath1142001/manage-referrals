@@ -1,7 +1,8 @@
-
 import { useState } from 'react';
+import { Label } from "@/components/ui/label";
 import { Upload } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 
 interface ItemImageUploadProps {
   formData: any;
@@ -18,56 +19,33 @@ export const ItemImageUpload = ({
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) {
-      console.warn('No file selected');
-      return;
-    }
-    
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Image must be less than 5MB",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsUploading(true);
-    
-    // Log file details before updating form data
-    console.log('Selected image file:', {
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      lastModified: file.lastModified
-    });
-    
-    // Use FileReader to create preview and verify file is valid
-    const reader = new FileReader();
-    reader.onload = () => {
-      // Set the image in formData
-      updateFormField("image", file);
-      // Store preview URL
-      if (typeof reader.result === 'string') {
-        updateFormField("imagePreview", reader.result);
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Image must be less than 5MB",
+          variant: "destructive",
+        });
+        return;
       }
-      setIsUploading(false);
       
-      // Confirmation log
-      console.log('Image successfully added to form data');
-    };
-    
-    reader.onerror = () => {
-      console.error('Error reading file:', reader.error);
-      toast({
-        title: "Error",
-        description: "Failed to process image",
-        variant: "destructive",
-      });
-      setIsUploading(false);
-    };
-    
-    reader.readAsDataURL(file);
+      setIsUploading(true);
+      
+      // Create a preview URL for the new image
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        updateFormField("imagePreview", reader.result as string);
+        updateFormField("image", file);
+        setIsUploading(false);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    if (isViewMode) return;
+    updateFormField("image", null);
+    updateFormField("imagePreview", "");
   };
 
   return (
@@ -82,19 +60,25 @@ export const ItemImageUpload = ({
             <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
             <p className="text-sm text-gray-500">Uploading...</p>
           </div>
-        ) : formData.image ? (
-          <div className="text-center">
-            <p className="text-sm text-gray-700 mb-1">{formData.image.name}</p>
-            <p className="text-xs text-gray-500">
-              {(formData.image.size / (1024 * 1024)).toFixed(2)} MB
-            </p>
-            {formData.imagePreview && (
-              <div className="mt-2 flex justify-center">
-                <img 
-                  src={formData.imagePreview} 
-                  alt="Preview" 
-                  className="h-10 w-auto object-contain"
-                />
+        ) : formData.imagePreview ? (
+          <div className="relative w-full h-full flex items-center justify-center">
+            <img 
+              src={formData.imagePreview} 
+              alt="Item preview" 
+              className="max-w-full max-h-full object-contain"
+            />
+            {!isViewMode && (
+              <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                <Button 
+                  variant="secondary" 
+                  size="sm" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemoveImage();
+                  }}
+                >
+                  Change Image
+                </Button>
               </div>
             )}
           </div>

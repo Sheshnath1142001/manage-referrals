@@ -1,4 +1,3 @@
-
 import React from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -69,9 +68,8 @@ export const CategoryItem = ({ category, index, onViewEdit }: CategoryItemProps)
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button 
-                      variant="outline" 
+                      variant="ghost" 
                       size="icon" 
-                      className="h-8 w-8 rounded-full border-transparent bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:border-emerald-200"
                       onClick={() => onViewEdit(category, true)}
                     >
                       <Eye className="h-4 w-4" />
@@ -85,9 +83,8 @@ export const CategoryItem = ({ category, index, onViewEdit }: CategoryItemProps)
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button 
-                      variant="outline" 
+                      variant="ghost" 
                       size="icon" 
-                      className="h-8 w-8 rounded-full border-transparent bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:border-indigo-200"
                       onClick={() => onViewEdit(category, false)}
                     >
                       <Pencil className="h-4 w-4" />

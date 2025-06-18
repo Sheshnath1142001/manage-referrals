@@ -35,9 +35,9 @@ export function StaffDialog({ isOpen, onClose, onSuccess, mode, initialData }: S
 
   useEffect(() => {
     if (mode === "edit" && initialData) {
-      console.log("Initial data for edit:", initialData);
+      
       const roleId = initialData.role_id || initialData.roles?.id || 0;
-      console.log("Setting roleId to:", roleId);
+      
       
       setFormData({
         name: initialData.name || "",
@@ -74,26 +74,22 @@ export function StaffDialog({ isOpen, onClose, onSuccess, mode, initialData }: S
     try {
       const apiCall = mode === "add" 
         ? () => staffApi.createStaffMember({
-            name: formData.name,
-            role_id: formData.roleId,
-            type: formData.type,
-            employee_outlet_id: formData.locationId,
             email: formData.email,
-            phone: formData.phoneNo,
-            username: formData.username,
-            password: formData.password,
+            name: formData.name,
+            password: formData.password || null,
+            phone_no: formData.phoneNo,
+            restaurant_id: formData.locationId,
+            role_id: formData.roleId,
             status: formData.active ? 1 : 0
           })
         : () => staffApi.updateStaffMember(initialData.id, {
             name: formData.name,
-            role_id: formData.roleId,
-            type: formData.type,
-            employee_outlet_id: formData.locationId,
             email: formData.email,
-            phone: formData.phoneNo,
-            username: formData.username,
-            ...(formData.password && { password: formData.password }),
-            status: formData.active ? 1 : 0
+            phone_no: formData.phoneNo,
+            status: formData.active ? 1 : 0,
+            role_id: formData.roleId,
+            restaurant_id: formData.locationId,
+            ...(formData.password && { password: formData.password })
           });
 
       await apiCall();
@@ -107,7 +103,7 @@ export function StaffDialog({ isOpen, onClose, onSuccess, mode, initialData }: S
       onSuccess();
       onClose();
     } catch (error) {
-      console.error(`Failed to ${mode} staff member:`, error);
+      
       toast({
         title: "Error",
         description: `Failed to ${mode} staff member. Please try again.`,

@@ -111,7 +111,7 @@ export const authApi = {
       }
       return null;
     } catch (error) {
-      console.error('Error parsing user data:', error);
+      
       return null;
     }
   },

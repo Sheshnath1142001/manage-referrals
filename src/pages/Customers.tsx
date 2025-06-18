@@ -62,7 +62,7 @@ const Customers = () => {
         return admin?.token || null;
       }
     } catch (error) {
-      console.error('Error getting auth token:', error);
+      
     }
     return null;
   };
@@ -99,7 +99,7 @@ const Customers = () => {
   // Create/Update customer mutation
   const customerMutation = useMutation({
     mutationFn: async (data: any) => {
-      console.log('Customer mutation data:', data); // Debug log
+       // Debug log
       const isNewCustomer = selectedCustomer?.id === 'new';
       
       if (isNewCustomer) {
@@ -117,8 +117,8 @@ const Customers = () => {
         // Extract customer ID from response
         const newCustomerId = newCustomerResponse?.id;
 
-        // If address details are provided, create address for the new customer
-        if (newCustomerId && (data.street_name || data.city || data.postcode || data.unit_number)) {
+        // If user wants to include address and address details are provided, create address for the new customer
+        if (newCustomerId && data.include_address && (data.street_name || data.city || data.postcode || data.unit_number)) {
           await customersApi.createCustomerAddress({
             unit_number: data.unit_number || '',
             street_name: data.street_name || '',
@@ -141,29 +141,31 @@ const Customers = () => {
           customer_groups: data.customer_groups, // This will be converted to customer_group_ids in the API function
         });
 
-        // Update or create address if provided
-        const hasAddress = Array.isArray(address) && address.length > 0;
-        if (hasAddress) {
-          await customersApi.updateCustomerAddress(address[0].id, {
-            unit_number: data.unit_number,
-            street_name: data.street_name,
-            postcode: data.postcode,
-            city: data.city,
-            province: data.province,
-            country: data.country,
-            module_id: selectedCustomer!.id, // Pass the customer ID as module_id
-          });
-        } else if (data.street_name || data.city || data.postcode) {
-          await customersApi.createCustomerAddress({
-            unit_number: data.unit_number || '',
-            street_name: data.street_name || '',
-            postcode: data.postcode || '',
-            city: data.city || '',
-            province: data.province || '',
-            country: data.country || '',
-            module_id: parseInt(selectedCustomer!.id),
-            module_type: 6,
-          });
+        // Update or create address if user wants to include address
+        if (data.include_address) {
+          const hasAddress = Array.isArray(address) && address.length > 0;
+          if (hasAddress) {
+            await customersApi.updateCustomerAddress(address[0].id, {
+              unit_number: data.unit_number,
+              street_name: data.street_name,
+              postcode: data.postcode,
+              city: data.city,
+              province: data.province,
+              country: data.country,
+              module_id: selectedCustomer!.id, // Pass the customer ID as module_id
+            });
+          } else if (data.street_name || data.city || data.postcode) {
+            await customersApi.createCustomerAddress({
+              unit_number: data.unit_number || '',
+              street_name: data.street_name || '',
+              postcode: data.postcode || '',
+              city: data.city || '',
+              province: data.province || '',
+              country: data.country || '',
+              module_id: parseInt(selectedCustomer!.id),
+              module_type: 6,
+            });
+          }
         }
       }
     },

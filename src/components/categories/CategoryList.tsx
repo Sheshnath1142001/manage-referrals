@@ -37,8 +37,7 @@ export const CategoryList = ({ onViewEdit, onUpdateSequence }: CategoryListProps
   };
 
   const handlePageSizeChange = (size: number) => {
-    const newPageSize = size === 0 ? -1 : size;
-    setPageSize(newPageSize);
+    setPageSize(size);
     setCurrentPage(1);
   };
 
@@ -76,24 +75,18 @@ export const CategoryList = ({ onViewEdit, onUpdateSequence }: CategoryListProps
         title: "Success",
         description: "Category order has been updated successfully."
       });
-      
-      // Refresh the list to get the latest order from the server
-      refetch();
     } catch (error) {
-      console.error("Error updating sequence:", error);
+      
       toast({
         title: "Error",
         description: "Failed to update category order. Please try again.",
         variant: "destructive"
       });
-      
-      // Refresh to get the current state from the server
-      refetch();
     }
   };
 
   return (
-    <div className="bg-white rounded-md border border-gray-200 mt-4 relative overflow-hidden">
+    <div className="bg-white rounded-md border border-gray-200 mt-4 relative overflow-x-auto">
       <DragDropContext onDragStart={() => setIsDragging(true)} onDragEnd={onDragEnd}>
         <Table>
           <CategoryListHeader />

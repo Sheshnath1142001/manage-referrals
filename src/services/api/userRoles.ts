@@ -21,7 +21,7 @@ export const getUserRoles = async (params?: {
     const response = await api.get('/user-roles', { params });
     return response;
   } catch (error) {
-    console.error('Error fetching user roles:', error);
+    
     return { user_roles: [], total: 0 };
   }
 };

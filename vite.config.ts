@@ -11,10 +11,6 @@ export default defineConfig(({ mode }) => {
   const VERSION_NO = env.VERSION_NO || '3.4.0';
   const BASE_URL = env.BASE_URL;
   
-  console.log('API_BASE_URL:', API_BASE_URL);
-  console.log('VERSION_NO:', VERSION_NO);
-  console.log('BASE_URL:', BASE_URL);
-  
   return {
     server: {
       host: "::",

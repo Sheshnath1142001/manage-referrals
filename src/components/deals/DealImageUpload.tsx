@@ -1,14 +1,17 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ImagePlus, Trash2, RefreshCw } from "lucide-react";
+import { ImagePlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { dealsApi } from "@/services/api/deals";
+import { attachmentsApi } from "@/services/api/attachments";
 
 interface DealImageUploadProps {
   dealId?: number;
   initialImageUrl?: string;
-  onImageUploaded: (imageUrl: string) => void;
+  onImageUploaded: (imageUrl: string | File) => void;
   onImageDeleted: () => void;
+  moduleType?: string | number;
+  moduleId?: string | number;
+  attachmentId?: string | number;
 }
 
 export const DealImageUpload = ({
@@ -16,12 +19,31 @@ export const DealImageUpload = ({
   initialImageUrl,
   onImageUploaded,
   onImageDeleted,
+  moduleType = '9',
+  moduleId,
+  attachmentId,
 }: DealImageUploadProps) => {
   const { toast } = useToast();
   const [imageUrl, setImageUrl] = useState<string | undefined>(initialImageUrl);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null); // kept for potential use in upload flow
+  const [currentAttachmentId, setCurrentAttachmentId] = useState<string | number | undefined>(attachmentId);
+
+  // Synchronize imageUrl when parent provides a new initialImageUrl (e.g., editing existing deal)
+  useEffect(() => {
+    if (selectedFile) return; // do not overwrite preview while uploading
+
+    if (initialImageUrl) {
+      setImageUrl(initialImageUrl);
+    } else {
+      // Clear image when switching to create mode
+      setImageUrl(undefined);
+    }
+  }, [initialImageUrl, selectedFile]);
+
+  // Keep local attachment id in sync with prop
+  useEffect(() => {
+    setCurrentAttachmentId(attachmentId);
+  }, [attachmentId]);
 
   const handleImageClick = () => {
     fileInputRef.current?.click();
@@ -51,48 +73,31 @@ export const DealImageUpload = ({
       return;
     }
 
-    // Create a temporary URL for preview
+    // Create a temporary URL for preview and inform parent immediately
     const previewUrl = URL.createObjectURL(file);
     setImageUrl(previewUrl);
     setSelectedFile(file);
-  };
+    // When a user selects a new local file, we no longer have an attachment id from backend
+    setCurrentAttachmentId(undefined);
 
-  const uploadImage = async () => {
-    if (!selectedFile || !dealId) return;
-
-    setIsUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-      formData.append('module_type', 'deal');
-      formData.append('module_id', dealId.toString());
-
-      const response = await dealsApi.uploadDealImage(formData);
-      const newImageUrl = response.data.url;
-      
-      setImageUrl(newImageUrl);
-      onImageUploaded(newImageUrl);
-      
-      toast({
-        title: "Success",
-        description: "Image uploaded successfully",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to upload image",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploading(false);
-    }
+    // Notify parent with raw File so it can be uploaded after form submit
+    onImageUploaded(file);
   };
 
   const handleDeleteImage = async () => {
-    if (!dealId || !imageUrl) return;
+    if (!imageUrl) return;
+
+    const targetModuleId = moduleId ?? dealId;
+
+    if (!targetModuleId) return;
 
     try {
-      await dealsApi.deleteDealImage(dealId);
+      // Prefer bulk delete endpoint to satisfy requirement of hitting only /attachments DELETE
+      await attachmentsApi.deleteAttachments({
+        attachment_ids: currentAttachmentId ? [currentAttachmentId] : [],
+        module_type: moduleType,
+        module_id: targetModuleId,
+      });
       setImageUrl(undefined);
       setSelectedFile(null);
       onImageDeleted();
@@ -110,6 +115,8 @@ export const DealImageUpload = ({
     }
   };
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   return (
     <div className="space-y-4">
       <div
@@ -123,28 +130,6 @@ export const DealImageUpload = ({
               alt="Deal"
               className="w-full h-48 object-contain rounded-lg"
             />
-            <div className="absolute top-2 right-2 flex gap-2">
-              <Button
-                variant="destructive"
-                size="icon"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteImage();
-                }}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="secondary"
-                size="icon"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleImageClick();
-                }}
-              >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-            </div>
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-48">
@@ -164,7 +149,6 @@ export const DealImageUpload = ({
         accept="image/*"
         className="hidden"
         onChange={handleFileChange}
-        disabled={isUploading}
       />
     </div>
   );

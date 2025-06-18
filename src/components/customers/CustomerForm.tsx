@@ -14,6 +14,7 @@ import {
   FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MultiSelect } from "@/components/ui/multi-select";
@@ -27,6 +28,8 @@ const formSchema = z.object({
   phone_no: z.string().min(8, "Phone number must be at least 8 characters"),
   country_code: z.string().optional(),
   customer_groups: z.array(z.string()).optional(),
+  // Address toggle
+  include_address: z.boolean().default(false),
   // Address fields
   unit_number: z.string().optional(),
   street_name: z.string().optional(),
@@ -61,6 +64,7 @@ export function CustomerForm({
       phone_no: "",
       country_code: "",
       customer_groups: [],
+      include_address: false,
       unit_number: "",
       street_name: "",
       postcode: "",
@@ -78,6 +82,7 @@ export function CustomerForm({
         phone_no: customer.phone_no,
         country_code: customer.country_code || "",
         customer_groups: customer.customer_groups?.map(g => g.id) || [],
+        include_address: !!address, // Set to true if address exists
       });
     }
     if (address) {
@@ -107,9 +112,11 @@ export function CustomerForm({
                 <TabsTrigger value="details" className="flex items-center gap-2">
                   <User size={16} /> Customer Details
                 </TabsTrigger>
-                <TabsTrigger value="address" className="flex items-center gap-2">
-                  <MapPin size={16} /> Address Information
-                </TabsTrigger>
+                {form.watch("include_address") && (
+                  <TabsTrigger value="address" className="flex items-center gap-2">
+                    <MapPin size={16} /> Address Information
+                  </TabsTrigger>
+                )}
               </TabsList>
             </CardHeader>
             
@@ -214,102 +221,130 @@ export function CustomerForm({
                       />
                     </div>
                   )}
+
+                  {/* Address Toggle */}
+                  <div>
+                    <FormField
+                      control={form.control}
+                      name="include_address"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                          <div className="space-y-0.5">
+                            <FormLabel className="flex items-center gap-2">
+                              <MapPin size={14} /> Include Address Information
+                            </FormLabel>
+                            <FormDescription>
+                              Add or update address details for this customer
+                            </FormDescription>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
               </TabsContent>
               
-              <TabsContent value="address" className="mt-0 pt-2">
-                <div className="space-y-6">
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="unit_number"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Unit Number</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Apt 123" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+              {form.watch("include_address") && (
+                <TabsContent value="address" className="mt-0 pt-2">
+                  <div className="space-y-6">
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="unit_number"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Unit Number</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Apt 123" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="street_name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Street Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="123 Main St" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                     
-                    <FormField
-                      control={form.control}
-                      name="street_name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Street Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="123 Main St" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="city"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>City</FormLabel>
-                          <FormControl>
-                            <Input placeholder="New York" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="city"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>City</FormLabel>
+                            <FormControl>
+                              <Input placeholder="New York" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="province"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Province/State</FormLabel>
+                            <FormControl>
+                              <Input placeholder="NY" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                     
-                    <FormField
-                      control={form.control}
-                      name="province"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Province/State</FormLabel>
-                          <FormControl>
-                            <Input placeholder="NY" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="postcode"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Postcode</FormLabel>
+                            <FormControl>
+                              <Input placeholder="12345" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="country"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Country</FormLabel>
+                            <FormControl>
+                              <Input placeholder="United States" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </div>
-                  
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="postcode"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Postcode</FormLabel>
-                          <FormControl>
-                            <Input placeholder="12345" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="country"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Country</FormLabel>
-                          <FormControl>
-                            <Input placeholder="United States" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-              </TabsContent>
+                </TabsContent>
+              )}
             </CardContent>
             
             <CardFooter className="flex justify-end space-x-4 pt-4 border-t">

@@ -96,7 +96,7 @@ export const useReportsData = () => {
       setApiResponse(response);
       return response;
     } catch (error) {
-      console.error("Failed to fetch reports:", error);
+      
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setApiError(error instanceof Error ? error : new Error('Unknown error'));
       toast({
@@ -164,7 +164,7 @@ export const useReportsData = () => {
       return response;
     })
     .catch(error => {
-      console.error("Refetch failed:", error);
+      
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setApiError(error instanceof Error ? error : new Error('Unknown error'));
       toast({
@@ -219,11 +219,11 @@ export const useReportsData = () => {
     })
     .then(response => {
       setApiResponse(response);
-      console.log("Custom refetch successful");
+      
       return response;
     })
     .catch(error => {
-      console.error("Custom refetch failed:", error);
+      
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setApiError(error instanceof Error ? error : new Error('Unknown error'));
       toast({

@@ -48,7 +48,7 @@ export function useCloudPrinters({
         throw new Error('Invalid response from cloud printers API');
       }
     } catch (err) {
-      console.error('Error fetching cloud printers:', err);
+      
       const errorMessage = err instanceof Error ? err.message : 'Unknown error fetching cloud printers';
       setError(err instanceof Error ? err : new Error(errorMessage));
       

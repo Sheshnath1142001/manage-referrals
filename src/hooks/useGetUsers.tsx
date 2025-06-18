@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { usersApi } from '@/services/api/users';
+import { AxiosResponse } from 'axios';
 
 export interface User {
   id: string;
@@ -31,22 +32,23 @@ interface UsersResponse {
 }
 
 export const useGetUsers = () => {
-  const { data, isLoading, error, refetch } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery<UsersResponse>({
     queryKey: ['users'],
     queryFn: async () => {
       try {
         const response = await usersApi.getUsers();
-        console.log('usersApi.getUsers() response:', response);
-        return response; // Return response directly, not response.data
+        
+        return response; // ✅ Return only data
       } catch (error) {
-        console.error('Error fetching users:', error);
+        
         throw error;
       }
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
-  console.log('Data in useGetUsers:', data);
+  
 
   return {
     users: data?.users || [],
@@ -55,4 +57,4 @@ export const useGetUsers = () => {
     error,
     refetch,
   };
-}; 
+};

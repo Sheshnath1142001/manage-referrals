@@ -1,13 +1,12 @@
-
 # app.yaml for Google App Engine deployment
 
 runtime: nodejs20  # Updated to Node.js 20 LTS runtime
 
 env_variables:
-  API_BASE_URL: "https://pratham-respos-testbe-v34.achyutlabs.cloud/api"
+  API_BASE_URL: "https://pratham-respos-testbe-v34.achyutlabs.au/api"
   VERSION_NO: "3.4.0"
-  BASE_URL: "https://pratham-respos-testbe-v34.achyutlabs.cloud"
-  VITE_EXTERNAL_API_URL: "https://pratham-respos-testbe-v34.achyutlabs.cloud/api"
+  BASE_URL: "https://pratham-respos-testbe-v34.achyutlabs.au"
+  VITE_EXTERNAL_API_URL: "https://pratham-respos-testbe-v34.achyutlabs.au/api"
 
 handlers:
   # Serve all static files with url ending with a file extension

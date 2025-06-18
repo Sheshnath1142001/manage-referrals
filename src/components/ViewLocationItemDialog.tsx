@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,10 +10,11 @@ import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/services/api/client";
 
-// Define interface for ModifierCategory
+// Define interfaces
 interface ModifierCategory {
   id: number;
   modifier_category: string;
@@ -22,9 +23,18 @@ interface ModifierCategory {
   status: number;
   min?: number | null;
   max?: number | null;
+  seq_no: number;
 }
 
-// Define interface for RestaurantProductModifier
+interface Modifier {
+  id: number;
+  modifier: string;
+  modifier_category_id: number;
+  seq_no: number;
+  status: number;
+  modifier_categories: ModifierCategory;
+}
+
 interface RestaurantProductModifier {
   id: string;
   restaurant_product_id: string;
@@ -51,16 +61,35 @@ interface RestaurantProductModifier {
   };
 }
 
-// Define interface for grouped modifiers
-interface GroupedExistingModifiers {
-  [key: string]: {
-    categoryId: number,
-    modifiers: RestaurantProductModifier[]
-  };
+// Available modifier interface (mimicking Vue's availableModifiers computed property)
+interface AvailableModifier {
+  id: string;
+  modifier_category_id: number;
+  modifier_category: string;
+  modifier: string;
+  modifier_id: number;
+  price: string;
+  status: number;
+  online_price: string;
+}
+
+// Categorized modifiers interface
+interface CategorizedModifier {
+  modifier_category_id: number;
+  modifier_category: string;
+  modifiers: AvailableModifier[];
 }
 
 interface ApiResponse<T> {
   data: T;
+}
+
+interface ModifierCategoriesResponse {
+  modifier_categories: ModifierCategory[];
+}
+
+interface ModifiersResponse {
+  modifiers: Modifier[];
 }
 
 interface RestaurantProductModifiersResponse {
@@ -71,7 +100,7 @@ interface ViewLocationItemDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   item: {
-    id?: string; // Added id field for API call
+    id?: string;
     name: string;
     price: string;
     onlinePrice: string;
@@ -81,6 +110,8 @@ interface ViewLocationItemDialogProps {
     tags: string[];
     active: boolean;
     online: boolean;
+    restrictAttributeCombinations?: boolean;
+    isOfferHalfNHalf?: boolean;
     modifiers?: {
       sauceOptions: { name: string; price: string; }[];
       extras: { name: string; price: string; }[];
@@ -94,189 +125,263 @@ const ViewLocationItemDialog = ({
   item
 }: ViewLocationItemDialogProps) => {
   const [showModifiers, setShowModifiers] = useState(true);
+  const [showSpinner, setShowSpinner] = useState(true);
 
-  // Fetch modifiers if item has an ID
+  // Fetch modifier categories
+  const { data: modifierCategoriesData, isLoading: isLoadingCategories } = useQuery({
+    queryKey: ['modifier-categories'],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.append('per_page', '9999');
+      
+      const response = await api.get<ApiResponse<ModifierCategoriesResponse>>('/modifier-categories', { params });
+      return response;
+    },
+    enabled: open
+  });
+
+  // Fetch all modifiers
   const { data: modifiersData, isLoading: isLoadingModifiers } = useQuery({
+    queryKey: ['modifiers'],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.append('per_page', '9999');
+      
+      const response = await api.get<ApiResponse<ModifiersResponse>>('/modifiers', { params });
+      return response;
+    },
+    enabled: open
+  });
+
+  // Fetch restaurant product modifiers for this specific product
+  const { data: restaurantProductModifiersData, isLoading: isLoadingProductModifiers } = useQuery({
     queryKey: ['restaurant-product-modifiers', item.id],
     queryFn: async () => {
       if (!item.id) return { restaurant_product_modifiers: [] };
 
       const params = new URLSearchParams();
       params.append('per_page', '9999');
-      params.append('restaurant_product_id[]', item.id);
+      params.append('restaurant_product_id', item.id);
 
       const response = await api.get<ApiResponse<RestaurantProductModifiersResponse>>('/restaurant-product-modifiers', { params });
-      return response.data.data;
+      console.log({ response })
+      return response;
     },
     enabled: open && !!item.id
   });
+  console.log({modifierCategoriesData , restaurantProductModifiersData, modifiersData})
+  // Mimic Vue's availableModifiers computed property
+  const availableModifiers: AvailableModifier[] = useMemo(() => {
+    if (!modifiersData?.modifiers || !restaurantProductModifiersData?.restaurant_product_modifiers) {
+      return [];
+    }
 
-  // Group modifiers by category
-  const groupedModifiers: GroupedExistingModifiers = (modifiersData as RestaurantProductModifiersResponse)?.restaurant_product_modifiers
-    ? (modifiersData as RestaurantProductModifiersResponse).restaurant_product_modifiers.reduce((acc, modifier) => {
-        const categoryName = modifier.modifiers.modifier_categories.modifier_category;
-        if (!acc[categoryName]) {
-          acc[categoryName] = {
-            categoryId: modifier.modifiers.modifier_categories.id,
-            modifiers: []
-          };
+    const availMod: AvailableModifier[] = [];
+    const modifiersClone = [...modifiersData.modifiers];
+    const restaurantProductModifiers = restaurantProductModifiersData.restaurant_product_modifiers;
+
+    modifiersClone.forEach((modifier) => {
+      // Find if this modifier is assigned to the current product
+      const productModifier = restaurantProductModifiers.find(
+        (pm) => pm.modifier_id === modifier.id
+      );
+
+      if (productModifier) {
+        const obj: AvailableModifier = {
+          id: productModifier.id,
+          modifier_category_id: productModifier.modifiers.modifier_categories.id,
+          modifier_category: productModifier.modifiers.modifier_categories.modifier_category,
+          modifier: modifier.modifier,
+          modifier_id: modifier.id,
+          price: productModifier.price,
+          status: productModifier.status,
+          online_price: productModifier.online_price,
+        };
+        availMod.push(obj);
+      }
+    });
+
+    return availMod;
+  }, [modifiersData, restaurantProductModifiersData]);
+
+  // Mimic Vue's categorizedModifiers computed property
+  const categorizedModifiers: CategorizedModifier[] = useMemo(() => {
+    const categories: CategorizedModifier[] = [];
+    
+    availableModifiers.forEach((item) => {
+      const existingCategory = categories.find(
+        (category) => category.modifier_category_id === item.modifier_category_id
+      );
+      
+      if (existingCategory) {
+        if (item.status === 1) {
+          existingCategory.modifiers.push(item);
         }
-        acc[categoryName].modifiers.push(modifier);
-        return acc;
-      }, {} as GroupedExistingModifiers)
-    : {};
+      } else {
+        if (item.status === 1) {
+          categories.push({
+            modifier_category_id: item.modifier_category_id,
+            modifier_category: item.modifier_category,
+            modifiers: [item],
+          });
+        }
+      }
+    });
+    
+    return categories;
+  }, [availableModifiers]);
 
-  // Format price for display
+  // Check if any category has modifiers (mimicking Vue's checkCount function)
+  const hasActiveModifiers = categorizedModifiers.some(category => category.modifiers.length > 0);
+
+  // Format price for display (mimicking Vue template logic)
   const formatPriceDisplay = (price: string, onlinePrice: string) => {
-    return `(P- $${price} / $${onlinePrice || price})`;
+    const displayOnlinePrice = onlinePrice || price;
+    return `$${price} / $${displayOnlinePrice}`;
   };
+
+  const isLoading = isLoadingCategories || isLoadingModifiers || isLoadingProductModifiers;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] p-0 overflow-y-auto max-h-[90vh]">
-        <DialogHeader className="bg-black text-white p-4 sticky top-0 z-10">
-          <div className="flex justify-between items-center">
-            <DialogTitle className="text-xl font-bold">View Location Item</DialogTitle>
-            <DialogClose className="h-8 w-8 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center">
-              <X className="h-5 w-5" />
-              <span className="sr-only">Close</span>
-            </DialogClose>
-          </div>
+      <DialogContent className="sm:max-w-[900px]">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold">
+            View Location Item
+          </DialogTitle>
         </DialogHeader>
 
-        <div className="p-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label className="font-semibold">Name:</Label>
-              <p className="mt-1">{item.name}</p>
+        <div className="space-y-6">
+          {/* Main fields in 3 columns */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label className="font-semibold">Name*:</Label>
+              <div className="h-10 px-3 py-2 border border-input rounded-md flex items-center">
+                {item.name}
+              </div>
             </div>
             
-            <div>
-              <Label className="font-semibold">Price:</Label>
-              <p className="mt-1">{item.price}</p>
-            </div>
-            
-            <div>
-              <Label className="font-semibold">Online Price:</Label>
-              <p className="mt-1">{item.onlinePrice}</p>
-            </div>
-
-            <div>
-              <Label className="font-semibold">Discount Type:</Label>
-              <p className="mt-1">{item.discountType}</p>
-            </div>
-            
-            <div>
-              <Label className="font-semibold">Discount:</Label>
-              <p className="mt-1">{item.discount}</p>
-            </div>
-            
-            <div>
-              <Label className="font-semibold">Online Discount:</Label>
-              <p className="mt-1">{item.onlineDiscount}</p>
-            </div>
-            
-            <div>
-              <Label className="font-semibold">Status:</Label>
-              <p className="mt-1">{item.active ? "Active" : "Inactive"}</p>
-            </div>
-            
-            <div>
-              <Label className="font-semibold">Availability:</Label>
-              <p className="mt-1">{item.online ? "Online" : "In Store only"}</p>
-            </div>
-            
-            <div className="md:col-span-2">
-              <Label className="font-semibold">Tags:</Label>
-              <p className="mt-1">{Array.isArray(item.tags) ? item.tags.join(", ") : ""}</p>
-            </div>
-          </div>
-
-          {/* Available Modifiers Section - API Based */}
-          <Separator className="my-4" />
-          
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-lg">Available Modifiers</h3>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-500">{showModifiers ? "Hide" : "Show"}</span>
-                <div 
-                  className={`w-10 h-5 rounded-full transition-colors cursor-pointer flex items-center ${showModifiers ? 'bg-black' : 'bg-gray-300'}`}
-                  onClick={() => setShowModifiers(!showModifiers)}
-                >
-                  <div className={`w-4 h-4 rounded-full bg-white transform transition-transform ${showModifiers ? 'translate-x-5' : 'translate-x-1'}`}></div>
-                </div>
+            <div className="space-y-2">
+              <Label className="font-semibold">Price*:</Label>
+              <div className="h-10 px-3 py-2 border border-input rounded-md flex items-center">
+                ${item.price}
               </div>
             </div>
 
-            {showModifiers && (
-              <>
-                {isLoadingModifiers ? (
-                  <div className="text-center py-4">Loading modifiers...</div>
-                ) : item.id && Object.keys(groupedModifiers).length > 0 ? (
+            <div className="space-y-2">
+              <Label className="font-semibold">Online Price:</Label>
+              <div className="h-10 px-3 py-2 border border-input rounded-md flex items-center">
+                ${item.onlinePrice}
+              </div>
+            </div>
+          </div>
+
+          {/* Discount fields in 3 columns */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label className="font-semibold">Discount Type:</Label>
+              <div className="h-10 px-3 py-2 border border-input rounded-md flex items-center">
+                {item.discountType}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="font-semibold">Discount:</Label>
+              <div className="h-10 px-3 py-2 border border-input rounded-md flex items-center">
+                {item.discount}
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label className="font-semibold">Online Discount:</Label>
+              <div className="h-10 px-3 py-2 border border-input rounded-md flex items-center">
+                {item.onlineDiscount}
+              </div>
+            </div>
+          </div>
+
+          {/* Tags Section */}
+          <div className="space-y-2">
+            <Label className="font-semibold">Tags:</Label>
+            <div className="min-h-10 px-3 py-2 border border-input rounded-md flex items-center">
+              {Array.isArray(item.tags) ? item.tags.join(", ") : ""}
+            </div>
+          </div>
+
+          {/* Switch Fields - 2x2 Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="flex items-center justify-between">
+              <Label className="font-semibold">Active</Label>
+              <Switch
+                checked={item.active}
+                disabled
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label className="font-semibold">Online</Label>
+              <Switch
+                checked={item.online}
+                disabled
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label className="font-semibold">Offers Half</Label>
+              <Switch
+                checked={item.isOfferHalfNHalf !== undefined ? item.isOfferHalfNHalf : false}
+                disabled
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label className="font-semibold">Restrict Combination</Label>
+              <Switch
+                checked={item.restrictAttributeCombinations !== undefined ? item.restrictAttributeCombinations : false}
+                disabled
+              />
+            </div>
+          </div>
+
+          {/* Available Modifiers Section */}
+          {hasActiveModifiers && (
+            <>
+              <Separator className="my-4" />
+              
+              <div className="space-y-4">
+                <h3 className="font-bold text-lg">Available Modifiers:</h3>
+
+                {isLoading ? (
+                  <div className="text-center py-4">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    <p className="mt-2">Loading modifiers...</p>
+                  </div>
+                ) : (
                   <div className="space-y-6">
-                    {Object.entries(groupedModifiers).map(([categoryName, { modifiers }]) => (
-                      <div key={categoryName} className="space-y-2">
+                    {categorizedModifiers.map((category) => (
+                      <div key={category.modifier_category_id} className="space-y-2">
                         <Label className="font-semibold text-base">
-                          {categoryName}:
+                          {category.modifier_category}:
                         </Label>
                         <div className="flex flex-wrap gap-2">
-                          {modifiers.map((modifier) => (
-                            <div 
-                              key={modifier.id} 
-                              className="bg-white border border-black text-black rounded-full px-4 py-1 text-sm"
-                            >
-                              {modifier.modifiers.modifier} {formatPriceDisplay(modifier.price, modifier.online_price)}
-                            </div>
-                          ))}
+                          {category.modifiers
+                            .sort((a, b) => a.modifier.localeCompare(b.modifier))
+                            .map((modifier) => (
+                              <div 
+                                key={modifier.id} 
+                                className="bg-background border border-primary text-primary rounded-full px-4 py-1 text-sm cursor-pointer hover:bg-primary/10 transition-colors"
+                              >
+                                {modifier.modifier} - {formatPriceDisplay(modifier.price, modifier.online_price)}
+                              </div>
+                            ))}
                         </div>
                       </div>
                     ))}
                   </div>
-                ) : (
-                  // Fallback to original modifiers display if no API data available
-                  <>
-                    {item.modifiers && (item.modifiers.sauceOptions?.length > 0 || item.modifiers.extras?.length > 0) ? (
-                      <div className="space-y-4">
-                        {item.modifiers.sauceOptions?.length > 0 && (
-                          <div>
-                            <h4 className="font-semibold">Extra Sauces:</h4>
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              {item.modifiers.sauceOptions.map((sauce, idx) => (
-                                <div 
-                                  key={idx} 
-                                  className="bg-white border border-black text-black rounded-full px-4 py-1 text-sm"
-                                >
-                                  {sauce.name} - {sauce.price}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        {item.modifiers.extras?.length > 0 && (
-                          <div>
-                            <h4 className="font-semibold">Extra Toppings:</h4>
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              {item.modifiers.extras.map((extra, idx) => (
-                                <div 
-                                  key={idx} 
-                                  className="bg-white border border-black text-black rounded-full px-4 py-1 text-sm"
-                                >
-                                  {extra.name} - {extra.price}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="text-gray-500 italic">No modifiers available</div>
-                    )}
-                  </>
                 )}
-              </>
-            )}
-          </div>
+              </div>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>

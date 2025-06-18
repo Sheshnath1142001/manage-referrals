@@ -54,7 +54,7 @@ export function EditStaffDialog({ open, onOpenChange, onSuccess, staffId }: Edit
           });
         })
         .catch((error) => {
-          console.error("Failed to fetch staff data:", error);
+          
           toast({
             title: "Error",
             description: "Failed to load staff data. Please try again.",
@@ -98,7 +98,7 @@ export function EditStaffDialog({ open, onOpenChange, onSuccess, staffId }: Edit
       onSuccess();
       onOpenChange(false);
     } catch (error) {
-      console.error("Failed to update staff member:", error);
+      
       toast({
         title: "Error",
         description: "Failed to update staff member. Please try again.",

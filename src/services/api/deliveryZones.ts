@@ -10,6 +10,12 @@ export interface DeliveryZone {
   status: 'Active' | 'Inactive' | number;
   fromDistance?: number;
   toDistance?: number;
+  // Additional properties that API returns
+  zone_type?: number;
+  from_distance?: number;
+  to_distance?: number;
+  postcode?: string;
+  suburb?: string;
 }
 
 export interface DeliveryZoneResponse extends PaginatedResponse<DeliveryZone> {
@@ -46,12 +52,16 @@ export const deliveryZonesApi = {
       let total = 0;
       let page = params?.page || 1;
       let perPage = limit;
-      if (response && typeof response === 'object') {
-        if (response.data && Array.isArray(response.data)) {
-          zones = response.data;
-          total = response.pagination?.total || zones.length;
-          page = Math.floor((response.pagination?.offset || 0) / perPage) + 1;
-          perPage = response.pagination?.limit || perPage;
+      if (response && response.data && typeof response.data === 'object') {
+        const responseData = response.data;
+        if (responseData.data && Array.isArray(responseData.data)) {
+          zones = responseData.data;
+          total = responseData.pagination?.total || zones.length;
+          page = Math.floor((responseData.pagination?.offset || 0) / perPage) + 1;
+          perPage = responseData.pagination?.limit || perPage;
+        } else if (Array.isArray(responseData)) {
+          zones = responseData;
+          total = zones.length;
         }
       }
       return {
@@ -62,7 +72,7 @@ export const deliveryZonesApi = {
         total_pages: Math.ceil(total / perPage)
       } as DeliveryZoneResponse;
     } catch (error) {
-      console.error('Error fetching delivery zones:', error);
+      
       return {
         data: [],
         total: 0,

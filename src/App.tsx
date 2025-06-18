@@ -51,13 +51,17 @@ import PromotionalGroups from "@/pages/PromotionalGroups";
 import AttendanceReport from "@/pages/reports/AttendanceReport";
 import RestaurantProducts from "@/pages/RestaurantProducts";
 import Profile from "@/pages/Profile";
+import OnlinePromotions from "@/pages/OnlinePromotions";
+import SelfCheckoutDisplay from "@/pages/SelfCheckoutDisplay";
+import HelpSupport from "@/pages/HelpSupport";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
       retry: 1,
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 0, // Always fetch fresh data - no caching
+      refetchOnMount: true, // Always refetch when component mounts
     },
   },
 });
@@ -123,8 +127,10 @@ function App() {
               
               {/* Promotions */}
               <Route path="/promotions" element={<Promotions />} />
-              <Route path="/promotional-groups" element={<PromotionalGroups />} /> {/* New route for Promotional Groups */}
+              <Route path="/online-promotions" element={<OnlinePromotions />} />
+              <Route path="/promotional-groups" element={<PromotionalGroups />} />
               <Route path="/customer-display" element={<CustomerDisplay />} />
+              <Route path="/self-checkout-display" element={<SelfCheckoutDisplay />} />
               
               {/* Settings */}
               <Route path="/table-types" element={<TableTypes />} />
@@ -133,6 +139,9 @@ function App() {
               <Route path="/cloud-printing" element={<CloudPrinting />} />
               <Route path="/tags" element={<Tags />} />
               <Route path="/profile" element={<Profile />} />
+              
+              {/* Help & Support */}
+              <Route path="/help-support" element={<HelpSupport />} />
               
               <Route path="/restaurant-products" element={<RestaurantProducts />} />
               

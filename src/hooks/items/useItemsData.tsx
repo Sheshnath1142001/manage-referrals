@@ -24,7 +24,7 @@ export function useItemsData() {
     
     try {
       const response = await itemsApi.getItems(queryParams);
-      console.log('Items API response:', response);
+      
       
       // Handle different API response formats
       let items = [];
@@ -66,9 +66,9 @@ export function useItemsData() {
       setItemsList(formattedItems);
       setTotalItems(total);
     } catch (error) {
-      console.error('Error fetching items:', error);
+      
       const axiosError = error as AxiosError;
-      console.error('Error details:', axiosError.response?.data);
+      
       setItemsList([]);
       setTotalItems(0);
     } finally {
@@ -90,7 +90,7 @@ export function useItemsData() {
         setDiscountTypes([]);
       }
     } catch (error) {
-      console.error('Error fetching discount types:', error);
+      
       setDiscountTypes([]);
     }
   };

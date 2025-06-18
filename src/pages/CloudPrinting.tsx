@@ -146,50 +146,47 @@ export default function CloudPrinting() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold">Cloud Printing</h1>
-      </div>
-
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div className="flex gap-4">
-            <Select
-              value={selectedRestaurantId?.toString()}
-              onValueChange={(value) => setSelectedRestaurantId(Number(value))}
-            >
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Select restaurant" />
-              </SelectTrigger>
-              <SelectContent>
-                {restaurants.map((restaurant) => (
-                  <SelectItem key={restaurant.id} value={restaurant.id.toString()}>
-                    {restaurant.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input
-              placeholder="Search by printer name"
-              value={printerName}
-              onChange={e => setPrinterName(e.target.value)}
-              className="w-[220px]"
-            />
-            <Select value={statusFilter} onValueChange={v => setStatusFilter(v as any)}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="icon" onClick={refreshPrinters}>
+        <div className="flex flex-col gap-3 w-full lg:flex-row lg:flex-nowrap lg:items-center lg:gap-4">
+          <Select
+            value={selectedRestaurantId?.toString()}
+            onValueChange={(value) => setSelectedRestaurantId(Number(value))}
+          >
+            <SelectTrigger className="w-full sm:w-44">
+              <SelectValue placeholder="Select restaurant" />
+            </SelectTrigger>
+            <SelectContent>
+              {restaurants.map((restaurant) => (
+                <SelectItem key={restaurant.id} value={restaurant.id.toString()}>
+                  {restaurant.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Input
+            placeholder="Search by printer name"
+            value={printerName}
+            onChange={e => setPrinterName(e.target.value)}
+            className="w-full sm:w-64 lg:w-72"
+          />
+
+          <Select value={statusFilter} onValueChange={v => setStatusFilter(v as any)}>
+            <SelectTrigger className="w-full sm:w-32">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <div className="flex items-center gap-2 md:ml-auto">
+            <Button variant="outline" size="icon" onClick={refreshPrinters} className="h-10 w-10">
               <RotateCcw className="h-4 w-4" />
             </Button>
-            <Button variant="default" onClick={handleAddPrinter}>
+            <Button variant="default" onClick={handleAddPrinter} className="h-10 px-4 whitespace-nowrap">
               <Plus className="h-4 w-4 mr-2" />
               Add Printer
             </Button>
@@ -278,7 +275,7 @@ export default function CloudPrinting() {
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">
               {editingPrinter ? "Edit Cloud Printer" : "Add Cloud Printer"}
@@ -292,60 +289,66 @@ export default function CloudPrinting() {
             }}
             className="space-y-4"
           >
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                name="name"
-                defaultValue={editingPrinter?.name}
-                required
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  defaultValue={editingPrinter?.name}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sn">Serial Number</Label>
+                <Input
+                  id="sn"
+                  name="sn"
+                  defaultValue={editingPrinter?.sn}
+                  required
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="sn">Serial Number</Label>
-              <Input
-                id="sn"
-                name="sn"
-                defaultValue={editingPrinter?.sn}
-                required
-              />
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="voice_type">Voice Type</Label>
+                <Select
+                  name="voice_type"
+                  defaultValue={editingPrinter?.voice_type.toString()}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select voice type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Type 1</SelectItem>
+                    <SelectItem value="2">Type 2</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="location_restaurant_id">Location</Label>
+                <Select
+                  name="location_restaurant_id"
+                  defaultValue={editingPrinter?.location_restaurant_id.toString()}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {restaurants.map((restaurant) => (
+                      <SelectItem key={restaurant.id} value={restaurant.id.toString()}>
+                        {restaurant.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="voice_type">Voice Type</Label>
-              <Select
-                name="voice_type"
-                defaultValue={editingPrinter?.voice_type.toString()}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select voice type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">Type 1</SelectItem>
-                  <SelectItem value="2">Type 2</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="location_restaurant_id">Location</Label>
-              <Select
-                name="location_restaurant_id"
-                defaultValue={editingPrinter?.location_restaurant_id.toString()}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select location" />
-                </SelectTrigger>
-                <SelectContent>
-                  {restaurants.map((restaurant) => (
-                    <SelectItem key={restaurant.id} value={restaurant.id.toString()}>
-                      {restaurant.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+
             <div className="space-y-2">
               <Label>Order Types*</Label>
-              <div className="flex flex-col gap-2 border rounded p-2">
+              <div className="flex justify-between border rounded p-3">
                 {ORDER_TYPES.map((type) => (
                   <label key={type.id} className="flex items-center gap-2">
                     <Checkbox
@@ -363,7 +366,27 @@ export default function CloudPrinting() {
                 ))}
               </div>
             </div>
-            <div className="flex items-center justify-between">
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center justify-between border rounded p-2">
+                <Label htmlFor="should_print_order">Print Orders</Label>
+                <Switch
+                  id="should_print_order"
+                  name="should_print_order"
+                  defaultChecked={editingPrinter?.should_print_order}
+                />
+              </div>
+              <div className="flex items-center justify-between border rounded p-2">
+                <Label htmlFor="should_announce">Announce Orders</Label>
+                <Switch
+                  id="should_announce"
+                  name="should_announce"
+                  defaultChecked={editingPrinter?.should_announce}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between border rounded p-2">
               <Label htmlFor="is_active">Active</Label>
               <Switch
                 id="is_active"
@@ -372,6 +395,7 @@ export default function CloudPrinting() {
                 onCheckedChange={setIsActive}
               />
             </div>
+
             <DialogFooter>
               <Button type="submit">
                 {editingPrinter ? "Update" : "Create"}

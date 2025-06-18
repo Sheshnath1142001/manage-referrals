@@ -90,6 +90,12 @@ export interface CreateCampaignPayload {
   customer_group_ids?: number[];
 }
 
+export interface ResendCampaignPayload {
+  content: string;
+  resend_target: string;
+  customer_group_ids: number[];
+}
+
 export const promotionsApi = {
   getCampaigns: async (params: {
     page?: number;
@@ -101,7 +107,6 @@ export const promotionsApi = {
       const response = await api.get('/v2/promotions/campaigns', { params });
       return response;
     } catch (error) {
-      console.error('Error fetching campaigns:', error);
       throw error;
     }
   },
@@ -111,7 +116,6 @@ export const promotionsApi = {
       const response = await api.post('/v2/promotions/campaigns', data);
       return response;
     } catch (error) {
-      console.error('Error creating campaign:', error);
       throw error;
     }
   },
@@ -121,7 +125,18 @@ export const promotionsApi = {
       const response = await api.delete(`/v2/promotions/campaigns/${id}`);
       return response;
     } catch (error) {
-      console.error('Error deleting campaign:', error);
+      throw error;
+    }
+  },
+
+  resendCampaign: async (
+    id: string,
+    data: ResendCampaignPayload
+  ): Promise<any> => {
+    try {
+      const response = await api.post(`/v2/promotions/campaigns/${id}/resend`, data);
+      return response;
+    } catch (error) {
       throw error;
     }
   }

@@ -2,7 +2,7 @@
 import { toast } from "@/hooks/use-toast";
 
 export const handleApiError = (error: any, defaultMessage: string = "An error occurred") => {
-  console.error("API Error:", error);
+  
   
   let errorMessage = defaultMessage;
   

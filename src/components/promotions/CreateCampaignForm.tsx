@@ -8,6 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { promotionsApi, CreateCampaignPayload } from "@/services/api/promotions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useCustomerGroups } from "@/hooks/useCustomerGroups";
 
 interface CreateCampaignFormProps {
   type: 'sms' | 'newsletter' | 'push_notification';
@@ -15,17 +16,9 @@ interface CreateCampaignFormProps {
   onCreated: () => void;
 }
 
-interface CustomerGroup {
-  id: number;
-  name: string;
-}
+// CustomerGroup interface is imported from the API service
 
-// Sample customer groups data (in a real app, this would come from an API)
-const sampleCustomerGroups: CustomerGroup[] = [
-  { id: 30, name: "bikram-atish" },
-  { id: 22, name: "Bikram-test" },
-  { id: 29, name: "Final testing with 1 user" },
-];
+// Customer groups will be fetched from API
 
 // Sample SMS templates
 const smsTemplates = [
@@ -108,6 +101,12 @@ const pushTemplates = [
 ];
 
 export function CreateCampaignForm({ type, onCancel, onCreated }: CreateCampaignFormProps) {
+  const { customerGroups, isLoading: isLoadingGroups, error: customerGroupsError } = useCustomerGroups();
+  
+  // Debug logging
+  
+  
+  
   const [formData, setFormData] = useState<CreateCampaignPayload>({
     name: '',
     description: '',
@@ -116,10 +115,9 @@ export function CreateCampaignForm({ type, onCancel, onCreated }: CreateCampaign
     status: 'active',
     customer_group_ids: []
   });
-  const [customerGroups, setCustomerGroups] = useState<CustomerGroup[]>(sampleCustomerGroups);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
-  
+
   // Initialize content based on type
   useEffect(() => {
     if (type === 'newsletter' && !formData.content) {
@@ -129,6 +127,79 @@ export function CreateCampaignForm({ type, onCancel, onCreated }: CreateCampaign
       }));
     }
   }, [type]);
+  
+  const getTitle = () => {
+    switch(type) {
+      case 'sms':
+        return 'Create SMS Campaign';
+      case 'newsletter':
+        return 'Create Email Campaign';
+      case 'push_notification':
+        return 'Create Push Notification';
+      default:
+        return 'Create Campaign';
+    }
+  };
+
+  // Show loading state while customer groups are being fetched
+  if (isLoadingGroups) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center">
+          <Button 
+            variant="ghost" 
+            className="mr-2"
+            onClick={onCancel}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl font-bold">{getTitle()}</h1>
+        </div>
+        
+        <Card>
+          <CardContent className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+              <p className="text-muted-foreground">Loading customer groups...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show error state if customer groups failed to load
+  if (customerGroupsError) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center">
+          <Button 
+            variant="ghost" 
+            className="mr-2"
+            onClick={onCancel}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl font-bold">{getTitle()}</h1>
+        </div>
+        
+        <Card>
+          <CardContent className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <p className="text-red-600 mb-4">Failed to load customer groups</p>
+              <Button onClick={() => window.location.reload()}>
+                Refresh Page
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
+  // Customer groups are loaded via the useCustomerGroups hook
+
+  
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -210,7 +281,7 @@ export function CreateCampaignForm({ type, onCancel, onCreated }: CreateCampaign
         onCreated();
       }
     } catch (error) {
-      console.error('Error creating campaign:', error);
+      
       toast({
         title: "Error",
         description: "Failed to create campaign. Please try again.",
@@ -218,19 +289,6 @@ export function CreateCampaignForm({ type, onCancel, onCreated }: CreateCampaign
       });
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const getTitle = () => {
-    switch(type) {
-      case 'sms':
-        return 'Create SMS Campaign';
-      case 'newsletter':
-        return 'Create Email Campaign';
-      case 'push_notification':
-        return 'Create Push Notification';
-      default:
-        return 'Create Campaign';
     }
   };
 
@@ -271,16 +329,29 @@ export function CreateCampaignForm({ type, onCancel, onCreated }: CreateCampaign
                 <Label htmlFor="customer_group">Customer Group</Label>
                 <Select 
                   onValueChange={handleCustomerGroupChange}
+                  disabled={isLoadingGroups}
                 >
                   <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select a customer group" />
+                    <SelectValue placeholder={
+                      isLoadingGroups 
+                        ? "Loading customer groups..." 
+                        : customerGroups.length === 0 
+                          ? "No customer groups available"
+                          : "Select a customer group"
+                    } />
                   </SelectTrigger>
                   <SelectContent>
-                    {customerGroups.map(group => (
-                      <SelectItem key={group.id} value={group.id.toString()}>
-                        {group.name}
+                    {customerGroups && customerGroups.length > 0 ? (
+                      customerGroups.map(group => (
+                        <SelectItem key={group.id} value={group.id.toString()}>
+                          {group.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="" disabled>
+                        {isLoadingGroups ? 'Loading...' : 'No customer groups found'}
                       </SelectItem>
-                    ))}
+                    )}
                   </SelectContent>
                 </Select>
               </div>

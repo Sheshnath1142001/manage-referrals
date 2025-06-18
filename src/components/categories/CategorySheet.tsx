@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Category } from "./CategoriesContext";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Upload, X } from "lucide-react";
+import { Loader2, Upload, X, Trash2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -13,6 +13,17 @@ import {
   SheetTitle,
   SheetFooter,
 } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import axios from 'axios';
 
 interface CategorySheetProps {
@@ -24,6 +35,8 @@ interface CategorySheetProps {
   updateMutation: any;
   onClose: () => void;
 }
+
+const apiBaseUrl = import.meta.env.API_BASE_URL || 'https://pratham-respos-testbe-v34.achyutlabs.cloud/api';
 
 export function CategorySheet({
   open,
@@ -39,10 +52,15 @@ export function CategorySheet({
     category: '',
     status: '1',
     image: null as File | null,
-    imagePreview: '' as string
+    imagePreview: '' as string,
+    hasImageChanged: false, // Track if image was changed during edit
+    existingAttachmentId: null as number | string | null, // Store existing attachment ID
+    imageDeleted: false // Track if existing image was deleted
   });
   
-  const isLoading = createMutation.isPending || updateMutation.isPending;
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isUpdatingAttachment, setIsUpdatingAttachment] = useState(false);
+  const isLoading = createMutation.isPending || updateMutation.isPending || isDeleting || isUpdatingAttachment;
 
   useEffect(() => {
     if (editingCategory) {
@@ -51,21 +69,37 @@ export function CategorySheet({
         category: editingCategory.name,
         status: editingCategory.status === 'active' ? '1' : '0',
         image: null,
-        imagePreview: ''
+        imagePreview: '',
+        hasImageChanged: false,
+        existingAttachmentId: editingCategory.id,
+        imageDeleted: false
       });
+      
       // Fetch image from attachments API
-      axios.get(`https://pratham-respos-testbe-v34.achyutlabs.cloud/api/attachments?module_type=1&module_id=${editingCategory.id}`)
+      axios.get(`${apiBaseUrl}/attachments?module_type=1&module_id=${editingCategory.id}`)
         .then(res => {
           const attachments = res.data.attachment || [];
           if (attachments.length > 0) {
             setFormData(prev => ({
               ...prev,
-              imagePreview: attachments[0].upload_path
+              imagePreview: attachments[0].upload_path,
+              existingAttachmentId: attachments[0].id
+            }));
+          } else {
+            // No existing attachment found
+            setFormData(prev => ({
+              ...prev,
+              existingAttachmentId: null
             }));
           }
         })
         .catch(error => {
-          console.error('Error fetching image:', error);
+          
+          // Set existingAttachmentId to null if API fails
+          setFormData(prev => ({
+            ...prev,
+            existingAttachmentId: null
+          }));
         });
     } else {
       setFormData({
@@ -73,7 +107,10 @@ export function CategorySheet({
         category: '',
         status: '1',
         image: null,
-        imagePreview: ''
+        imagePreview: '',
+        hasImageChanged: false,
+        existingAttachmentId: null,
+        imageDeleted: false
       });
     }
   }, [editingCategory, open]);
@@ -102,16 +139,199 @@ export function CategorySheet({
     
     const file = e.target.files?.[0];
     if (file) {
+      
+      console.log('Selected file:', {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        lastModified: file.lastModified
+      });
+      
+      // Validate file size (2MB limit)
+      if (file.size > 2 * 1024 * 1024) {
+        toast({
+          title: "Image too large",
+          description: "Please select an image smaller than 2MB",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid file type",
+          description: "Please select an image file",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       setFormData(prev => ({
         ...prev,
         image: file,
-        imagePreview: URL.createObjectURL(file)
+        imagePreview: URL.createObjectURL(file),
+        hasImageChanged: true, // Mark that image was changed
+        imageDeleted: false // Reset deleted flag when new image is selected
       }));
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Function to delete attachment using the PATCH API
+  const deleteAttachment = async (attachmentId: number, categoryId: string) => {
+    try {
+      setIsDeleting(true);
+      
+      
+      const token = JSON.parse(localStorage.getItem('Admin') || '{}').token;
+      
+      const response = await axios.patch(
+        `${apiBaseUrl}/attachment/status/${attachmentId}/1/${categoryId}`,
+        {}, // Empty body for delete
+        {
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'X-Timezone': 'Asia/Calcutta',
+          }
+        }
+      );
+      
+      
+      return response.data;
+    } catch (error) {
+      
+      throw error;
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Handle delete image confirmation
+  const handleDeleteImage = async () => {
+    if (!formData.existingAttachmentId) return;
+    
+    try {
+      await deleteAttachment(formData.existingAttachmentId, formData.id);
+      
+      // Update form state to reflect deletion
+      setFormData(prev => ({
+        ...prev,
+        imagePreview: '',
+        existingAttachmentId: null,
+        image: null,
+        hasImageChanged: false,
+        imageDeleted: true
+      }));
+      
+      toast({
+        title: "Image Deleted",
+        description: "Category image deleted successfully",
+      });
+    } catch (error) {
+      
+      toast({
+        title: "Error",
+        description: "Failed to delete category image",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Function to create new attachment using POST API
+  const createAttachment = async (categoryId: string, newFile: File) => {
+    try {
+      setIsUpdatingAttachment(true);
+      const formData = new FormData();
+      formData.append('module_type', '1');
+      formData.append('module_id', categoryId);
+      formData.append('attachment', newFile);
+      formData.append('attachment_type', '1');
+      
+      
+      console.log('File details:', {
+        name: newFile.name,
+        size: newFile.size,
+        type: newFile.type
+      });
+      
+      const token = JSON.parse(localStorage.getItem('Admin') || '{}').token;
+      
+      // POST request to create new attachment
+      const response = await axios.post(
+        `${apiBaseUrl}/attachment`,
+        formData,
+        {
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'X-Timezone': 'Asia/Calcutta',
+            // Don't set Content-Type - let axios handle multipart/form-data automatically
+          }
+        }
+      );
+      
+      
+      return response.data;
+    } catch (error) {
+      
+      if (axios.isAxiosError(error)) {
+        
+        
+      }
+      throw error;
+    } finally {
+      setIsUpdatingAttachment(false);
+    }
+  };
+
+  // Function to update attachment using the PATCH API
+  const updateAttachment = async (attachmentId: number, categoryId: string, newFile: File) => {
+    try {
+      setIsUpdatingAttachment(true);
+      const formData = new FormData();
+      formData.append('attachment', newFile);
+      
+      
+      console.log('File details:', {
+        name: newFile.name,
+        size: newFile.size,
+        type: newFile.type
+      });
+      
+      const token = JSON.parse(localStorage.getItem('Admin') || '{}').token;
+      
+      // This is the exact API call for updating existing attachment: PATCH /attachment/{attachmentId}/1/{categoryId}
+      const response = await axios.patch(
+        `${apiBaseUrl}/attachment/${attachmentId}/1/${categoryId}`,
+        formData,
+        {
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'X-Timezone': 'Asia/Calcutta',
+            // Don't set Content-Type - let axios handle multipart/form-data automatically
+          }
+        }
+      );
+      
+      
+      return response.data;
+    } catch (error) {
+      
+      if (axios.isAxiosError(error)) {
+        
+        
+      }
+      throw error;
+    } finally {
+      setIsUpdatingAttachment(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     
     if (isViewMode) {
       onOpenChange(false);
@@ -128,35 +348,118 @@ export function CategorySheet({
     }
     
     if (editingCategory) {
-      const data = new FormData();
-      data.append('id', formData.id);
-      data.append('category', formData.category);
-      data.append('status', formData.status);
+      // For update operation
       
-      if (formData.image) {
-        data.append('image', formData.image);
+      
+      
+      
+      
+      // Handle image operations if image was changed
+      if (formData.hasImageChanged && formData.image) {
+        try {
+          if (formData.existingAttachmentId) {
+            // Case 1: Category has existing image - UPDATE via PATCH API
+            
+            await updateAttachment(formData.existingAttachmentId, formData.id, formData.image);
+            
+            toast({
+              title: "Image Updated",
+              description: "Category image updated successfully",
+            });
+            
+          } else {
+            // Case 2: Category doesn't have image - CREATE via POST API
+            
+            const result = await createAttachment(formData.id, formData.image);
+            
+            // Update form state with new attachment ID
+            setFormData(prev => ({
+              ...prev,
+              existingAttachmentId: result.attachment?.id || null
+            }));
+            
+            toast({
+              title: "Image Added",
+              description: "Category image added successfully",
+            });
+            
+          }
+        } catch (error) {
+          
+          toast({
+            title: "Error",
+            description: "Failed to update category image",
+            variant: "destructive"
+          });
+          return; // Don't proceed with category update if image operation failed
+        }
       }
       
-      updateMutation.mutate(data, {
+      // Now update the category details (without image data since it's handled separately)
+      const categoryData = {
+        id: formData.id,
+        category: formData.category.trim(),
+        status: formData.status
+      };
+      
+      
+      updateMutation.mutate(categoryData, {
         onSuccess: () => {
+          toast({
+            title: "Success",
+            description: "Category updated successfully",
+          });
           onOpenChange(false);
           onClose();
+        },
+        onError: (error: any) => {
+          
+          toast({
+            title: "Error",
+            description: error?.message || "Failed to update category",
+            variant: "destructive"
+          });
         }
       });
     } else {
+      // For create operation - include image if provided
       const data = new FormData();
-      data.append('category', formData.category);
+      data.append('category', formData.category.trim());
       data.append('status', formData.status);
       data.append('module_type', '1');
       
       if (formData.image) {
-        data.append('image', formData.image);
+        
+        data.append('attachment', formData.image);
+      } else {
+        
+      }
+      
+      
+      for (const [key, value] of data.entries()) {
+        if (value instanceof File) {
+          
+        } else {
+          
+        }
       }
       
       createMutation.mutate(data, {
         onSuccess: () => {
+          toast({
+            title: "Success",
+            description: "Category created successfully",
+          });
           onOpenChange(false);
           onClose();
+        },
+        onError: (error: any) => {
+          
+          toast({
+            title: "Error",
+            description: error?.message || "Failed to create category",
+            variant: "destructive"
+          });
         }
       });
     }
@@ -227,7 +530,6 @@ export function CategorySheet({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="image" className="text-sm font-medium text-gray-700">Category Image</Label>
                 {formData.imagePreview ? (
                   <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-gray-100">
                     <img 
@@ -237,13 +539,52 @@ export function CategorySheet({
                     />
                     {!isViewMode && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity">
-                        <label 
-                          htmlFor="image-upload" 
-                          className="cursor-pointer flex items-center gap-2 bg-white text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50"
-                        >
-                          <Upload className="h-4 w-4" />
-                          Change Image
-                        </label>
+                        <div className="flex gap-2">
+                          <label 
+                            htmlFor="image-upload" 
+                            className="cursor-pointer flex items-center gap-2 bg-white text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50"
+                          >
+                            <Upload className="h-4 w-4" />
+                            {isUpdatingAttachment ? 'Updating...' : 'Change Image'}
+                          </label>
+                          
+                          {/* Delete button with confirmation dialog */}
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                className="flex items-center gap-2"
+                                disabled={isDeleting}
+                              >
+                                {isDeleting ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
+                                Delete
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Category Image</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete this image? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={handleDeleteImage}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Delete Image
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -264,7 +605,7 @@ export function CategorySheet({
                   accept="image/*"
                   onChange={handleImageChange}
                   className="hidden"
-                  disabled={isViewMode}
+                  disabled={isViewMode || isUpdatingAttachment}
                 />
               </div>
             </div>
@@ -282,7 +623,7 @@ export function CategorySheet({
             {isViewMode 
               ? "Close" 
               : editingCategory 
-                ? "Update Category" 
+                ? (isUpdatingAttachment ? "Updating Image..." : "Update Category")
                 : "Create Category"}
           </Button>
         </SheetFooter>

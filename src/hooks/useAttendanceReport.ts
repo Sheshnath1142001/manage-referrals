@@ -32,9 +32,9 @@ export function useAttendanceReport() {
     setError(null);
 
     try {
-      console.log('Fetching attendance report with params:', params);
+      
       const response = await api.get('/v2/attendance/report', { params });
-      console.log('Attendance report response:', response);
+      
 
       if (response && typeof response === 'object') {
         setData(response);
@@ -42,7 +42,7 @@ export function useAttendanceReport() {
         throw new Error('Invalid response format from attendance report API');
       }
     } catch (err) {
-      console.error('Error fetching attendance report:', err);
+      
       const errorMessage = err instanceof Error ? err.message : 'Unknown error fetching attendance report';
       setError(err instanceof Error ? err : new Error(errorMessage));
       

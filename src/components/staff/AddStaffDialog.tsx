@@ -55,7 +55,7 @@ export function AddStaffDialog({ isOpen, onClose, onSuccess }: AddStaffDialogPro
       onSuccess();
       onClose();
     } catch (error) {
-      console.error("Failed to add staff member:", error);
+      
       toast({
         title: "Error",
         description: "Failed to add staff member. Please try again.",

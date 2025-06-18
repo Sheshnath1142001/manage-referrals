@@ -1,10 +1,11 @@
-
 export interface User {
   id: number;
   name: string;
   email: string;
   username?: string;
   role?: string;
+  restaurant_id: null | number;
+  company_code?: number;
 }
 
 export interface AuthResponse {

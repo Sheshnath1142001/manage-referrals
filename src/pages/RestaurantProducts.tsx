@@ -16,7 +16,7 @@ import { EditComboProductDialog } from "@/components/EditComboProductDialog";
 import { AddComboProductDialog } from "@/components/deals/AddComboProductDialog";
 
 const PAGE_SIZE = 10;
-const API_BASE_URL = 'https://pratham-respos-testbe-v34.achyutlabs.cloud';
+const API_BASE_URL = import.meta.env.API_BASE_URL;
 
 const RestaurantProducts = () => {
   const [search, setSearch] = useState("");
@@ -41,7 +41,7 @@ const RestaurantProducts = () => {
     if (!selectedRestaurantId) return;
     setIsLoading(true);
     fetch(
-      `${API_BASE_URL}/api/v2/products/combo-products?offset=${(page - 1) * PAGE_SIZE}&limit=${PAGE_SIZE}&restaurant_id=${selectedRestaurantId}&status=${status}`
+      `${API_BASE_URL}/v2/products/combo-products?offset=${(page - 1) * PAGE_SIZE}&limit=${PAGE_SIZE}&restaurant_id=${selectedRestaurantId}&status=${status}`
     )
       .then((res) => res.json())
       .then((json) => {

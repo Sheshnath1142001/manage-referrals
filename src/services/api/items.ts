@@ -77,7 +77,7 @@ export const itemsApi = {
         total_pages: Math.ceil(total / perPage)
       } as ItemResponse;
     } catch (error) {
-      console.error('Error fetching items:', error);
+      
       return {
         data: [],
         products: [],

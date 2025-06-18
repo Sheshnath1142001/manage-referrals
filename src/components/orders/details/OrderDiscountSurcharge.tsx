@@ -1,5 +1,5 @@
 import React from "react";
-import { Percent, Clock } from "lucide-react";
+import { Percent } from "lucide-react";
 import {
   Table,
   TableHeader,
@@ -43,7 +43,7 @@ export const OrderDiscountSurcharge: React.FC<OrderDiscountSurchargeProps> = ({
   
   return (
     <div>
-      <div className="bg-[#0f172a] text-white py-2.5 px-4 rounded-t-lg font-medium flex items-center gap-2 border border-gray-700">
+      <div className="bg-[#0f172a] text-white py-2.5 px-4 rounded-t-lg font-medium flex items-center gap-2 border border-gray-200">
         <Percent className="h-4 w-4" />
         Discount & Surcharge
       </div>
@@ -70,65 +70,26 @@ export const OrderDiscountSurcharge: React.FC<OrderDiscountSurchargeProps> = ({
           </div>
         </div>
         
-        {/* Order Summary Table */}
-        <div className="mt-4 border border-gray-200 rounded-lg overflow-hidden">
-          <Table>
-            <TableBody>
-              <TableRow>
-                <TableCell className="font-medium">Subtotal</TableCell>
-                <TableCell className="text-right">${subtotal.toFixed(2)}</TableCell>
-              </TableRow>
-              
-              {totalDiscounts > 0 && (
-                <TableRow>
-                  <TableCell className="font-medium text-red-600">Discount</TableCell>
-                  <TableCell className="text-right text-red-600">-${totalDiscounts.toFixed(2)}</TableCell>
-                </TableRow>
-              )}
-              
-              {totalSurcharges > 0 && (
-                <TableRow>
-                  <TableCell className="font-medium">Surcharge</TableCell>
-                  <TableCell className="text-right">${totalSurcharges.toFixed(2)}</TableCell>
-                </TableRow>
-              )}
-              
-              <TableRow>
-                <TableCell className="font-medium">Tax</TableCell>
-                <TableCell className="text-right">${tax.toFixed(2)}</TableCell>
-              </TableRow>
-              
-              <TableRow className="bg-gray-50">
-                <TableCell className="font-medium text-lg">Total</TableCell>
-                <TableCell className="text-right font-bold text-lg">${total.toFixed(2)}</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </div>
-        
-        {discounts.length > 0 && (
-          <div className="mt-4">
-            <p className="text-sm text-gray-500 mb-2">Discount Details</p>
-            <div className="bg-gray-50 border border-gray-200 rounded p-3">
-              {discounts.map((discount, idx) => (
-                <div key={discount.id || idx} className="mb-2 last:mb-0">
-                  <span className="font-medium">{discount.name}</span>: ${discount.amount.toFixed(2)} ({discount.type})
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        
-        {surcharges.length > 0 && (
-          <div className="mt-4">
-            <p className="text-sm text-gray-500 mb-2">Surcharge Details</p>
-            <div className="bg-gray-50 border border-gray-200 rounded p-3">
-              {surcharges.map((surcharge, idx) => (
-                <div key={surcharge.id || idx} className="mb-2 last:mb-0">
-                  <span className="font-medium">{surcharge.name}</span>: ${surcharge.amount.toFixed(2)} ({surcharge.type})
-                </div>
-              ))}
-            </div>
+        {/* Order Summary Table - Only show if there are discounts or surcharges */}
+        {(totalDiscounts > 0 || totalSurcharges > 0) && (
+          <div className="mt-4 border border-gray-200 rounded-lg overflow-hidden">
+            <Table>
+              <TableBody>
+                {totalDiscounts > 0 && (
+                  <TableRow>
+                    <TableCell className="font-medium text-red-600">Discount</TableCell>
+                    <TableCell className="text-right text-red-600">-${totalDiscounts.toFixed(2)}</TableCell>
+                  </TableRow>
+                )}
+                
+                {totalSurcharges > 0 && (
+                  <TableRow>
+                    <TableCell className="font-medium">Surcharge</TableCell>
+                    <TableCell className="text-right">${totalSurcharges.toFixed(2)}</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>

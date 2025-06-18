@@ -1,3 +1,4 @@
+
 import { api } from './client';
 
 export interface Restaurant {
@@ -37,6 +38,9 @@ export interface StaffMember {
 export interface StaffResponse {
   users: StaffMember[];
   total: number;
+  page: number;
+  per_page: number;
+  last_page: number;
 }
 
 export interface UserRole {
@@ -49,99 +53,147 @@ export interface UserRolesResponse {
   total: number;
 }
 
+export interface StaffFilters {
+  page: number;
+  perPage: number;
+  status?: number;
+  search?: string;
+  roleId?: string;
+  email?: string;
+  phone?: string;
+  restaurantId?: string;
+}
+
+export interface CreateStaffPayload {
+  email: string;
+  name: string;
+  password: string | null;
+  phone_no: string;
+  restaurant_id: number;
+  role_id: number;
+  status: number;
+}
+
+export interface UpdateStaffPayload {
+  name: string;
+  email: string;
+  phone_no: string;
+  status: number;
+  role_id: number;
+  password?: string;
+  restaurant_id: number;
+}
+
 export const staffApi = {
-  getStaffMembers: async (page: number, perPage: number, status?: number, search?: string, roleId?: string): Promise<StaffResponse> => {
-    console.log('📞 Calling getStaffMembers with:', { page, perPage, status, search, roleId });
+  getStaffMembers: async (filters: StaffFilters): Promise<StaffResponse> => {
     try {
       const params = new URLSearchParams({
-        page: page.toString(),
-        per_page: perPage.toString(),
+        page: filters.page.toString(),
+        per_page: filters.perPage.toString(),
       });
 
-      if (status !== undefined) {
-        params.append('status', status.toString());
+      if (filters.status !== undefined) {
+        params.append('status', filters.status.toString());
       }
 
-      if (search) params.append('name', search);
-      if (roleId) params.append('role_id', roleId);
+      // Use 'name' parameter for search (name search)
+      if (filters.search) params.append('name', filters.search);
+      
+      // Use 'email' parameter for email search
+      if (filters.email) params.append('email', filters.email);
+      
+      // Use 'phone_no' parameter for phone search
+      if (filters.phone) params.append('phone_no', filters.phone);
+      
+      // Use 'role' parameter for role filter (not role_id)
+      if (filters.roleId && filters.roleId !== 'all') {
+        params.append('role', filters.roleId);
+      }
+
+      // Use 'restaurant_id' parameter for location filter
+      if (filters.restaurantId && filters.restaurantId !== 'all') {
+        params.append('restaurant_id', filters.restaurantId);
+      }
 
       const response = await api.get<StaffResponse>('/users-without-customers', { params });
       return response;
     } catch (error: any) {
-      console.error('❌ getStaffMembers Error:', {
-        message: error.message,
-        response: error.response?.data
-      });
       throw error;
     }
   },
 
+  // Legacy method for backward compatibility
+  getStaffMembersLegacy: async (page: number, perPage: number, status?: number, search?: string, roleId?: string): Promise<StaffResponse> => {
+    return staffApi.getStaffMembers({
+      page,
+      perPage,
+      status,
+      search,
+      roleId
+    });
+  },
+
   getUserRoles: async (): Promise<UserRolesResponse> => {
-    console.log('📞 Calling getUserRoles');
     try {
       const response = await api.get<UserRolesResponse>('/user-roles', { params: { with_pre_defines: 1 } });
       return response;
     } catch (error: any) {
-      console.error('❌ getUserRoles Error:', {
-        message: error.message,
-        response: error.response?.data
-      });
       throw error;
     }
   },
 
-  createStaffMember: async (data: Partial<StaffMember>) => {
-    console.log('📞 Calling createStaffMember with:', data);
+  createStaffMember: async (data: CreateStaffPayload) => {
     try {
-      const response = await api.post<StaffMember>('/users', data);
+      // Use the correct endpoint '/user' and send the payload with the expected structure
+      const response = await api.post<StaffMember>('/user', {
+        email: data.email,
+        name: data.name,
+        password: data.password,
+        phone_no: data.phone_no,
+        restaurant_id: data.restaurant_id,
+        role_id: data.role_id,
+        status: data.status
+      });
       return response;
     } catch (error: any) {
-      console.error('❌ createStaffMember Error:', {
-        message: error.message,
-        response: error.response?.data
-      });
       throw error;
     }
   },
 
-  updateStaffMember: async (id: string, data: Partial<StaffMember>) => {
-    console.log('📞 Calling updateStaffMember with:', { id, data });
+  updateStaffMember: async (id: string, data: UpdateStaffPayload) => {
     try {
-      const response = await api.put<StaffMember>(`/users/${id}`, data);
+      // Use PATCH method with the correct endpoint and payload structure
+      const response = await api.patch<StaffMember>(`/user/${id}`, {
+        name: data.name,
+        email: data.email,
+        phone_no: data.phone_no,
+        status: data.status,
+        role_id: data.role_id,
+        restaurant_id: data.restaurant_id,
+        ...(data.password && { password: data.password })
+      });
       return response;
     } catch (error: any) {
-      console.error('❌ updateStaffMember Error:', {
-        message: error.message,
-        response: error.response?.data
-      });
+      throw error;
+    }
+  },
+
+  getStaffMember: async (id: string) => {
+    try {
+      const response = await api.get<StaffMember>(`/users/${id}`);
+      return response;
+    } catch (error: any) {
       throw error;
     }
   },
 
   deleteStaffMember: async (id: string) => {
-    console.log('📞 Calling deleteStaffMember with:', { id });
     try {
       const response = await api.delete(`/users/${id}`);
       return response;
     } catch (error: any) {
-      console.error('❌ deleteStaffMember Error:', {
-        message: error.message,
-        response: error.response?.data
-      });
       throw error;
     }
   },
-  
-  getStaffMember: async (id: string): Promise<StaffMember> => {
-    try {
-      const response = await api.get<StaffMember>(`/users/${id}`);
-      return response;
-    } catch (error: any) {
-      console.error('❌ getStaffMember Error:', {
-        message: error.message,
-        response: error.response?.data
-      });
-      throw error;
-    }
-  }
 };
+

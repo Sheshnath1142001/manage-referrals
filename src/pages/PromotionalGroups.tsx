@@ -86,7 +86,7 @@ const PromotionalGroups = () => {
       console.log('shesh',data)
       setGroups(data);
     } catch (error) {
-      console.error('Error fetching groups:', error);
+      
       toast({
         title: "Error",
         description: "Failed to fetch promotional groups",
@@ -132,7 +132,7 @@ const PromotionalGroups = () => {
       setIsDeleteDialogOpen(false);
       setGroupToDelete(null);
     } catch (error) {
-      console.error('Error deleting group:', error);
+      
       toast({
         title: "Error",
         description: "Failed to delete promotional group",
@@ -149,22 +149,16 @@ const PromotionalGroups = () => {
     try {
       if (currentGroup) {
         // Update existing group
-        const updatedGroup = await promotionalGroupsApi.updatePromotionalGroup(currentGroup.id, values);
-        setGroups(prevGroups => 
-          prevGroups.map(group => 
-            group.id === currentGroup.id 
-              ? updatedGroup
-              : group
-          )
-        );
+        const updatedGroup = await promotionalGroupsApi.updatePromotionalGroup(currentGroup.id, { name: values.name });
+        await fetchGroups(); // Fetch updated data
         toast({
           title: "Group updated",
           description: "The promotional group has been updated successfully"
         });
       } else {
         // Create new group
-        const newGroup = await promotionalGroupsApi.createPromotionalGroup(values);
-        setGroups(prevGroups => [...prevGroups, newGroup]);
+        const newGroup = await promotionalGroupsApi.createPromotionalGroup({ name: values.name });
+        await fetchGroups(); // Fetch updated data
         toast({
           title: "Group created",
           description: "New promotional group has been created successfully"
@@ -173,7 +167,7 @@ const PromotionalGroups = () => {
       
       setIsDialogOpen(false);
     } catch (error) {
-      console.error('Error saving group:', error);
+      
       toast({
         title: "Error",
         description: currentGroup ? "Failed to update promotional group" : "Failed to create promotional group",
@@ -187,7 +181,6 @@ const PromotionalGroups = () => {
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold">Promotional Groups</h1>
         <Button 
           onClick={openCreateDialog}
           className="flex items-center gap-2"
@@ -197,72 +190,65 @@ const PromotionalGroups = () => {
         </Button>
       </div>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Promotional Groups</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[100px]">ID</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead className="w-[150px] text-right">Actions</TableHead>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[100px]">ID</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead className="w-[150px] text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={3} className="text-center py-4">
+                  Loading...
+                </TableCell>
+              </TableRow>
+            ) : groups.length > 0 ? (
+              groups.map((group) => (
+                <TableRow key={group.id}>
+                  <TableCell>{group.id}</TableCell>
+                  <TableCell>{group.type}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEditDialog(group)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openDeleteDialog(group)}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={3} className="text-center py-4">
-                      Loading...
-                    </TableCell>
-                  </TableRow>
-                ) : groups.length > 0 ? (
-                  groups.map((group) => (
-                    <TableRow key={group.id}>
-                      <TableCell>{group.id}</TableCell>
-                      <TableCell>{group.type}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openEditDialog(group)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openDeleteDialog(group)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={3} className="text-center py-4">
-                      No promotional groups found
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-            
-            {groups.length > 0 && (
-              <div className="flex items-center justify-end p-4 border-t">
-                <div className="text-sm text-gray-500">
-                  1-{groups.length} of {groups.length}
-                </div>
-              </div>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={3} className="text-center py-4">
+                  No promotional groups found
+                </TableCell>
+              </TableRow>
             )}
+          </TableBody>
+        </Table>
+        
+        {groups.length > 0 && (
+          <div className="flex items-center justify-end p-4 border-t">
+            <div className="text-sm text-gray-500">
+              1-{groups.length} of {groups.length}
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        )}
+      </div>
       
       {/* Add/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

@@ -119,7 +119,7 @@ const ModifierCategoryFilters = () => {
               
               fetchModifierCategories();
             } catch (error) {
-              console.error("Import error:", error);
+              
               const errorMessage = (error as any)?.response?.data?.message || 
                                  (error as Error)?.message || 
                                  "An error occurred while importing the CSV file.";
@@ -160,8 +160,10 @@ const ModifierCategoryFilters = () => {
     <>
       {isError && <ErrorMessage message={error} onRetry={retryFetch} />}
 
-      <div className="mb-6 flex justify-between flex-wrap gap-3">
-        <div className="flex space-x-2 items-end flex-1 min-w-[300px]">
+      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        {/* Filter inputs */}
+        <div className="grid gap-3 flex-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {/* First grid column: Search */}
           <SearchInput
             value={nameTerm}
             onChange={setNameTerm}
@@ -169,6 +171,7 @@ const ModifierCategoryFilters = () => {
             label="Category Name"
           />
           
+          {/* Second grid column: Sequence No */}
           <NumberInput
             value={seqNoTerm}
             onChange={setSeqNoTerm}
@@ -176,13 +179,14 @@ const ModifierCategoryFilters = () => {
             label="Sequence No"
           />
           
-          <div className="w-auto min-w-[120px]">
+          {/* Third grid column: Status */}
+          <div className="w-full sm:w-auto">
             <label className="text-xs text-gray-500 mb-1 block">Status</label>
             <Select 
               value={statusFilter} 
               onValueChange={(value) => setStatusFilter(value as "Active" | "Inactive" | "all")}
             >
-              <SelectTrigger className="w-[130px] h-9 bg-white border border-gray-300">
+              <SelectTrigger className="h-9 bg-white border border-gray-300 w-full sm:w-[130px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -193,12 +197,15 @@ const ModifierCategoryFilters = () => {
             </Select>
           </div>
         </div>
-        
-        <ModifierFilterActions
-          onRefresh={fetchModifierCategories}
-          onImportCSV={handleImportCSV}
-          onAddNew={handleAddNew}
-        />
+
+        {/* Action buttons */}
+        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+          <ModifierFilterActions
+            onRefresh={fetchModifierCategories}
+            onImportCSV={handleImportCSV}
+            onAddNew={handleAddNew}
+          />
+        </div>
       </div>
     </>
   );

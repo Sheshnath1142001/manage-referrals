@@ -130,7 +130,7 @@ export const CustomerGroupDialog = ({
       user_ids: selectedCustomers.map(c => c.id)
     };
     
-    console.log('Submitting form data:', formattedData);
+    
     onSubmit(formattedData);
   };
 

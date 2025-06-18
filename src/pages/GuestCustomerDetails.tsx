@@ -29,7 +29,7 @@ const GuestCustomerDetails = () => {
           
         setCustomer(customerData as GuestCustomer);
       } catch (error) {
-        console.error("Error fetching guest customer details:", error);
+        
         toast({
           title: "Error",
           description: "Could not load customer details. Please try again.",
@@ -63,7 +63,7 @@ const GuestCustomerDetails = () => {
       });
       navigate("/guest-customers");
     } catch (error) {
-      console.error("Error deleting guest customer:", error);
+      
       toast({
         title: "Error",
         description: "Failed to delete guest customer. Please try again.",

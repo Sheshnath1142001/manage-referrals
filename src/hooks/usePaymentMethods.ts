@@ -43,7 +43,7 @@ export const usePaymentMethods = () => {
       setPaymentMethods(response.payment_methods || []);
       setTotal(response.total || response.payment_methods?.length || 0);
     } catch (error) {
-      console.error('Error fetching payment methods:', error);
+      
       toast({
         title: "Error",
         description: "Failed to load payment methods. Please try again.",

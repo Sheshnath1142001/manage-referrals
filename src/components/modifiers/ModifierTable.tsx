@@ -1,4 +1,3 @@
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TablePagination } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Edit, GripVertical } from "lucide-react";
@@ -29,7 +28,7 @@ const ModifierTable = ({
   onPageSizeChange,
 }: ModifierTableProps) => {
   return (
-    <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+    <div className="bg-white rounded-lg shadow-md border border-gray-200 relative overflow-x-auto">
       <DragDropContext onDragEnd={onDragEnd}>
         <Table>
           <TableHeader>

@@ -33,22 +33,22 @@ export const OrderCustomerDetails: React.FC<OrderCustomerDetailsProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-gray-500" />
-            <span className="text-gray-700">Name: {name || 'Not provided'}</span>
+            <span className="text-gray-700">Name: {name || '-'}</span>
           </div>
           
           <div className="flex items-center gap-2">
             <Phone className="h-4 w-4 text-gray-500" />
-            <span className="text-gray-700">Phone: {phone || 'Not provided'}</span>
+            <span className="text-gray-700">Phone: {phone || '-'}</span>
           </div>
           
           <div className="flex items-center gap-2 col-span-full">
             <Mail className="h-4 w-4 text-gray-500" />
-            <span className="text-gray-700">Email: {email || 'Not provided'}</span>
+            <span className="text-gray-700">Email: {email || '-'}</span>
           </div>
           
           <div className="flex items-start gap-2 col-span-full">
             <MapPin className="h-4 w-4 text-gray-500 mt-0.5 shrink-0" />
-            <span className="text-gray-700">Address: {address || 'Not provided'}</span>
+            <span className="text-gray-700">Address: {address || '-'}</span>
           </div>
         </div>
       </div>

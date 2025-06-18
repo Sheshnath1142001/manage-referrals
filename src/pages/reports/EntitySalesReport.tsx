@@ -1,12 +1,24 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { RefreshCw, Download, CalendarIcon } from "lucide-react";
+import { RefreshCw, Download, CalendarIcon, PrinterIcon } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { reportsApi } from "@/services/api/reports";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { format, startOfWeek, endOfWeek, addDays } from "date-fns";
+import { 
+  format, 
+  startOfWeek, 
+  endOfWeek, 
+  addDays, 
+  startOfMonth, 
+  endOfMonth, 
+  startOfYear, 
+  endOfYear, 
+  subWeeks, 
+  subMonths, 
+  subYears 
+} from "date-fns";
 import { ReportType, EntitySalesData } from "@/types/reports";
 import { useGetRestaurants } from "@/hooks/useGetRestaurants";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -48,7 +60,7 @@ const EntitySalesReport = () => {
   const [apiResponseDebug, setApiResponseDebug] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [periodType, setPeriodType] = useState<string>("week");
+  const [periodType, setPeriodType] = useState<string>("day");
 
   // Get current week's Sunday and Saturday based on selected date
   const getCurrentWeekDates = (date: Date) => {
@@ -82,7 +94,6 @@ const EntitySalesReport = () => {
     }
     
     if (!dataToProcess || typeof dataToProcess !== 'object') {
-      console.error("Invalid data format:", dataToProcess);
       return [];
     }
     
@@ -106,6 +117,16 @@ const EntitySalesReport = () => {
           totalQuantity: 0
         };
         
+        // Get display dates based on period type
+        const displayDates = getDisplayDates();
+        
+        // Initialize sales and quantities for each display date
+        displayDates.forEach(date => {
+          const dateStr = format(date, "yyyy-MM-dd");
+          processedProduct.sales[dateStr] = 0;
+          processedProduct.quantities[dateStr] = 0;
+        });
+        
         // Process each date for this product
         Object.entries(dateData).forEach(([dateStr, dateInfo]: [string, any]) => {
           if (!dateInfo || typeof dateInfo !== 'object') return;
@@ -120,11 +141,42 @@ const EntitySalesReport = () => {
           const sale = parseFloat(dateInfo.sale || '0');
           const quantity = parseInt(dateInfo.total_sold_quantity || '0');
           
-          processedProduct.sales[dateStr] = sale;
-          processedProduct.quantities[dateStr] = quantity;
+          // Find which display date this data belongs to
+          const dataDate = new Date(dateStr);
+          let targetDate: Date | null = null;
           
-          // Add to totals
+          switch (periodType) {
+            case "day":
+              // For day view, use the exact date
+              targetDate = dataDate;
+              break;
+            case "week":
+              // For week view, find the start of the week
+              targetDate = startOfWeek(dataDate, { weekStartsOn: 0 });
+              break;
+            case "month":
+              // For month view, find the start of the month
+              targetDate = startOfMonth(dataDate);
+              break;
+            case "year":
+              // For year view, find the start of the year
+              targetDate = startOfYear(dataDate);
+              break;
+          }
+          
+          if (targetDate) {
+            const targetDateStr = format(targetDate, "yyyy-MM-dd");
+            // Add to the appropriate period's totals
+            processedProduct.sales[targetDateStr] = (processedProduct.sales[targetDateStr] || 0) + sale;
+            processedProduct.quantities[targetDateStr] = (processedProduct.quantities[targetDateStr] || 0) + quantity;
+          }
+        });
+        
+        // Calculate totals
+        Object.values(processedProduct.sales).forEach(sale => {
           processedProduct.totalSales += sale;
+        });
+        Object.values(processedProduct.quantities).forEach(quantity => {
           processedProduct.totalQuantity += quantity;
         });
         
@@ -135,7 +187,6 @@ const EntitySalesReport = () => {
       });
       return result;
     } catch (error) {
-      console.error("Error processing data:", error);
       return [];
     }
   };
@@ -170,22 +221,117 @@ const EntitySalesReport = () => {
     return { dateTotals, overallSales, overallQuantity };
   };
 
+  const getReportTypeFromPeriod = (): number => {
+    switch (periodType) {
+      case "day": return 1;
+      case "week": return 2;
+      case "month": return 3;
+      case "year": return 4;
+      default: return 1;
+    }
+  };
+
+  const getDisplayDates = () => {
+    switch (periodType) {
+      case "day":
+        // For day selection, show all days in the current week
+        return Array.from({ length: 7 }, (_, i) => addDays(sunday, i));
+      case "week":
+        // For week selection, show last 7 weeks
+        return Array.from({ length: 7 }, (_, i) => {
+          const weekStart = startOfWeek(subWeeks(selectedDate, 6 - i), { weekStartsOn: 0 });
+          return weekStart;
+        });
+      case "month":
+        // For month selection, show last 7 months
+        return Array.from({ length: 7 }, (_, i) => {
+          const monthStart = startOfMonth(subMonths(selectedDate, 6 - i));
+          return monthStart;
+        });
+      case "year":
+        // For year selection, show last 7 years
+        return Array.from({ length: 7 }, (_, i) => {
+          const yearStart = startOfYear(subYears(selectedDate, 6 - i));
+          return yearStart;
+        });
+      default:
+        return Array.from({ length: 7 }, (_, i) => addDays(sunday, i));
+    }
+  };
+
+  const getDateDisplayText = () => {
+    const dates = getDisplayDates();
+    if (dates.length === 0) return "";
+    
+    const firstDate = dates[0];
+    const lastDate = dates[dates.length - 1];
+    
+    switch (periodType) {
+      case "day":
+        return `${format(firstDate, "MMM d")} - ${format(lastDate, "MMM d, yyyy")}`;
+      case "week":
+        return `${format(firstDate, "MMM d")} - ${format(lastDate, "MMM d, yyyy")}`;
+      case "month":
+        return `${format(firstDate, "MMM yyyy")} - ${format(lastDate, "MMM yyyy")}`;
+      case "year":
+        return `${format(firstDate, "yyyy")} - ${format(lastDate, "yyyy")}`;
+      default:
+        return `${format(firstDate, "MMM d")} - ${format(lastDate, "MMM d, yyyy")}`;
+    }
+  };
+
+  const getDateRangeForPeriod = (date: Date, periodType: string) => {
+    switch (periodType) {
+      case "day":
+        // For day selection, get the full week's data
+        const weekStart = startOfWeek(date, { weekStartsOn: 0 });
+        const weekEnd = endOfWeek(date, { weekStartsOn: 0 });
+        return {
+          start_date: format(weekStart, "yyyy-MM-dd"),
+          end_date: format(weekEnd, "yyyy-MM-dd")
+        };
+      case "week":
+        // For week selection, get last 7 weeks data
+        const sevenWeeksAgo = subWeeks(date, 6);
+        return {
+          start_date: format(startOfWeek(sevenWeeksAgo, { weekStartsOn: 0 }), "yyyy-MM-dd"),
+          end_date: format(endOfWeek(date, { weekStartsOn: 0 }), "yyyy-MM-dd")
+        };
+      case "month":
+        // For month selection, get last 7 months data
+        const sevenMonthsAgo = subMonths(date, 6);
+        return {
+          start_date: format(startOfMonth(sevenMonthsAgo), "yyyy-MM-dd"),
+          end_date: format(endOfMonth(date), "yyyy-MM-dd")
+        };
+      case "year":
+        // For year selection, get last 7 years data
+        const sevenYearsAgo = subYears(date, 6);
+        return {
+          start_date: format(startOfYear(sevenYearsAgo), "yyyy-MM-dd"),
+          end_date: format(endOfYear(date), "yyyy-MM-dd")
+        };
+      default:
+        return {
+          start_date: format(date, "yyyy-MM-dd"),
+          end_date: format(date, "yyyy-MM-dd")
+        };
+    }
+  };
+
   const fetchData = async () => {
     try {
       setIsLoading(true);
       
+      const dateRange = getDateRangeForPeriod(selectedDate, periodType);
+      
       // Create API request parameters
       const requestParams: any = {
         report_type: getReportTypeFromPeriod(),
-        start_date: format(sunday, "yyyy-MM-dd"),
-        end_date: format(saturday, "yyyy-MM-dd"),
+        start_date: dateRange.start_date,
+        end_date: dateRange.end_date,
         restaurant_id: parseInt(selectedLocation)
       };
-      
-      // Add week_start_date parameter for day of week filters
-      if (["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"].includes(periodType)) {
-        requestParams.week_start_date = periodType.charAt(0).toUpperCase() + periodType.slice(1);
-      }
       
       const response = await reportsApi.getEntitySalesReport(requestParams);
 
@@ -204,7 +350,6 @@ const EntitySalesReport = () => {
           });
         }
       } else {
-        console.error("No response from API");
         setProcessedData([]);
         toast({
           title: "Error",
@@ -212,7 +357,6 @@ const EntitySalesReport = () => {
         });
       }
     } catch (error) {
-      console.error("Error fetching entity sales data:", error);
       setApiResponseDebug(error);
       toast({
         title: "Error",
@@ -222,23 +366,6 @@ const EntitySalesReport = () => {
       setProcessedData([]);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const getReportTypeFromPeriod = (): number => {
-    switch (periodType) {
-      case "day": return ReportType.Day;
-      case "week": return ReportType.Week;
-      case "month": return ReportType.Month;
-      case "year": return ReportType.Year;
-      case "sunday": return ReportType.Day;
-      case "monday": return ReportType.Day;
-      case "tuesday": return ReportType.Day;
-      case "wednesday": return ReportType.Day;
-      case "thursday": return ReportType.Day;
-      case "friday": return ReportType.Day;
-      case "saturday": return ReportType.Day;
-      default: return ReportType.Week;
     }
   };
 
@@ -261,9 +388,9 @@ const EntitySalesReport = () => {
     }
   };
 
-  const getDateDisplayText = () => {
-    const { sunday, saturday } = getCurrentWeekDates(selectedDate);
-    return `${format(sunday, "MMM d")} - ${format(saturday, "MMM d, yyyy")}`;
+  // Print function
+  const handlePrint = () => {
+    window.print();
   };
 
   const handleDownloadCSV = () => {
@@ -279,7 +406,7 @@ const EntitySalesReport = () => {
     const headers = [
       "Item",
       "Attributes",
-      ...weekDates.map(date => format(date, "yyyy-MM-dd")),
+      ...getDisplayDates().map(date => format(date, "yyyy-MM-dd")),
       "Total"
     ];
 
@@ -291,7 +418,7 @@ const EntitySalesReport = () => {
       const saleRow = [
         product.name,
         "Sale",
-        ...weekDates.map(date => {
+        ...getDisplayDates().map(date => {
           const dateStr = format(date, "yyyy-MM-dd");
           return `$ ${product.sales[dateStr] || 0}`;
         }),
@@ -302,7 +429,7 @@ const EntitySalesReport = () => {
       const quantityRow = [
         product.name,
         "Quantity",
-        ...weekDates.map(date => {
+        ...getDisplayDates().map(date => {
           const dateStr = format(date, "yyyy-MM-dd");
           return `${product.quantities[dateStr] || 0}`;
         }),
@@ -319,9 +446,9 @@ const EntitySalesReport = () => {
     const totalSalesRow = [
       "Total",
       "Sale",
-      ...weekDates.map(date => {
+      ...getDisplayDates().map(date => {
         const dateStr = format(date, "yyyy-MM-dd");
-        return `$ ${dateTotals[dateStr].sales.toFixed(2)}`;
+        return `$ ${dateTotals[dateStr]?.sales.toFixed(2) || "0.00"}`;
       }),
       `$ ${overallSales.toFixed(2)}`
     ];
@@ -329,9 +456,9 @@ const EntitySalesReport = () => {
     const totalQuantityRow = [
       "Total",
       "Quantity",
-      ...weekDates.map(date => {
+      ...getDisplayDates().map(date => {
         const dateStr = format(date, "yyyy-MM-dd");
-        return `${dateTotals[dateStr].quantity}`;
+        return `${dateTotals[dateStr]?.quantity || 0}`;
       }),
       `${overallQuantity}`
     ];
@@ -366,213 +493,283 @@ const EntitySalesReport = () => {
   }, [selectedLocation, selectedDate, periodType]);
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" size="sm" onClick={handleBack}>
-            Back to Reports
-          </Button>
-          <h2 className="text-xl font-bold">Entity Sales Report</h2>
-        </div>
-        <div className="text-sm text-[#9b87f5] font-medium flex items-center gap-2">
-          ADMIN
-          <Button variant="outline" onClick={handleDownloadCSV}>
-            <Download className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+    <>
+      {/* Print-specific styles */}
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          
+          .print-container,
+          .print-container * {
+            visibility: visible;
+          }
+          
+          .print-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+          }
+          
+          .no-print {
+            display: none !important;
+          }
+          
+          .print-header {
+            display: block !important;
+            margin-bottom: 20px;
+            text-align: center;
+          }
+          
+          .print-table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          
+          .print-table th,
+          .print-table td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: left;
+            font-size: 12px;
+          }
+          
+          .print-table th {
+            background-color: #d1d5db !important;
+            color: #111827 !important;
+            font-weight: bold;
+          }
+          
+          .print-table .text-right {
+            text-align: right;
+          }
+          
+          .print-table .text-center {
+            text-align: center;
+          }
+          
+          .print-info {
+            margin-bottom: 15px;
+            font-size: 14px;
+          }
+        }
+        `
+      }} />
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        {/* Date Picker */}
-        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className="justify-start text-left font-normal"
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {getDateDisplayText()}
+      <div className="p-6 print-container">
+
+        {/* Print Header - Only visible when printing */}
+        <div className="print-header" style={{ display: 'none' }}>
+          <h1 style={{ fontSize: '24px', marginBottom: '10px' }}>Entity Sales Report</h1>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 no-print">
+          {/* Date Picker */}
+          <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-full justify-start text-left font-normal"
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {getDateDisplayText()}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={handleDateChange}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+          
+          {/* Period Type Filter */}
+          <Select
+            value={periodType}
+            onValueChange={handlePeriodChange}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select period" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="day">Day</SelectItem>
+              <SelectItem value="week">Week</SelectItem>
+              <SelectItem value="month">Month</SelectItem>
+              <SelectItem value="year">Year</SelectItem>
+              <SelectItem value="sunday">Sunday</SelectItem>
+              <SelectItem value="monday">Monday</SelectItem>
+              <SelectItem value="tuesday">Tuesday</SelectItem>
+              <SelectItem value="wednesday">Wednesday</SelectItem>
+              <SelectItem value="thursday">Thursday</SelectItem>
+              <SelectItem value="friday">Friday</SelectItem>
+              <SelectItem value="saturday">Saturday</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          {/* Location Select */}
+          <Select
+            value={selectedLocation}
+            onValueChange={handleLocationChange}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select location" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">All Locations</SelectItem>
+              {!isLoadingRestaurants && restaurants?.map((restaurant) => (
+                <SelectItem key={restaurant.id} value={restaurant.id.toString()}>
+                  {restaurant.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={handlePrint} className="w-10 h-10 p-0">
+              <PrinterIcon className="h-4 w-4" />
             </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0">
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={handleDateChange}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
-        
-        {/* Period Type Filter */}
-        <Select
-          value={periodType}
-          onValueChange={handlePeriodChange}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select period" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="day">Day</SelectItem>
-            <SelectItem value="week">Week</SelectItem>
-            <SelectItem value="month">Month</SelectItem>
-            <SelectItem value="year">Year</SelectItem>
-            <SelectItem value="sunday">Sunday</SelectItem>
-            <SelectItem value="monday">Monday</SelectItem>
-            <SelectItem value="tuesday">Tuesday</SelectItem>
-            <SelectItem value="wednesday">Wednesday</SelectItem>
-            <SelectItem value="thursday">Thursday</SelectItem>
-            <SelectItem value="friday">Friday</SelectItem>
-            <SelectItem value="saturday">Saturday</SelectItem>
-          </SelectContent>
-        </Select>
-        
-        {/* Location Filter */}
-        <Select
-          value={selectedLocation}
-          onValueChange={handleLocationChange}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select location" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="0">All Locations</SelectItem>
-            {!isLoadingRestaurants && restaurants?.map((restaurant) => (
-              <SelectItem key={restaurant.id} value={restaurant.id.toString()}>
-                {restaurant.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+            <Button variant="outline" onClick={handleRefresh} className="w-10 h-10 p-0">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" onClick={handleDownloadCSV} className="w-10 h-10 p-0">
+              <Download className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center min-h-[200px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9b87f5]" />
-        </div>
-      ) : (
-        <div className="rounded-lg overflow-hidden border border-gray-200 shadow-sm">
-          <Table className="border-collapse">
-            <TableHeader className="bg-[#0F172A]">
-              <TableRow>
-                <TableHead className="text-white font-medium px-3 py-2 first:rounded-tl-lg">Item</TableHead>
-                <TableHead className="text-white font-medium px-3 py-2">Attributes</TableHead>
-                {weekDates.map((date, index) => (
-                  <TableHead 
-                    key={date.toISOString()} 
-                    className="text-white font-medium text-center px-3 py-2"
-                  >
-                    {format(date, "yyyy-MM-dd")}
-                  </TableHead>
-                ))}
-                <TableHead className="text-white font-medium text-center px-3 py-2 last:rounded-tr-lg">Total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {processedData.length > 0 ? (
-                <>
-                  {processedData.map((product, index) => (
-                    <React.Fragment key={product.id}>
-                      {/* Sale Row */}
-                      <TableRow className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
-                        <TableCell className="font-medium px-3 py-2" rowSpan={2}>
-                          {product.name}
-                        </TableCell>
-                        <TableCell className="px-3 py-2 text-blue-600">Sale</TableCell>
-                        {weekDates.map(date => {
-                          const dateStr = format(date, "yyyy-MM-dd");
-                          const sale = product.sales[dateStr] || 0;
-                          return (
-                            <TableCell key={dateStr} className="text-center px-3 py-2">
-                              $ {sale.toFixed(2)}
-                            </TableCell>
-                          );
-                        })}
-                        <TableCell className="text-center font-medium px-3 py-2">
-                          $ {product.totalSales.toFixed(2)}
-                        </TableCell>
-                      </TableRow>
-                      {/* Quantity Row */}
-                      <TableRow className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
-                        <TableCell className="px-3 py-2">Quantity</TableCell>
-                        {weekDates.map(date => {
-                          const dateStr = format(date, "yyyy-MM-dd");
-                          const quantity = product.quantities[dateStr] || 0;
-                          return (
-                            <TableCell key={dateStr} className="text-center px-3 py-2">
-                              {quantity}
-                            </TableCell>
-                          );
-                        })}
-                        <TableCell className="text-center font-medium px-3 py-2">
-                          {product.totalQuantity}
-                        </TableCell>
-                      </TableRow>
-                    </React.Fragment>
-                  ))}
-                  
-                  {/* Total Rows */}
-                  <TableRow className="border-t border-gray-300 bg-gray-100">
-                    <TableCell className="font-bold px-3 py-2" rowSpan={2}>
-                      Total
-                    </TableCell>
-                    <TableCell className="px-3 py-2 text-blue-600 font-medium">Sale</TableCell>
-                    {weekDates.map(date => {
-                      const dateStr = format(date, "yyyy-MM-dd");
-                      return (
-                        <TableCell key={dateStr} className="text-center font-medium px-3 py-2">
-                          $ {totals.dateTotals[dateStr].sales.toFixed(2)}
-                        </TableCell>
-                      );
-                    })}
-                    <TableCell className="text-center font-bold px-3 py-2">
-                      $ {totals.overallSales.toFixed(2)}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow className="bg-gray-100">
-                    <TableCell className="px-3 py-2 font-medium">Quantity</TableCell>
-                    {weekDates.map(date => {
-                      const dateStr = format(date, "yyyy-MM-dd");
-                      return (
-                        <TableCell key={dateStr} className="text-center font-medium px-3 py-2">
-                          {totals.dateTotals[dateStr].quantity}
-                        </TableCell>
-                      );
-                    })}
-                    <TableCell className="text-center font-bold px-3 py-2">
-                      {totals.overallQuantity}
-                    </TableCell>
-                  </TableRow>
-                </>
-              ) : (
+        {isLoading ? (
+          <div className="flex items-center justify-center min-h-[200px]">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9b87f5]" />
+          </div>
+        ) : (
+          <div className="rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+            <Table className="border-collapse print-table">
+              <TableHeader className="bg-[#0F172A]">
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-6">
-                    <div className="flex flex-col items-center">
-                      <svg 
-                        xmlns="http://www.w3.org/2000/svg" 
-                        className="h-10 w-10 text-gray-400 mb-2" 
-                        fill="none" 
-                        viewBox="0 0 24 24" 
-                        stroke="currentColor"
-                      >
-                        <path 
-                          strokeLinecap="round" 
-                          strokeLinejoin="round" 
-                          strokeWidth={1.5} 
-                          d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" 
-                        />
-                      </svg>
-                      <h3 className="text-base font-semibold text-gray-800 mb-1">No data available</h3>
-                      <p className="text-sm text-gray-500">Select a location and date range to view entity sales.</p>
-                    </div>
-                  </TableCell>
+                  <TableHead className="text-white font-medium px-3 py-2 first:rounded-tl-lg">Item</TableHead>
+                  <TableHead className="text-white font-medium px-3 py-2">Attributes</TableHead>
+                  {getDisplayDates().map((date) => (
+                    <TableHead 
+                      key={date.toISOString()} 
+                      className="text-white font-medium text-center px-3 py-2"
+                    >
+                      {format(date, "yyyy-MM-dd")}
+                    </TableHead>
+                  ))}
+                  <TableHead className="text-white font-medium text-center px-3 py-2 last:rounded-tr-lg">Total</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-    </div>
+              </TableHeader>
+              <TableBody>
+                {processedData.length > 0 ? (
+                  <>
+                    {[...processedData]
+                      .sort((a, b) => b.totalSales - a.totalSales)
+                      .map((product, index) => (
+                        <React.Fragment key={product.id}>
+                          {/* Sale Row */}
+                          <TableRow className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
+                            <TableCell className="font-medium px-3 py-2" rowSpan={2}>
+                              {product.name}
+                            </TableCell>
+                            <TableCell className="px-3 py-2 text-blue-600">Sale</TableCell>
+                            {getDisplayDates().map(date => {
+                              const dateStr = format(date, "yyyy-MM-dd");
+                              const sale = product.sales[dateStr] || 0;
+                              return (
+                                <TableCell key={dateStr} className="text-center px-3 py-2">
+                                  $ {sale.toFixed(2)}
+                                </TableCell>
+                              );
+                            })}
+                            <TableCell className="text-center font-medium px-3 py-2">
+                              $ {product.totalSales.toFixed(2)}
+                            </TableCell>
+                          </TableRow>
+                          {/* Quantity Row */}
+                          <TableRow className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
+                            <TableCell className="px-3 py-2 text-blue-600">Quantity</TableCell>
+                            {getDisplayDates().map(date => {
+                              const dateStr = format(date, "yyyy-MM-dd");
+                              const quantity = product.quantities[dateStr] || 0;
+                              return (
+                                <TableCell key={dateStr} className="text-center px-3 py-2">
+                                  {quantity}
+                                </TableCell>
+                              );
+                            })}
+                            <TableCell className="text-center font-medium px-3 py-2">
+                              {product.totalQuantity}
+                            </TableCell>
+                          </TableRow>
+                        </React.Fragment>
+                      ))}
+                    
+                    {/* Totals Row */}
+                    <TableRow className="bg-gray-100">
+                      <TableCell className="px-3 py-2 font-medium" colSpan={2}>Total</TableCell>
+                      {getDisplayDates().map(date => {
+                        const dateStr = format(date, "yyyy-MM-dd");
+                        return (
+                          <TableCell key={dateStr} className="text-center font-medium px-3 py-2">
+                            $ {totals.dateTotals[dateStr]?.sales.toFixed(2) || "0.00"}
+                          </TableCell>
+                        );
+                      })}
+                      <TableCell className="text-center font-bold px-3 py-2">
+                        $ {totals.overallSales.toFixed(2)}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow className="bg-gray-100">
+                      <TableCell className="px-3 py-2 font-medium">Quantity</TableCell>
+                      {getDisplayDates().map(date => {
+                        const dateStr = format(date, "yyyy-MM-dd");
+                        return (
+                          <TableCell key={dateStr} className="text-center font-medium px-3 py-2">
+                            {totals.dateTotals[dateStr]?.quantity || 0}
+                          </TableCell>
+                        );
+                      })}
+                      <TableCell className="text-center font-bold px-3 py-2">
+                        {totals.overallQuantity}
+                      </TableCell>
+                    </TableRow>
+                  </>
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={getDisplayDates().length + 3}>
+                      <div className="flex flex-col items-center">
+                        <svg 
+                          xmlns="http://www.w3.org/2000/svg" 
+                          className="h-10 w-10 text-gray-400 mb-2" 
+                          fill="none" 
+                          viewBox="0 0 24 24" 
+                          stroke="currentColor"
+                        >
+                          <path 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round" 
+                            strokeWidth={1.5} 
+                            d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" 
+                          />
+                        </svg>
+                        <h3 className="text-base font-semibold text-gray-800 mb-1">No data available</h3>
+                        <p className="text-sm text-gray-500">Select a location and date range to view entity sales.</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
+    </>
   );
 };
 

@@ -10,6 +10,7 @@ export interface ReportParams {
   end_time?: string;
   sale_type?: number;
   timezone?: string;
+  user_id?: string;
 }
 
 export interface SalesReportData {

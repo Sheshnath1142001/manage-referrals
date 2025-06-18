@@ -1,17 +1,28 @@
 import { api } from './client';
 
 export interface CustomerGroup {
-  id: string;
+  id: number;
   name: string;
   description?: string;
   status: number;
+  restaurant_id: number;
+  created_by?: string;
   created_at: string;
   updated_at: string;
-  customer_groups_users?: Array<{ user_id: string }>;
+  customer_groups_users?: Array<{
+    user_id: string;
+    users?: {
+      id: string;
+      name?: string;
+      email?: string;
+      phone_no?: string;
+    };
+  }>;
   customers_count?: number;
   _count?: {
     customer_groups_users: number;
   };
+  user_ids?: string[];
 }
 
 export interface Customer {
@@ -69,12 +80,15 @@ export const customerGroupsApi = {
         ...(restaurant_id && { restaurant_id: restaurant_id.toString() })
       });
 
-      console.log('Fetching customer groups with params:', { page, limit, search, status, restaurant_id });
+      
       
       const response = await api.get<CustomerGroupsResponse>(`/v2/customer-groups?${params}`);
-      return response.data;
+      
+      
+      // The API client interceptor returns response.data directly, so response is already the data
+      return response;
     } catch (error) {
-      console.error('Error fetching customer groups:', error);
+      
       throw error;
     }
   },
@@ -95,12 +109,12 @@ export const customerGroupsApi = {
         ...(search && { name: search })
       };
       
-      console.log('Fetching customers with params:', params);
+      
       
       const response = await api.get<CustomersResponse>('/customers', { params });
       return response.data;
     } catch (error) {
-      console.error('Error fetching customers:', error);
+      
       throw error;
     }
   },
@@ -113,18 +127,18 @@ export const customerGroupsApi = {
     restaurant_id?: number;
   }): Promise<CustomerGroup> => {
     try {
-      console.log('Creating customer group with data:', data);
+      
       
       const response = await api.post<{ data: CustomerGroup }>('/v2/customer-groups', data);
       return response.data.data;
     } catch (error) {
-      console.error('Error creating customer group:', error);
+      
       throw error;
     }
   },
 
   updateCustomerGroup: async (
-    id: string,
+    id: number,
     data: {
       name: string;
       description: string;
@@ -133,23 +147,23 @@ export const customerGroupsApi = {
     }
   ): Promise<CustomerGroup> => {
     try {
-      console.log(`Updating customer group ${id} with data:`, data);
+      
       
       const response = await api.put<{ data: CustomerGroup }>(`/v2/customer-groups/${id}`, data);
       return response.data.data;
     } catch (error) {
-      console.error(`Error updating customer group ${id}:`, error);
+      
       throw error;
     }
   },
 
-  deleteCustomerGroup: async (id: string): Promise<void> => {
+  deleteCustomerGroup: async (id: number): Promise<void> => {
     try {
-      console.log(`Deleting customer group ${id}`);
+      
       
       await api.delete(`/v2/customer-groups/${id}`);
     } catch (error) {
-      console.error(`Error deleting customer group ${id}:`, error);
+      
       throw error;
     }
   }

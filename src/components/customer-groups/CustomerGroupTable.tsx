@@ -40,7 +40,7 @@ export const CustomerGroupTable = ({
     try {
       return format(new Date(dateString), "MM/dd/yyyy, h:mm:ss a");
     } catch (error) {
-      console.error("Invalid date format:", dateString);
+      
       return dateString;
     }
   };

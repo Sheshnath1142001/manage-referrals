@@ -21,7 +21,7 @@ interface CopyItemDialogProps {
   item: any;
   categories: Array<{id: number, category: string}>;
   quantityUnits: Array<{id: number, unit: string}>;
-  locations: Array<{id: number, name: string}>;
+  locations: Array<{id: number, name: string, status: number}>;
   discountTypes: Array<{id: number, type: string}>;
   fetchItems: () => void;
 }
@@ -60,6 +60,15 @@ export const CopyItemDialog = ({
   // Reset form data when dialog opens or item changes
   useEffect(() => {
     if (isOpen && item) {
+      // For copy dialog, use first active location if original item has no locations
+      let initialLocations = item.locations || [];
+      if (initialLocations.length === 0 && locations.length > 0) {
+        const firstActiveLocation = locations.find(location => location.status === 1);
+        if (firstActiveLocation) {
+          initialLocations = [firstActiveLocation.id.toString()];
+        }
+      }
+      
       setFormData({
         name: `${item.name || ""}-copy`,
         category_id: item.category_id?.toString() || "",
@@ -68,7 +77,7 @@ export const CopyItemDialog = ({
         barcode: item.barcode || "",
         price: item.price?.toString() || "",
         online_price: item.online_price?.toString() || "",
-        locations: item.locations || [],
+        locations: initialLocations,
         discount_type_id: item.discount_type_id?.toString() || "1",
         discount: item.discount?.toString() || "0",
         online_discount: item.online_discount?.toString() || "0",
@@ -81,7 +90,17 @@ export const CopyItemDialog = ({
       setSelectedImage(null);
       setImagePreview(null);
     }
-  }, [isOpen, item]);
+  }, [isOpen, item, locations]);
+
+  // Auto-select first active location if no location is selected - for copy dialog
+  useEffect(() => {
+    if (isOpen && locations.length > 0 && (!formData.locations || formData.locations.length === 0)) {
+      const firstActiveLocation = locations.find(location => location.status === 1);
+      if (firstActiveLocation) {
+        updateFormField("locations", [firstActiveLocation.id.toString()]);
+      }
+    }
+  }, [isOpen, locations, formData.locations]);
 
   const updateFormField = (field: string, value: any) => {
     setFormData(prev => ({
@@ -177,8 +196,9 @@ export const CopyItemDialog = ({
       // Make the API request
       const response = await api.post('/product', formDataToSend);
       
-      // Extract created product details from response
-      const createdProduct = response.product?.createdProduct;
+      // Extract created product details from response with proper typing
+      const responseData = response.data || response;
+      const createdProduct = responseData?.product?.createdProduct || responseData?.createdProduct;
       
       if (createdProduct) {
         const categoryName = createdProduct.categories?.category || '';
@@ -209,7 +229,7 @@ export const CopyItemDialog = ({
       fetchItems();
       onOpenChange(false);
     } catch (error: any) {
-      console.error("Error copying item:", error);
+      
       
       // Handle different types of error responses
       let errorMessage = "Failed to copy item. Please try again.";
@@ -267,11 +287,11 @@ export const CopyItemDialog = ({
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
-                {categories.map((category) => (
+                {Array.isArray(categories) ? categories.map((category: any) => (
                   <SelectItem key={category.id} value={category.id.toString()}>
                     {category.category}
                   </SelectItem>
-                ))}
+                )) : null}
               </SelectContent>
             </Select>
           </div>
@@ -351,15 +371,29 @@ export const CopyItemDialog = ({
             <Label htmlFor="locations">Locations*:</Label>
             <Select
               value={formData.locations[0]?.toString() || ""}
-              onValueChange={(value) => updateFormField("locations", [value])}
+              onValueChange={(value) => {
+                // Only allow selection if location is active (status = 1)
+                const selectedLocation = locations.find(loc => loc.id.toString() === value);
+                if (selectedLocation && selectedLocation.status === 1) {
+                  updateFormField("locations", [value]);
+                }
+              }}
             >
               <SelectTrigger id="locations" className="mt-1">
                 <SelectValue placeholder="Select location" />
               </SelectTrigger>
               <SelectContent>
                 {locations.map((location) => (
-                  <SelectItem key={location.id} value={location.id.toString()}>
+                  <SelectItem 
+                    key={location.id} 
+                    value={location.id.toString()}
+                    disabled={location.status === 0}
+                    className={location.status === 0 ? 'opacity-50 text-gray-400' : ''}
+                  >
                     {location.name}
+                    {location.status === 0 && (
+                      <span className="text-xs text-gray-400 ml-1">(Inactive)</span>
+                    )}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -424,15 +458,6 @@ export const CopyItemDialog = ({
               {imagePreview ? (
                 <div className="relative w-full aspect-square max-h-[200px] overflow-hidden flex items-center justify-center">
                   <img src={imagePreview} alt="Preview" className="max-w-full max-h-full object-contain" />
-                  <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                    <Button variant="secondary" size="sm" onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedImage(null);
-                      setImagePreview(null);
-                    }}>
-                      Change Image
-                    </Button>
-                  </div>
                 </div>
               ) : (
                 <div className="h-[200px] flex flex-col items-center justify-center text-gray-500">

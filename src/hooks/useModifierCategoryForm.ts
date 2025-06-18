@@ -55,7 +55,7 @@ export const useModifierCategoryForm = () => {
       // Close dialog after successful submission
       closeDialog();
     } catch (error) {
-      console.error("Error saving category:", error);
+      
       toast({
         title: "Error",
         description: "Failed to save category.",

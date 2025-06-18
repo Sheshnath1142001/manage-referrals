@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "@/hooks/use-toast";
-import { modifiersApi } from "@/services/api/modifiers";
+import { modifiersApi, modifierCategoriesApi, ModifierResponse } from "@/services/api/modifiers";
 import { Modifier } from "@/types/modifiers";
 import AddEditModifierDialog from "@/components/AddEditModifierDialog";
 import ModifierFilters from "@/components/modifiers/ModifierFilters";
@@ -23,6 +23,47 @@ const ModifiersScreen = () => {
   const [modifierCategories, setModifierCategories] = useState<string[]>([]);
   const [modifierCategoriesMap, setModifierCategoriesMap] = useState<Record<string, number>>({});
 
+  // Fetch modifier categories using dedicated API
+  const fetchModifierCategories = useCallback(async () => {
+    try {
+      
+      const response = await modifierCategoriesApi.getModifierCategories({ per_page: 99999 });
+      
+      
+      if (response && response.modifier_categories && Array.isArray(response.modifier_categories)) {
+        const categoriesArray = response.modifier_categories
+          .filter(cat => cat.status === 1) // Only active categories
+          .map(cat => cat.modifier_category);
+        
+        const categoriesMap: Record<string, number> = {};
+        response.modifier_categories
+          .filter(cat => cat.status === 1)
+          .forEach(cat => {
+            categoriesMap[cat.modifier_category] = cat.id;
+          });
+        
+        setModifierCategories(categoriesArray);
+        setModifierCategoriesMap(categoriesMap);
+        
+        
+        
+      } else {
+        
+        setModifierCategories([]);
+        setModifierCategoriesMap({});
+      }
+    } catch (error) {
+      
+      toast({
+        title: "Failed to fetch modifier categories",
+        description: "Could not retrieve modifier categories. Please try again.",
+        variant: "destructive"
+      });
+      setModifierCategories([]);
+      setModifierCategoriesMap({});
+    }
+  }, []);
+
   const fetchModifiers = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -35,12 +76,12 @@ const ModifiersScreen = () => {
         seq_no: seqNoFilter || undefined
       };
 
-      console.log("Fetching modifiers with params:", params);
+      
       const response = await modifiersApi.getModifiers(params);
-      console.log("API response:", response);
+      
       
       if (!response.modifiers) {
-        console.error("API response doesn't contain modifiers array:", response);
+        
         setModifiers([]);
         setTotalItems(0);
         return;
@@ -71,26 +112,8 @@ const ModifiersScreen = () => {
       
       setModifiers(formattedModifiers);
       setTotalItems(response.total || formattedModifiers.length);
-      
-      const categoriesMap: Record<string, number> = {};
-      const categories = new Set<string>();
-      
-      formattedModifiers.forEach(modifier => {
-        if (modifier.category) {
-          categories.add(modifier.category);
-          
-          if (modifier.categoryId) {
-            categoriesMap[modifier.category] = typeof modifier.categoryId === 'string' 
-              ? parseInt(modifier.categoryId, 10) 
-              : modifier.categoryId as number;
-          }
-        }
-      });
-      
-      setModifierCategories(Array.from(categories));
-      setModifierCategoriesMap(categoriesMap);
     } catch (error) {
-      console.error("Error fetching modifiers:", error);
+      
       
       const errorStatus = (error as any)?.response?.status;
       if (errorStatus !== 401) {
@@ -108,6 +131,11 @@ const ModifiersScreen = () => {
   useEffect(() => {
     fetchModifiers();
   }, [fetchModifiers]);
+
+  // Fetch modifier categories on component mount
+  useEffect(() => {
+    fetchModifierCategories();
+  }, [fetchModifierCategories]);
 
   const onDragEnd = async (result: any) => {
     if (!result.destination) return;
@@ -145,7 +173,7 @@ const ModifiersScreen = () => {
         description: "Modifier sequence has been updated successfully."
       });
     } catch (error) {
-      console.error("Error updating sequence:", error);
+      
       toast({
         title: "Update Failed",
         description: "Failed to update modifier sequence.",
@@ -157,9 +185,10 @@ const ModifiersScreen = () => {
 
   const handleRefresh = () => {
     fetchModifiers();
+    fetchModifierCategories();
     toast({
       title: "Refreshing data",
-      description: "Fetching the latest modifiers data."
+      description: "Fetching the latest modifiers and categories data."
     });
   };
 
@@ -192,8 +221,9 @@ const ModifiersScreen = () => {
           });
           
           fetchModifiers();
+          fetchModifierCategories(); // Refresh categories after import
         } catch (error) {
-          console.error("Import error:", error);
+          
           toast({
             title: "Import Failed",
             description: "An error occurred while importing the CSV file."
@@ -240,9 +270,10 @@ const ModifiersScreen = () => {
       }
       
       fetchModifiers();
+      fetchModifierCategories(); // Refresh categories in case new ones were added
       setIsDialogOpen(false);
     } catch (error) {
-      console.error("Error saving modifier:", error);
+      
       toast({
         title: "Error",
         description: "Failed to save modifier.",

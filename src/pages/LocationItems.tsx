@@ -1,16 +1,17 @@
-import { useState, useMemo } from "react";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow,
-  TablePagination 
-} from "@/components/ui/table";
+import { BulkEditLocationItemDialog } from "@/components/BulkEditLocationItemDialog";
+import { BulkEditModifiersDialog } from "@/components/BulkEditModifiersDialog";
+import EditLocationItemDialog from "@/components/EditLocationItemDialog";
+import { ItemAttributesSettingsDialog } from "@/components/items/ItemAttributesSettingsDialog";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Copy, Eye, Edit, Settings, RefreshCw, X, Search, CheckSquare, Square, PlusSquare, DollarSign } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -18,29 +19,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
-import CloneItemsDialog from "@/components/CloneItemsDialog";
-import ViewLocationItemDialog from "@/components/ViewLocationItemDialog";
-import EditLocationItemDialog from "@/components/EditLocationItemDialog";
-import AddModifiersDialog from "@/components/AddModifiersDialog";
-import { BulkEditLocationItemDialog } from "@/components/BulkEditLocationItemDialog";
-import { BulkEditModifiersDialog } from "@/components/BulkEditModifiersDialog";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { locationItemsApi, categoriesApi } from "@/services/api";
-import LocationSettingsDialog from "@/components/LocationSettingsDialog";
-import { useGetRestaurants } from '@/hooks/useGetRestaurants';
-import { ItemAttributesSettingsDialog } from "@/components/items/ItemAttributesSettingsDialog";
-import { ViewPriceRulesDialog } from "@/components/ViewPriceRulesDialog";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TablePagination,
+  TableRow
+} from "@/components/ui/table";
+import ViewLocationItemDialog from "@/components/ViewLocationItemDialog";
+import { ViewPriceRulesDialog } from "@/components/ViewPriceRulesDialog";
+import { useToast } from "@/hooks/use-toast";
+import { useGetRestaurants } from '@/hooks/useGetRestaurants';
+import { categoriesApi, locationItemsApi } from "@/services/api";
+import { tagsService } from "@/services/api/items/tags";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { CheckSquare, Copy, DollarSign, Edit, Eye, PlusSquare, RefreshCw, Search, Settings, Square, X } from "lucide-react";
+import { useMemo, useState } from "react";
 
 interface LocationItem {
   id: string;
@@ -77,12 +73,13 @@ interface LocationItem {
   };
   discount: string;
   online_discount: string;
+  discount_type: number;
   discount_types?: {
     id: number;
     type: string;
   };
-  restrict_attribute_combinations: number;
-  is_offer_half_n_half: number;
+  restrict_attribute_combinations: number | boolean;
+  is_offer_half_n_half: number | boolean;
   status: number;
   restaurant_product_tags: Array<{
     id: string;
@@ -93,388 +90,7 @@ interface LocationItem {
   }>;
 }
 
-const initialLocationItems: LocationItem[] = [
-  {
-    id: "1",
-    product_id: 949,
-    products: {
-      id: 949,
-      name: "Cheese and Corn",
-      description: null,
-      quantity: "Online",
-      quantity_unit: 0,
-      quantity_units: {
-        id: 0,
-        unit: "Online",
-        status: 1
-      },
-      price: "$0",
-      online_price: "$199",
-      categories: {
-        id: 0,
-        category: "Burgers",
-        status: 1,
-        seq_no: 0
-      },
-      status: 1
-    },
-    price: "$0",
-    is_online: 1,
-    online_price: "$199",
-    restaurants: {
-      id: 0,
-      name: "Captain Cookes Forest Hill",
-      owner_id: "",
-      status: 1
-    },
-    discount: "0",
-    status: 1,
-    restaurant_product_tags: [],
-    images: []
-  },
-  {
-    id: "2",
-    product_id: 543,
-    products: {
-      id: 543,
-      name: "BENDER BURGER",
-      description: null,
-      quantity: "Online",
-      quantity_unit: 0,
-      quantity_units: {
-        id: 0,
-        unit: "Online",
-        status: 1
-      },
-      price: "$15",
-      online_price: "$16.2",
-      categories: {
-        id: 0,
-        category: "Burgers",
-        status: 1,
-        seq_no: 0
-      },
-      status: 1
-    },
-    price: "$15",
-    is_online: 1,
-    online_price: "$16.2",
-    restaurants: {
-      id: 0,
-      name: "Captain Cookes Doreens",
-      owner_id: "",
-      status: 1
-    },
-    discount: "0",
-    status: 1,
-    restaurant_product_tags: [],
-    images: []
-  },
-  {
-    id: "3",
-    product_id: 401,
-    products: {
-      id: 401,
-      name: "Mars Bar",
-      description: null,
-      quantity: "Online",
-      quantity_unit: 0,
-      quantity_units: {
-        id: 0,
-        unit: "Online",
-        status: 1
-      },
-      price: "$3.5",
-      online_price: "$3.9",
-      categories: {
-        id: 0,
-        category: "Burgers",
-        status: 1,
-        seq_no: 0
-      },
-      status: 1
-    },
-    price: "$3.5",
-    is_online: 1,
-    online_price: "$3.9",
-    restaurants: {
-      id: 0,
-      name: "Captain Cookes Doreens",
-      owner_id: "",
-      status: 1
-    },
-    discount: "0",
-    status: 1,
-    restaurant_product_tags: [],
-    images: []
-  },
-  {
-    id: "4",
-    product_id: 399,
-    products: {
-      id: 399,
-      name: "Confit Garlic Aioli",
-      description: null,
-      quantity: "Online",
-      quantity_unit: 0,
-      quantity_units: {
-        id: 0,
-        unit: "Online",
-        status: 1
-      },
-      price: "$2",
-      online_price: "$2.2",
-      categories: {
-        id: 0,
-        category: "Burgers",
-        status: 1,
-        seq_no: 0
-      },
-      status: 1
-    },
-    price: "$2",
-    is_online: 1,
-    online_price: "$2.2",
-    restaurants: {
-      id: 0,
-      name: "Captain Cookes Doreens",
-      owner_id: "",
-      status: 1
-    },
-    discount: "0",
-    status: 1,
-    restaurant_product_tags: [],
-    images: []
-  },
-  {
-    id: "5",
-    product_id: 435,
-    products: {
-      id: 435,
-      name: "600 ml Drinks",
-      description: null,
-      quantity: "In Store only",
-      quantity_unit: 0,
-      quantity_units: {
-        id: 0,
-        unit: "In Store only",
-        status: 1
-      },
-      price: "$5",
-      online_price: "$5",
-      categories: {
-        id: 0,
-        category: "Burgers",
-        status: 1,
-        seq_no: 0
-      },
-      status: 1
-    },
-    price: "$5",
-    is_online: 0,
-    online_price: "$5",
-    restaurants: {
-      id: 0,
-      name: "Captain Cookes Doreens",
-      owner_id: "",
-      status: 1
-    },
-    discount: "0",
-    status: 1,
-    restaurant_product_tags: [],
-    images: []
-  },
-  {
-    id: "6",
-    product_id: 825,
-    products: {
-      id: 825,
-      name: "Mars Bar",
-      description: null,
-      quantity: "Online",
-      quantity_unit: 0,
-      quantity_units: {
-        id: 0,
-        unit: "Online",
-        status: 1
-      },
-      price: "$3.5",
-      online_price: "$3.5",
-      categories: {
-        id: 0,
-        category: "Burgers",
-        status: 1,
-        seq_no: 0
-      },
-      status: 1
-    },
-    price: "$3.5",
-    is_online: 1,
-    online_price: "$3.5",
-    restaurants: {
-      id: 0,
-      name: "Captain Cookes Forest Hill",
-      owner_id: "",
-      status: 1
-    },
-    discount: "0",
-    status: 1,
-    restaurant_product_tags: [],
-    images: []
-  },
-  {
-    id: "7",
-    product_id: 961,
-    products: {
-      id: 961,
-      name: "Flathead",
-      description: null,
-      quantity: "Online",
-      quantity_unit: 0,
-      quantity_units: {
-        id: 0,
-        unit: "Online",
-        status: 1
-      },
-      price: "$0",
-      online_price: "$26",
-      categories: {
-        id: 0,
-        category: "Burgers",
-        status: 1,
-        seq_no: 0
-      },
-      status: 1
-    },
-    price: "$0",
-    is_online: 1,
-    online_price: "$26",
-    restaurants: {
-      id: 0,
-      name: "Captain Cookes Forest Hill",
-      owner_id: "",
-      status: 1
-    },
-    discount: "0",
-    status: 1,
-    restaurant_product_tags: [],
-    images: []
-  },
-  {
-    id: "8",
-    product_id: 395,
-    products: {
-      id: 395,
-      name: "Local Grilled Squid",
-      description: null,
-      quantity: "Online",
-      quantity_unit: 0,
-      quantity_units: {
-        id: 0,
-        unit: "Online",
-        status: 1
-      },
-      price: "$14",
-      online_price: "$15.4",
-      categories: {
-        id: 0,
-        category: "Burgers",
-        status: 1,
-        seq_no: 0
-      },
-      status: 1
-    },
-    price: "$14",
-    is_online: 1,
-    online_price: "$15.4",
-    restaurants: {
-      id: 0,
-      name: "Captain Cookes Doreens",
-      owner_id: "",
-      status: 1
-    },
-    discount: "0",
-    status: 1,
-    restaurant_product_tags: [],
-    images: []
-  },
-  {
-    id: "9",
-    product_id: 407,
-    products: {
-      id: 407,
-      name: "American Burger",
-      description: null,
-      quantity: "Online",
-      quantity_unit: 0,
-      quantity_units: {
-        id: 0,
-        unit: "Online",
-        status: 1
-      },
-      price: "$13",
-      online_price: "$14.3",
-      categories: {
-        id: 0,
-        category: "Burgers",
-        status: 1,
-        seq_no: 0
-      },
-      status: 1
-    },
-    price: "$13",
-    is_online: 1,
-    online_price: "$14.3",
-    restaurants: {
-      id: 0,
-      name: "Captain Cookes Doreens",
-      owner_id: "",
-      status: 1
-    },
-    discount: "0",
-    status: 1,
-    restaurant_product_tags: [],
-    images: []
-  },
-  {
-    id: "10",
-    product_id: 386,
-    products: {
-      id: 386,
-      name: "Battered Sav (Hot Dog)",
-      description: null,
-      quantity: "Online",
-      quantity_unit: 0,
-      quantity_units: {
-        id: 0,
-        unit: "Online",
-        status: 1
-      },
-      price: "$5",
-      online_price: "$5.5",
-      categories: {
-        id: 0,
-        category: "Burgers",
-        status: 1,
-        seq_no: 0
-      },
-      status: 1
-    },
-    price: "$5",
-    is_online: 1,
-    online_price: "$5.5",
-    restaurants: {
-      id: 0,
-      name: "Captain Cookes Doreens",
-      owner_id: "",
-      status: 1
-    },
-    discount: "0",
-    status: 1,
-    restaurant_product_tags: [],
-    images: []
-  }
-];
+const initialLocationItems: LocationItem[] = [];
 
 const onlineProducts = [
   "All Products",
@@ -530,7 +146,14 @@ const LocationItems = () => {
   const { data: categoriesResponse } = useQuery({
     queryKey: ["categories"],
     queryFn: () => categoriesApi.getCategories({ page: 1, per_page: 99999, status: 1 }),
-    select: (res) => res.data?.categories || res.data || res.categories || [],
+    select: (res: any) => res.categories || res.data || [],
+  });
+
+  // Fetch tags with the specified parameters
+  const { data: tagsResponse } = useQuery({
+    queryKey: ["tags"],
+    queryFn: () => tagsService.getTags({ per_page: 999999, page: 1 }),
+    select: (res: any) => res.tags || res.data || [],
   });
 
   // Prepare category options
@@ -543,7 +166,7 @@ const LocationItems = () => {
   const selectedCategoryId = useMemo(() => {
     if (categoryFilter === "All Categories") return undefined;
     const selectedCategory = (categoriesResponse || []).find(
-      (cat) => cat.category === categoryFilter
+      (cat: any) => cat.category === categoryFilter
     );
     return selectedCategory?.id;
   }, [categoryFilter, categoriesResponse]);
@@ -569,18 +192,19 @@ const LocationItems = () => {
         restaurant_id: locationFilter !== "all" ? locationFilter : undefined,
         product_name: searchItem || undefined,
       });
-      console.log("API Response:", response); // Debug log
+       // Debug log
       return response;
     },
   });
 
   // Extract location items from response
   const locationItems = useMemo(() => {
-    if (!locationItemsResponse?.restaurant_products) return [];
-    return locationItemsResponse.restaurant_products;
+    const response = locationItemsResponse as any;
+    if (!response?.restaurant_products) return [];
+    return response.restaurant_products;
   }, [locationItemsResponse]);
 
-  const totalItems = locationItemsResponse?.total || 0;
+  const totalItems = (locationItemsResponse as any)?.total || 0;
 
   // Filter items
   const filteredItems = useMemo(() => {
@@ -685,13 +309,19 @@ const LocationItems = () => {
       discountType: item.discount_types?.type || "Flat",
       discount: item.discount || "0",
       onlineDiscount: item.online_discount || "0",
-      tags: item.restaurant_product_tags?.map(tag => tag.tag) || [],
+      tags: item.restaurant_product_tags?.filter(tag => tag && tag.tag).map(tag => tag.tag) || [],
       active: item.status === 1,
       online: item.is_online === 1,
+      restrictAttributeCombinations: typeof item.restrict_attribute_combinations === 'boolean' 
+        ? item.restrict_attribute_combinations 
+        : item.restrict_attribute_combinations === 1,
+      isOfferHalfNHalf: typeof item.is_offer_half_n_half === 'boolean' 
+        ? item.is_offer_half_n_half 
+        : item.is_offer_half_n_half === 1,
       // Add modifiers if needed
       modifiers: {
         sauceOptions: [],
-        extras: item.restaurant_product_tags?.map(tag => ({
+        extras: item.restaurant_product_tags?.filter(tag => tag && tag.tag).map(tag => ({
           name: tag.tag,
           price: "0"
         })) || []
@@ -715,11 +345,15 @@ const LocationItems = () => {
       onlineDiscount: item.online_discount || "0",
       // Use tag.tag values for the EditLocationItemDialog
       // The dialog will convert these to IDs using the tags data
-      tags: item.restaurant_product_tags?.map(tag => tag.tag) || [],
+      tags: item.restaurant_product_tags?.filter(tag => tag && tag.tag).map(tag => tag.tag) || [],
       active: item.status === 1,
       online: item.is_online === 1,
-      restrictAttributeCombinations: item.restrict_attribute_combinations === 1,
-      isOfferHalfNHalf: item.is_offer_half_n_half === 1
+      restrictAttributeCombinations: typeof item.restrict_attribute_combinations === 'boolean' 
+        ? item.restrict_attribute_combinations 
+        : item.restrict_attribute_combinations === 1,
+      isOfferHalfNHalf: typeof item.is_offer_half_n_half === 'boolean' 
+        ? item.is_offer_half_n_half 
+        : item.is_offer_half_n_half === 1
     };
     
     setSelectedEditItem(transformedItem);
@@ -728,7 +362,7 @@ const LocationItems = () => {
 
   // Add handleSubmitEdit at the bottom
   const handleSubmitEdit = async (updatedItem: any) => {
-    console.log("Updated item:", updatedItem);
+    
     
     try {
       // Prepare the data for the API (without tags)
@@ -744,7 +378,7 @@ const LocationItems = () => {
         is_offer_half_n_half: updatedItem.isOfferHalfNHalf ? 1 : 0,
       };
       
-      console.log("API update data:", updateData);
+      
       
       // First, update the item details
       await locationItemsApi.updateLocationItem(updatedItem.id, updateData);
@@ -753,7 +387,7 @@ const LocationItems = () => {
       if (updatedItem.tags && Array.isArray(updatedItem.tags)) {
         // Get the current item to find existing tags
         const currentItem = locationItems.find(item => item.id === updatedItem.id);
-        const existingTags = currentItem?.restaurant_product_tags || [];
+        const existingTags = currentItem?.restaurant_product_tags?.filter(tag => tag && tag.tag) || [];
         const existingTagNames = existingTags.map(tag => tag.tag);
         
         // Find tags to add (new tags)
@@ -764,7 +398,8 @@ const LocationItems = () => {
         
         // Get tag IDs for new tags
         if (tagsToAdd.length > 0) {
-          const tagObjects = await locationItemsApi.getTagsByName(tagsToAdd);
+          const tagResponse = await locationItemsApi.getTagsByName(tagsToAdd);
+          const tagObjects = Array.isArray(tagResponse) ? tagResponse : (tagResponse.data || []);
           
           // Add each new tag
           for (const tagObj of tagObjects) {
@@ -789,7 +424,7 @@ const LocationItems = () => {
       refetch(); // Refetch the location items
       setEditDialogOpen(false);
     } catch (error) {
-      console.error("Error updating item:", error);
+      
       
       // Handle validation errors
       if (error.response?.data) {
@@ -857,7 +492,7 @@ const LocationItems = () => {
       // Clear selection
       setSelectedItems([]);
     } catch (error) {
-      console.error("Error updating items:", error);
+      
       toast({
         title: "Error",
         description: "Failed to update items. Please try again.",
@@ -903,7 +538,7 @@ const LocationItems = () => {
 
   // Add a function to handle saving attributes
   const handleSaveAttributes = (attributes: any[]) => {
-    console.log("Saved attributes:", attributes);
+    
     
     // Here you would typically call an API to save the attributes
     toast({
@@ -922,14 +557,15 @@ const LocationItems = () => {
 
   return (
     <div className="p-6">
-      {/* Filters without any container */}
-      <div className="flex flex-wrap items-end gap-3 mb-6">
-        {/* Location Filter */}
-        <div className="flex-1 flex flex-wrap items-end gap-3">
-          <div className="w-auto min-w-[160px]">
+      {/* Filters */}
+      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        {/* Filter inputs */}
+        <div className="grid gap-3 flex-1 sm:grid-cols-2 md:flex md:flex-wrap md:gap-4">
+          {/* Location Filter */}
+          <div className="w-full sm:w-auto">
             <label className="text-xs text-gray-500 mb-1 block">Location</label>
             <Select value={locationFilter} onValueChange={setLocationFilter}>
-              <SelectTrigger className="h-9 bg-white border border-gray-300">
+              <SelectTrigger className="h-9 bg-white border border-gray-300 w-full sm:w-[160px]">
                 <SelectValue placeholder="Location" />
               </SelectTrigger>
               <SelectContent>
@@ -942,7 +578,7 @@ const LocationItems = () => {
           </div>
           
           {/* Search Input */}
-          <div className="w-auto min-w-[200px]">
+          <div className="w-full md:w-72">
             <label className="text-xs text-gray-500 mb-1 block">Item Name</label>
             <div className="relative">
               <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -950,7 +586,7 @@ const LocationItems = () => {
                 placeholder="Search Item"
                 value={searchItem}
                 onChange={(e) => setSearchItem(e.target.value)}
-                className="pl-8 pr-8 h-9 bg-white border border-gray-300"
+                className="pl-8 pr-8 h-9 bg-white border border-gray-300 w-full"
               />
               {searchItem && (
                 <button 
@@ -965,10 +601,10 @@ const LocationItems = () => {
           </div>
           
           {/* Category Filter */}
-          <div className="w-auto min-w-[160px]">
+          <div className="w-full sm:w-auto">
             <label className="text-xs text-gray-500 mb-1 block">Category</label>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="h-9 bg-white border border-gray-300">
+              <SelectTrigger className="h-9 bg-white border border-gray-300 w-full sm:w-[160px]">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
@@ -979,11 +615,11 @@ const LocationItems = () => {
             </Select>
           </div>
           
-          {/* Online Filter */}
-          <div className="w-auto min-w-[160px]">
+          {/* Availability Filter */}
+          <div className="w-full sm:w-auto">
             <label className="text-xs text-gray-500 mb-1 block">Availability</label>
             <Select value={onlineFilter} onValueChange={setOnlineFilter}>
-              <SelectTrigger className="h-9 bg-white border border-gray-300">
+              <SelectTrigger className="h-9 bg-white border border-gray-300 w-full sm:w-[160px]">
                 <SelectValue placeholder="Availability" />
               </SelectTrigger>
               <SelectContent>
@@ -995,10 +631,10 @@ const LocationItems = () => {
           </div>
           
           {/* Status Filter */}
-          <div className="w-auto min-w-[160px]">
+          <div className="w-full sm:w-auto">
             <label className="text-xs text-gray-500 mb-1 block">Status</label>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-9 bg-white border border-gray-300">
+              <SelectTrigger className="h-9 bg-white border border-gray-300 w-full sm:w-[130px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -1010,8 +646,8 @@ const LocationItems = () => {
           </div>
         </div>
         
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2 ml-auto">
+        {/* Action buttons */}
+        <div className="flex flex-wrap items-center gap-2 md:justify-end">
           <Button 
             variant="outline"
             size="icon" 
@@ -1035,7 +671,7 @@ const LocationItems = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-white rounded-lg shadow relative overflow-x-auto">
         {/* Show bulk action buttons only when items are selected */}
         {selectedItems.length > 0 && (
           <div className="flex justify-end items-center p-4 border-b">
@@ -1136,7 +772,7 @@ const LocationItems = () => {
                   <TableCell>{item.products?.categories?.category}</TableCell>
                   <TableCell>
                     {
-                      item.restaurant_product_tags.map(tags => tags.tag).join(', ')
+                      item.restaurant_product_tags?.filter(tag => tag && tag.tag).map(tag => tag.tag).join(', ') || 'No tags'
                     }
                   </TableCell>
                   <TableCell>{formatPrice(item.price)}</TableCell>
@@ -1227,6 +863,8 @@ const LocationItems = () => {
           onOpenChange={setSettingsDialogOpen}
           itemName={selectedSettingsItem.products?.name || ""}
           onSave={handleSaveAttributes}
+          restaurantProductId={selectedSettingsItem.id}
+          productId={selectedSettingsItem.product_id.toString()}
         />
       )}
 

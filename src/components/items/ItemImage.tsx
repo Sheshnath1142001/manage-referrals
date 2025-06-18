@@ -46,7 +46,7 @@ export const ItemImage = ({ moduleId, className = "" }: ItemImageProps) => {
           setImageUrl(attachments[0].upload_path);
         }
       } catch (err) {
-        console.error('Error fetching image:', err);
+        
         setError(err instanceof Error ? err.message : 'Failed to load image');
       } finally {
         setIsLoading(false);

@@ -1,12 +1,14 @@
+
 import React, { useState } from "react";
 import {
   RefreshCw,
-  ArrowLeft
+  ArrowLeft,
+  PrinterIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
-import { format, startOfWeek, endOfWeek, addDays } from "date-fns";
+import { format, startOfWeek, endOfWeek, addDays, subWeeks, subMonths, subYears, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
 import { 
   Select, 
   SelectContent, 
@@ -17,10 +19,17 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useGetRestaurants } from "@/hooks/useGetRestaurants";
 import { useCashCardReport } from "@/hooks/reports/useCashCardReport";
-import { ReportDatePicker } from "@/components/ui/report-date-picker";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { ViewToggle } from "@/components/ui/view-toggle";
 import { TableChartToggle } from "@/components/ui/table-chart-toggle";
+
+// Define report period types
+enum ReportPeriodType {
+  Day = 1,
+  Week = 2,
+  Month = 3,
+  Year = 4
+}
 
 interface SalesData {
   restaurant_name: string;
@@ -47,25 +56,105 @@ const CashCardReport = () => {
   const { toast } = useToast();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedLocation, setSelectedLocation] = useState("0");
-  const [selectedView, setSelectedView] = useState("table"); // Add view toggle state
+  const [selectedView, setSelectedView] = useState("table");
+  const [periodType, setPeriodType] = useState<ReportPeriodType>(ReportPeriodType.Day);
   const { restaurants: locations } = useGetRestaurants();
   
-  // Use the enhanced hook for data fetching with selectedDate
+  // Use the enhanced hook for data fetching with selectedDate and periodType
   const { 
     data: salesData, 
     isLoading, 
     refetch,
-    weekDates: { sunday, saturday },
     formatCurrency 
   } = useCashCardReport({
     restaurantId: selectedLocation,
-    selectedDate
+    selectedDate,
+    periodType
   });
   
-  // Generate array of dates for the week
-  const weekDates = Array.from({ length: 7 }, (_, i) => 
-    addDays(sunday, i)
-  );
+  // Generate array of dates for the display based on period type
+  const getDisplayDates = () => {
+    const dates: Date[] = [];
+    const today = new Date();
+    
+    switch (periodType) {
+      case ReportPeriodType.Day:
+        // Current week (Sunday to Saturday)
+        const currentWeekStart = startOfWeek(today, { weekStartsOn: 0 });
+        for (let i = 0; i < 7; i++) {
+          dates.push(addDays(currentWeekStart, i));
+        }
+        break;
+      case ReportPeriodType.Week:
+        // Last 7 weeks
+        for (let i = 6; i >= 0; i--) {
+          const weekStart = startOfWeek(subWeeks(today, i), { weekStartsOn: 0 });
+          dates.push(weekStart);
+        }
+        break;
+      case ReportPeriodType.Month:
+        // Last 7 months
+        for (let i = 6; i >= 0; i--) {
+          const monthStart = startOfMonth(subMonths(today, i));
+          dates.push(monthStart);
+        }
+        break;
+      case ReportPeriodType.Year:
+        // Last 7 years
+        for (let i = 6; i >= 0; i--) {
+          const yearStart = startOfYear(subYears(today, i));
+          dates.push(yearStart);
+        }
+        break;
+    }
+    return dates;
+  };
+
+  // Format date for display
+  const formatDisplayDate = (date: Date) => {
+    switch (periodType) {
+      case ReportPeriodType.Day:
+        return format(date, "yyyy-MM-dd");
+      case ReportPeriodType.Week:
+        return format(date, "yyyy-MM-dd");
+      case ReportPeriodType.Month:
+        return format(date, "MMM yyyy");
+      case ReportPeriodType.Year:
+        return format(date, "yyyy");
+      default:
+        return format(date, "yyyy-MM-dd");
+    }
+  };
+
+  // Format the date header based on period type
+  const formatDateHeader = (date: Date) => {
+    switch (periodType) {
+      case ReportPeriodType.Day:
+        return (
+          <>
+            {format(date, "EEE")}
+            <div className="text-xs font-normal">
+              {format(date, "MMM dd")}
+            </div>
+          </>
+        );
+      case ReportPeriodType.Week:
+        return (
+          <>
+            {format(date, "EEE")}
+            <div className="text-xs font-normal">
+              {format(date, "MMM dd")}
+            </div>
+          </>
+        );
+      case ReportPeriodType.Month:
+        return format(date, "MMM yyyy");
+      case ReportPeriodType.Year:
+        return format(date, "yyyy");
+      default:
+        return format(date, "MMM dd");
+    }
+  };
 
   const handleBack = () => {
     navigate("/reports");
@@ -88,12 +177,16 @@ const CashCardReport = () => {
     setSelectedView(value);
   };
 
+  const handlePeriodChange = (value: string) => {
+    setPeriodType(parseInt(value) as ReportPeriodType);
+  };
+
   // Prepare data for the chart
   const getChartData = () => {
     if (!salesData?.data) return [];
     
-    return weekDates.map((date) => {
-      const dateStr = format(date, "yyyy-MM-dd");
+    return getDisplayDates().map((date) => {
+      const dateStr = formatDisplayDate(date);
       const dayData = {};
       let cashTotal = 0;
       let cardTotal = 0;
@@ -137,192 +230,305 @@ const CashCardReport = () => {
   };
 
   // Get all restaurant data
-  const restaurantData = Object.entries(salesData?.data || {});
+  const restaurantData = Object.entries(salesData?.data || {})
+    .sort((a, b) => {
+      const aTotal = Object.values(a[1]).reduce((sum, day) => sum + (day.sale || 0), 0);
+      const bTotal = Object.values(b[1]).reduce((sum, day) => sum + (day.sale || 0), 0);
+      return bTotal - aTotal;
+    });
+
   const isDataEmpty = !salesData?.data || Object.keys(salesData.data).length === 0;
 
+  // Print function
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={handleBack} className="p-0 hover:bg-transparent">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-xl font-bold">Cash & Card Report</h1>
+    <>
+      {/* Print-specific styles */}
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          
+          .print-container,
+          .print-container * {
+            visibility: visible !important;
+          }
+          
+          .print-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+          }
+          
+          .no-print {
+            display: none !important;
+          }
+          
+          .print-header {
+            display: block !important;
+            margin-bottom: 20px;
+            text-align: center;
+          }
+          
+          .print-table {
+            width: 100%;
+            border-collapse: collapse;
+            visibility: visible !important;
+          }
+          
+          .print-table th,
+          .print-table td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: left;
+            font-size: 12px;
+            visibility: visible !important;
+          }
+          
+          .print-table th {
+            background-color: #d1d5db !important;
+            color: #111827 !important;
+            font-weight: bold;
+          }
+          
+          .print-table .text-right {
+            text-align: right;
+          }
+          
+          .print-info {
+            margin-bottom: 15px;
+            font-size: 14px;
+          }
+        }
+        `
+      }} />
+
+      <div className="p-6 print-container">
+
+        {/* Print Header - Only visible when printing */}
+        <div className="print-header" style={{ display: 'none' }}>
+          <h1 style={{ fontSize: '24px', marginBottom: '10px' }}>Cash & Card Report</h1>
         </div>
-        <div className="text-sm text-[#9b87f5] font-medium">
-          ADMIN
-        </div>
-      </div>
 
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <Select
-          value={selectedLocation}
-          onValueChange={handleLocationChange}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select location" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="0">All Locations</SelectItem>
-            {locations.map((location) => (
-              <SelectItem key={location.id} value={location.id.toString()}>
-                {location.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6 no-print">
+          <Select
+            value={selectedLocation}
+            onValueChange={handleLocationChange}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select location" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">All Locations</SelectItem>
+              {locations.map((location) => (
+                <SelectItem key={location.id} value={location.id.toString()}>
+                  {location.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <ReportDatePicker 
-          selectedDate={selectedDate}
-          onDateChange={handleDateChange}
-        />
+          <Select
+            value={periodType.toString()}
+            onValueChange={handlePeriodChange}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select period" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">Day</SelectItem>
+              <SelectItem value="2">Week</SelectItem>
+              <SelectItem value="3">Month</SelectItem>
+              <SelectItem value="4">Year</SelectItem>
+            </SelectContent>
+          </Select>
 
-        <TableChartToggle 
-          value={selectedView}
-          onValueChange={handleViewChange}
-        />
+          <TableChartToggle 
+            value={selectedView}
+            onValueChange={handleViewChange}
+          />
 
-        <div className="flex justify-end">
-          <Button variant="outline" onClick={handleRefresh} className="w-10 h-10 p-0">
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      {isLoading ? (
-        <div className="flex items-center justify-center min-h-[200px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9b87f5]" />
-        </div>
-      ) : selectedView === "chart" ? (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="h-[500px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={getChartData()}
-                margin={{
-                  top: 20,
-                  right: 30,
-                  left: 20,
-                  bottom: 5,
-                }}
-              >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                <XAxis
-                  dataKey="date"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#6b7280', fontSize: 12 }}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#6b7280', fontSize: 12 }}
-                  tickFormatter={(value) => `$${value}`}
-                />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0, 0, 0, 0.04)' }} />
-                <Legend />
-                <Bar 
-                  dataKey="cash" 
-                  fill="#4ade80" 
-                  radius={[4, 4, 0, 0]} 
-                  barSize={20} 
-                  name="Cash"
-                />
-                <Bar 
-                  dataKey="card" 
-                  fill="#9b87f5" 
-                  radius={[4, 4, 0, 0]} 
-                  barSize={20} 
-                  name="Card"
-                />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="flex justify-end gap-2 col-span-2">
+            <Button variant="outline" onClick={handlePrint} className="w-10 h-10 p-0">
+              <PrinterIcon className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" onClick={handleRefresh} className="w-10 h-10 p-0">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
           </div>
         </div>
-      ) : (
-        <div className="rounded-md border overflow-hidden">
-          <Table>
-            <TableHeader className="bg-[#0F172A]">
-              <TableRow>
-                <TableHead className="text-white font-medium rounded-tl-lg">Location</TableHead>
-                <TableHead className="text-white font-medium">Attributes</TableHead>
-                {weekDates.map((date, index) => (
-                  <TableHead 
-                    key={date.toISOString()} 
-                    className="text-white font-medium text-right"
-                  >
-                    {format(date, "yyyy-MM-dd")}
-                  </TableHead>
-                ))}
-                <TableHead className="text-white font-medium text-right rounded-tr-lg">Total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {restaurantData.length > 0 ? (
-                restaurantData.map(([restaurantId, restaurantData]) => {
-                  const firstDayData = Object.values(restaurantData)[0] || {};
-                  const attributes = [
-                    { label: "Sale", key: "sale" },
-                    { label: "Orders", key: "total_orders" },
-                    { label: "Card Payment Amount", key: "total_card_payment_amount" },
-                    { label: "Card Payments", key: "total_card_payments" },
-                    { label: "Cash Payment Amount", key: "total_cash_payment_amount" },
-                    { label: "Cash Payments", key: "total_cash_payments" },
-                    { label: "Website Card Payment Amount", key: "website_card_amount" },
-                    { label: "Website Card Payments", key: "website_card_payments" },
-                    { label: "Mobile App Card Amount", key: "mobile_app_card_amount" },
-                    { label: "Mobile App Payments", key: "mobile_app_payments" }
-                  ];
 
-                  return attributes.map((attr, attrIndex) => (
-                    <TableRow 
-                      key={`${restaurantId}-${attr.key}`}
-                      className={attrIndex === 0 ? "border-t-2 border-gray-200" : ""}
-                    >
-                      {attrIndex === 0 && (
-                        <TableCell 
-                          rowSpan={attributes.length} 
-                          className="align-top border-r font-medium"
-                        >
-                          {firstDayData.restaurant_name || 'Unknown Location'}
-                        </TableCell>
-                      )}
-                      <TableCell className="border-r">{attr.label}</TableCell>
-                      {weekDates.map((date) => {
-                        const dateStr = format(date, "yyyy-MM-dd");
-                        const dayData = restaurantData[dateStr] || {};
-                        return (
-                          <TableCell key={dateStr} className="text-right border-r">
-                            {attr.key.includes('amount') || attr.key === 'sale' 
-                              ? formatCurrency(dayData[attr.key as keyof SalesData] || 0)
-                              : dayData[attr.key as keyof SalesData] || 0}
-                          </TableCell>
-                        );
-                      })}
-                      <TableCell className="text-right font-medium">
-                        {attr.key.includes('amount') || attr.key === 'sale'
-                          ? formatCurrency(
-                              Object.values(restaurantData)
-                                .reduce((sum, day) => sum + (day[attr.key as keyof SalesData] || 0), 0)
-                            )
-                          : Object.values(restaurantData)
-                              .reduce((sum, day) => sum + (day[attr.key as keyof SalesData] || 0), 0)}
-                      </TableCell>
-                    </TableRow>
-                  ));
-                })
-              ) : (
+        {isLoading ? (
+          <div className="flex items-center justify-center min-h-[200px]">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9b87f5]" />
+          </div>
+        ) : selectedView === "chart" ? (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="h-[500px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={getChartData()}
+                  margin={{
+                    top: 20,
+                    right: 30,
+                    left: 20,
+                    bottom: 5,
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                  <XAxis
+                    dataKey="date"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#6b7280', fontSize: 12 }}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#6b7280', fontSize: 12 }}
+                    tickFormatter={(value) => `$${value}`}
+                  />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0, 0, 0, 0.04)' }} />
+                  <Legend />
+                  <Bar 
+                    dataKey="cash" 
+                    fill="#4ade80" 
+                    radius={[4, 4, 0, 0]} 
+                    barSize={20} 
+                    name="Cash"
+                  />
+                  <Bar 
+                    dataKey="card" 
+                    fill="#9b87f5" 
+                    radius={[4, 4, 0, 0]} 
+                    barSize={20} 
+                    name="Card"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-md border overflow-hidden">
+            <Table className="print-table">
+              <TableHeader className="bg-[#0F172A]">
                 <TableRow>
-                  <TableCell colSpan={weekDates.length + 3} className="text-center py-4">
-                    No data available
-                  </TableCell>
+                  <TableHead className="text-white font-medium rounded-tl-lg">Location</TableHead>
+                  <TableHead className="text-white font-medium">Attributes</TableHead>
+                  {getDisplayDates().map((date, index) => (
+                    <TableHead 
+                      key={date.toISOString()} 
+                      className="text-white font-medium text-right"
+                    >
+                      {formatDateHeader(date)}
+                    </TableHead>
+                  ))}
+                  <TableHead className="text-white font-medium text-right rounded-tr-lg">Total</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-    </div>
+              </TableHeader>
+              <TableBody>
+                {isDataEmpty ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="text-center">
+                      No data available for the selected criteria.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  restaurantData.map(([restaurantId, restaurant]) => {
+                    const restaurantName = Object.values(restaurant)[0]?.restaurant_name || 'Unknown';
+                    let totalSales = 0;
+                    let totalCashAmount = 0;
+                    let totalCardAmount = 0;
+
+                    return (
+                      <React.Fragment key={restaurantId}>
+                        {/* Sales Row */}
+                        <TableRow>
+                          <TableCell rowSpan={3} className="font-medium">
+                            {restaurantName}
+                          </TableCell>
+                          <TableCell className="text-purple-600">Sales</TableCell>
+                          {getDisplayDates().map((date) => {
+                            const dateStr = formatDisplayDate(date);
+                            const dayData = restaurant[dateStr];
+                            const sales = dayData?.sale || 0;
+                            totalSales += sales;
+                            return (
+                              <TableCell key={`${dateStr}-sales`} className="text-right">
+                                <span className="text-purple-600">
+                                  {formatCurrency(sales)}
+                                </span>
+                              </TableCell>
+                            );
+                          })}
+                          <TableCell className="text-right font-medium">
+                            <span className="text-purple-600">
+                              {formatCurrency(totalSales)}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+
+                        {/* Cash Row */}
+                        <TableRow>
+                          <TableCell className="text-green-600">Cash</TableCell>
+                          {getDisplayDates().map((date) => {
+                            const dateStr = formatDisplayDate(date);
+                            const dayData = restaurant[dateStr];
+                            const cashAmount = dayData?.total_cash_payment_amount || 0;
+                            totalCashAmount += cashAmount;
+                            return (
+                              <TableCell key={`${dateStr}-cash`} className="text-right">
+                                <span className="text-green-600">
+                                  {formatCurrency(cashAmount)}
+                                </span>
+                              </TableCell>
+                            );
+                          })}
+                          <TableCell className="text-right font-medium">
+                            <span className="text-green-600">
+                              {formatCurrency(totalCashAmount)}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+
+                        {/* Card Row */}
+                        <TableRow>
+                          <TableCell className="text-blue-600">Card</TableCell>
+                          {getDisplayDates().map((date) => {
+                            const dateStr = formatDisplayDate(date);
+                            const dayData = restaurant[dateStr];
+                            const cardAmount = dayData?.total_card_payment_amount || 0;
+                            totalCardAmount += cardAmount;
+                            return (
+                              <TableCell key={`${dateStr}-card`} className="text-right">
+                                <span className="text-blue-600">
+                                  {formatCurrency(cardAmount)}
+                                </span>
+                              </TableCell>
+                            );
+                          })}
+                          <TableCell className="text-right font-medium">
+                            <span className="text-blue-600">
+                              {formatCurrency(totalCardAmount)}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      </React.Fragment>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
+    </>
   );
 };
 

@@ -26,7 +26,7 @@ export const useOrdersData = () => {
         setOrders([]);
       }
     } catch (error) {
-      console.error("Failed to fetch orders:", error);
+      
       toast({
         title: "Error fetching orders",
         description: "There was a problem loading the orders data.",

@@ -78,23 +78,23 @@ export const ModifierCategoriesProvider = ({ children }: { children: ReactNode }
         seq_no: seqNoFilter || undefined
       };
 
-      console.log('Fetching modifier categories with params:', params);
+      
       const response = await modifierCategoriesApi.getModifierCategories(params);
-      console.log('API response received:', response);
+      
       
       let categoriesData: RawModifierCategoryResponse[] = [];
       
       if (response && response.modifier_categories && Array.isArray(response.modifier_categories)) {
         categoriesData = response.modifier_categories;
       } else {
-        console.error('Unexpected API response format:', response);
+        
         throw new Error("Received invalid data format from the server");
       }
       
-      console.log('Processing category data:', categoriesData);
+      
       
       const formattedCategories = categoriesData.map((item: RawModifierCategoryResponse) => {
-        console.log('Processing category item:', item);
+        
         
         let categoryStatus: "Active" | "Inactive";
         if (
@@ -119,14 +119,14 @@ export const ModifierCategoriesProvider = ({ children }: { children: ReactNode }
         };
       });
       
-      console.log('Formatted categories:', formattedCategories);
+      
       setModifierCategories(formattedCategories);
       
       const total = response.total || formattedCategories.length;
       setTotalItems(total);
       setRetryCount(0);
     } catch (error) {
-      console.error("Error fetching modifier categories:", error);
+      
       setIsError(true);
       
       const errorMessage = (error as any)?.response?.data?.message || (error as Error)?.message || "Failed to fetch categories";
@@ -165,7 +165,7 @@ export const ModifierCategoriesProvider = ({ children }: { children: ReactNode }
   }, [fetchModifierCategories]);
 
   const handleFormSubmit = async (category: ModifierCategory) => {
-    console.log('Starting form submission with category:', category);
+    
     setIsLoading(true);
     try {
       const categoryData = {
@@ -177,7 +177,7 @@ export const ModifierCategoriesProvider = ({ children }: { children: ReactNode }
         min: null
       };
       
-      console.log('Prepared category data for API:', categoryData);
+      
 
       // Get the auth token
       const adminData = localStorage.getItem('Admin');
@@ -188,28 +188,28 @@ export const ModifierCategoriesProvider = ({ children }: { children: ReactNode }
       }
 
       if (editingCategory) {
-        console.log('Updating existing category with ID:', editingCategory.id);
+        
         await modifierCategoriesApi.updateModifierCategory(editingCategory.id, categoryData);
         toast({
           title: "Category Updated",
           description: `${category.name} has been updated successfully.`
         });
       } else {
-        console.log('Creating new category');
+        
         const response = await modifierCategoriesApi.createModifierCategory(categoryData);
-        console.log('API response from create:', response);
+        
         toast({
           title: "Category Added",
           description: `${category.name} has been added successfully.`
         });
       }
       
-      console.log('Fetching updated categories list');
+      
       await fetchModifierCategories();
-      console.log('Closing dialog');
+      
       setIsDialogOpen(false);
     } catch (error) {
-      console.error("Error saving category:", error);
+      
       const errorMessage = (error as any)?.response?.data?.message || 
                           (error as any)?.message || 
                           "Failed to save category";

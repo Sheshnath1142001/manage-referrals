@@ -13,7 +13,11 @@ export default function Staff() {
   const { toast } = useToast();
   const [filters, setFilters] = useState({
     status: "1", // Default to active staff
-    search: ""
+    search: "",
+    email: "",
+    phone: "",
+    userType: "all",
+    location: "all"
   });
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -23,24 +27,24 @@ export default function Staff() {
 
   // Fetch staff with filters
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["staff", page, pageSize, filters.status, filters.search],
+    queryKey: ["staff", page, pageSize, filters.status, filters.search, filters.email, filters.phone, filters.userType, filters.location],
     queryFn: async () => {
       // Don't send status at all when "all" is selected
       let statusValue = undefined;
       if (filters.status !== "all") {
         statusValue = Number(filters.status);
       }
-      
-      // Only send search if not empty
-      const searchValue = filters.search ? filters.search : undefined;
-      
-      const result = await staffApi.getStaffMembers(
+
+      const result = await staffApi.getStaffMembers({
         page,
-        pageSize,
-        statusValue,
-        searchValue,
-        undefined
-      );
+        perPage: pageSize,
+        status: statusValue,
+        search: filters.search || undefined,
+        email: filters.email || undefined,
+        phone: filters.phone || undefined,
+        roleId: filters.userType !== "all" ? filters.userType : undefined,
+        restaurantId: filters.location !== "all" ? filters.location : undefined
+      });
       return result;
     },
   });
@@ -84,7 +88,15 @@ export default function Staff() {
           <StaffFilters 
             status={filters.status}
             search={filters.search}
+            email={filters.email}
+            phone={filters.phone}
+            userType={filters.userType}
+            location={filters.location}
             onSearchChange={(value) => handleFilterChange("search", value)}
+            onEmailChange={(value) => handleFilterChange("email", value)}
+            onPhoneChange={(value) => handleFilterChange("phone", value)}
+            onUserTypeChange={(value) => handleFilterChange("userType", value)}
+            onLocationChange={(value) => handleFilterChange("location", value)}
             onStatusChange={(value) => handleFilterChange("status", value)}
             onClearStatusFilter={() => setFilters(prev => ({ ...prev, status: "1" }))}
           />
@@ -101,7 +113,7 @@ export default function Staff() {
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="bg-white rounded-lg border">
         <StaffTable 
           staffData={staffData}
           isLoading={isLoading}

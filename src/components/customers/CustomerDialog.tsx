@@ -35,6 +35,8 @@ const formSchema = z.object({
   username: z.string().optional(),
   status: z.boolean().default(true),
   customer_groups: z.array(z.string()).optional(),
+  // Address toggle
+  include_address: z.boolean().default(false),
   // Address fields
   unit_number: z.string().optional(),
   street_name: z.string().optional(),
@@ -75,6 +77,7 @@ export function CustomerDialog({
       username: "",
       status: true,
       customer_groups: [],
+      include_address: false,
       unit_number: "",
       street_name: "",
       postcode: "",
@@ -108,6 +111,7 @@ export function CustomerDialog({
         username: customer.username || "",
         status: customer.status === 1,
         customer_groups: mappedGroups,
+        include_address: true,
         unit_number: address?.unit_number || "",
         street_name: address?.street_name || "",
         postcode: address?.postcode || "",
@@ -125,6 +129,7 @@ export function CustomerDialog({
         username: "",
         status: true,
         customer_groups: [],
+        include_address: false,
         unit_number: "",
         street_name: "",
         postcode: "",
@@ -204,18 +209,23 @@ export function CustomerDialog({
                   name="phone_no"
                   render={({ field: { value } }) => (
                     <PhoneInput
-                      country={'au'}
+                      country="au"
                       value={(form.getValues("country_code") || "") + (value || "")}
                       onChange={handlePhoneChange}
                       disabled={isViewMode}
-                      enableSearch
+                      enableSearch={!isViewMode}
+                      disableDropdown={isViewMode}
                       inputProps={{
                         required: true,
-                        className: "!w-full !pl-[75px]"
+                        className: "!w-full !pl-[75px]",
                       }}
                       buttonClass="!border-r-0 !w-[65px]"
-                      containerClass="!mb-1"
+                      containerClass="!mb-1 phone-input-container"
+                      dropdownClass="country-dropdown"
+                      searchClass="!w-[calc(100%-20px)] !mx-[10px] !my-[10px]"
+                      searchPlaceholder="Search country..."
                       preferredCountries={['au', 'us', 'gb', 'nz']}
+                      countryCodeEditable={false}
                     />
                   )}
                 />
@@ -255,100 +265,120 @@ export function CustomerDialog({
               )}
             />
 
+            {/* Address Toggle */}
+            <FormField
+              control={form.control}
+              name="include_address"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between">
+                  <FormLabel>Include Address</FormLabel>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={isViewMode}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
             {/* Address Details */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Address Details:</h3>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="unit_number"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Unit Number*</FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value || ""} disabled={isViewMode} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            {form.watch("include_address") && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Address Details:</h3>
                 
-                <FormField
-                  control={form.control}
-                  name="street_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Street Name*</FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value || ""} disabled={isViewMode} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="unit_number"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Unit Number*</FormLabel>
+                        <FormControl>
+                          <Input {...field} value={field.value || ""} disabled={isViewMode} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="street_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Street Name*</FormLabel>
+                        <FormControl>
+                          <Input {...field} value={field.value || ""} disabled={isViewMode} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="postcode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Postcode*</FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value || ""} disabled={isViewMode} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="city"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>City*</FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value || ""} disabled={isViewMode} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="postcode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Postcode*</FormLabel>
+                        <FormControl>
+                          <Input {...field} value={field.value || ""} disabled={isViewMode} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="city"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>City*</FormLabel>
+                        <FormControl>
+                          <Input {...field} value={field.value || ""} disabled={isViewMode} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="province"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Province*</FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value || ""} disabled={isViewMode} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="country"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Country*</FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value || ""} disabled={isViewMode} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="province"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Province*</FormLabel>
+                        <FormControl>
+                          <Input {...field} value={field.value || ""} disabled={isViewMode} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="country"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Country*</FormLabel>
+                        <FormControl>
+                          <Input {...field} value={field.value || ""} disabled={isViewMode} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Customer Groups - Multiple Selection */}
             {(customerGroups.length > 0 || (isViewMode && customer?.customer_groups?.length > 0)) && (

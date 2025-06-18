@@ -84,7 +84,7 @@ export const guestCustomersApi = {
         total_pages: Math.ceil(total / perPage)
       } as GuestCustomerResponse;
     } catch (error) {
-      console.error('Error fetching guest customers:', error);
+      
       return { 
         data: [], 
         customers: [],

@@ -131,6 +131,9 @@ export const OrderFilters = ({
                   onDateChange("startDate", date);
                   setIsStartDatePickerOpen(false);
                 }}
+                disabled={(date) =>
+                  date > new Date() || date < new Date("1900-01-01")
+                }
                 initialFocus
               />
             </PopoverContent>
@@ -161,6 +164,9 @@ export const OrderFilters = ({
                   onDateChange("endDate", date);
                   setIsEndDatePickerOpen(false);
                 }}
+                disabled={(date) =>
+                  date > new Date() || date < new Date("1900-01-01")
+                }
                 initialFocus
               />
             </PopoverContent>
@@ -188,11 +194,13 @@ export const OrderFilters = ({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Locations</SelectItem>
-            {restaurants.map((restaurant) => (
+            {restaurants && restaurants.length > 0 ? restaurants.map((restaurant) => (
               <SelectItem key={restaurant.id} value={restaurant.id.toString()}>
                 {restaurant.name}
               </SelectItem>
-            ))}
+            )) : (
+              <SelectItem value="no-data" disabled>No locations available</SelectItem>
+            )}
           </SelectContent>
         </Select>
 
@@ -202,11 +210,13 @@ export const OrderFilters = ({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
-            {orderStatuses.map((status) => (
+            {orderStatuses && orderStatuses.length > 0 ? orderStatuses.map((status) => (
               <SelectItem key={status.id} value={status.id.toString()}>
                 {status.status_name}
               </SelectItem>
-            ))}
+            )) : (
+              <SelectItem value="no-data" disabled>No statuses available</SelectItem>
+            )}
           </SelectContent>
         </Select>
 
@@ -216,11 +226,13 @@ export const OrderFilters = ({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Platforms</SelectItem>
-            {platforms.map((platform) => (
+            {platforms && platforms.length > 0 ? platforms.map((platform) => (
               <SelectItem key={platform.id} value={platform.id.toString()}>
                 {platform.type}
               </SelectItem>
-            ))}
+            )) : (
+              <SelectItem value="no-data" disabled>No platforms available</SelectItem>
+            )}
           </SelectContent>
         </Select>
 
@@ -230,11 +242,13 @@ export const OrderFilters = ({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Payment Methods</SelectItem>
-            {paymentMethods.map((method) => (
+            {paymentMethods && paymentMethods.length > 0 ? paymentMethods.map((method) => (
               <SelectItem key={method.id} value={method.id.toString()}>
                 {method.method}
               </SelectItem>
-            ))}
+            )) : (
+              <SelectItem value="no-data" disabled>No payment methods available</SelectItem>
+            )}
           </SelectContent>
         </Select>
 
@@ -244,11 +258,13 @@ export const OrderFilters = ({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
-            {orderTypes.map((type) => (
+            {orderTypes && orderTypes.length > 0 ? orderTypes.map((type) => (
               <SelectItem key={type.id} value={type.id.toString()}>
                 {type.type}
               </SelectItem>
-            ))}
+            )) : (
+              <SelectItem value="no-data" disabled>No order types available</SelectItem>
+            )}
           </SelectContent>
         </Select>
 
@@ -258,11 +274,13 @@ export const OrderFilters = ({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Attendants</SelectItem>
-            {staffMembers.map((staff) => (
+            {staffMembers && staffMembers.length > 0 ? staffMembers.map((staff) => (
               <SelectItem key={staff.id} value={staff.id}>
                 {staff.name}
               </SelectItem>
-            ))}
+            )) : (
+              <SelectItem value="no-data" disabled>No attendants available</SelectItem>
+            )}
           </SelectContent>
         </Select>
       </div>

@@ -191,7 +191,7 @@ export const dashboardApi = {
       const response = await api.get<DashboardMetricsResponse>('/v2/dashboard/metrics', { params });
       return response;
     } catch (error) {
-      console.error('Error fetching dashboard metrics:', error);
+      
       throw error;
     }
   },
@@ -201,7 +201,7 @@ export const dashboardApi = {
       const response = await api.get<TopSellingItemsResponse>('/v2/dashboard/top-selling-items', { params });
       return response;
     } catch (error) {
-      console.error('Error fetching top selling items:', error);
+      
       throw error;
     }
   },
@@ -211,7 +211,7 @@ export const dashboardApi = {
       const response = await api.get<OngoingOrdersResponse>('/v2/dashboard/ongoing-orders', { params });
       return response;
     } catch (error) {
-      console.error('Error fetching ongoing orders:', error);
+      
       throw error;
     }
   },
@@ -221,7 +221,7 @@ export const dashboardApi = {
       const response = await api.get<WeeklySalesResponse>('/v2/dashboard/sales', { params });
       return response;
     } catch (error) {
-      console.error('Error fetching weekly sales data:', error);
+      
       throw error;
     }
   },
@@ -231,7 +231,7 @@ export const dashboardApi = {
       const response = await api.get<OverviewResponse>('/v2/dashboard/overview', { params });
       return response;
     } catch (error) {
-      console.error('Error fetching overview data:', error);
+      
       throw error;
     }
   }

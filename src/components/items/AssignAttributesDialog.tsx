@@ -55,6 +55,7 @@ interface AttributeConfig {
   isActive: boolean;
   isRequired: boolean;
   isEditing?: boolean;
+  configId?: number; // Store ProductConfigOption.id for API calls
 }
 
 interface ProductConfigOption {
@@ -95,7 +96,7 @@ export const AssignAttributesDialog = ({
         const response = await api.get('/v2/products/attributes');
         return response?.data || [];
       } catch (error) {
-        console.error('Error fetching product attributes:', error);
+        
         throw error;
       }
     },
@@ -108,25 +109,12 @@ export const AssignAttributesDialog = ({
     queryFn: async () => {
       if (!productId) return [];
       try {
-        console.log(`Fetching config options for product ID: ${productId}`);
+        
         const response = await api.get(`/v2/products/config-options?product_id=${productId}`);
-        console.log('Config options API response:', response);
+        
         return response?.data || response || [];
-
-
-
-
-
-
-
-
-
-
-
       } catch (error) {
-        console.error('Error fetching product config options:', error);
-
-
+        
         throw error;
       }
     },
@@ -150,7 +138,7 @@ export const AssignAttributesDialog = ({
       onOpenChange(false);
     },
     onError: (error: any) => {
-      console.error('Error saving attributes:', error);
+      
       toast({
         title: "Error",
         description: error?.response?.data?.message || "Failed to save attributes",
@@ -159,21 +147,103 @@ export const AssignAttributesDialog = ({
     }
   });
 
+  // Update individual attribute mutation
+  const updateAttributeMutation = useMutation({
+    mutationFn: async (data: { configId: number; min_selections: number; max_selections: number; is_required: number; status: number }) => {
+      const { configId, ...payload } = data;
+      const response = await api.put(`/v2/products/config-options/${configId}`, payload);
+      return response.data;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Attribute updated successfully"
+      });
+      queryClient.invalidateQueries({ queryKey: ['productConfigOptions', productId] });
+    },
+    onError: (error: any) => {
+      
+      toast({
+        title: "Error",
+        description: error?.response?.data?.message || "Failed to update attribute",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Handle individual attribute save
+  const handleSaveIndividualAttribute = (attributeId: string) => {
+    if (!productId) {
+      toast({
+        title: "Error",
+        description: "Product ID is missing",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Find the attribute being edited
+      const attribute = allAttributes.find(attr => attr.attributeId === attributeId);
+      if (!attribute) {
+        toast({
+          title: "Error",
+          description: "Attribute not found",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Check if configId is available (only for existing attributes)
+      if (!attribute.configId) {
+        toast({
+          title: "Error",
+          description: "Configuration ID not found. This might be a newly added attribute.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const payload = {
+        configId: attribute.configId,
+        min_selections: parseInt(attribute.minSelections),
+        max_selections: parseInt(attribute.maxSelections),
+        is_required: attribute.isRequired ? 1 : 0,
+        status: attribute.isActive ? 1 : 0
+      };
+
+      console.log("Updating individual attribute with clean payload:", {
+        url: `/v2/products/config-options/${attribute.configId}`,
+        payload: {
+          min_selections: parseInt(attribute.minSelections),
+          max_selections: parseInt(attribute.maxSelections),
+          is_required: attribute.isRequired ? 1 : 0,
+          status: attribute.isActive ? 1 : 0
+        }
+      });
+      updateAttributeMutation.mutate(payload);
+
+      // Exit edit mode after successful submission
+      toggleEditMode(attributeId);
+    } catch (error) {
+      
+      toast({
+        title: "Error",
+        description: "Failed to prepare attribute data for updating",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Load existing product configuration attributes when data is available
   useEffect(() => {
-    console.log('Config options received:', configOptions);
-
-
+    
 
     if (configOptions && Array.isArray(configOptions) && configOptions.length > 0) {
-      console.log('Processing config options, length:', configOptions.length);
+      
 
       const existingAttrs = configOptions.map((option: ProductConfigOption) => {
-
-
-
         const configAttributes = option?.product_configuration_attributes;
-
 
         let attributeName = 'Unknown Attribute';
 
@@ -181,9 +251,6 @@ export const AssignAttributesDialog = ({
           attributeName = configAttributes.name || 
                         configAttributes.display_name || 
                         'Unknown Attribute';
-
-
-
         }
 
         const mappedAttribute: AttributeConfig = {
@@ -192,21 +259,20 @@ export const AssignAttributesDialog = ({
           minSelections: option.min_selections.toString(),
           maxSelections: option.max_selections.toString(),
           isActive: option.status === 1,
-          isRequired: option.is_required === 1
+          isRequired: option.is_required === 1,
+          configId: option.id
         };
-
 
         return mappedAttribute;
       });
 
-      console.log('All mapped existing attributes:', existingAttrs);
+      
       setExistingAttributes(existingAttrs);
       // Clear newly added attributes when loading existing ones
       setNewlyAddedAttributes([]);
     } else {
-      console.log('No config options found');
+      
       setExistingAttributes([]);
-
     }
   }, [configOptions]);
 
@@ -232,13 +298,12 @@ export const AssignAttributesDialog = ({
     }
   }, [attributesError, configError]);
 
-
   useEffect(() => {
     if (open) {
-      console.log("Dialog opened with productId:", productId);
+      
 
       if (!productId) {
-        console.warn("Warning: No productId provided to AssignAttributesDialog");
+        
         toast({
           title: "Warning",
           description: "Missing product ID. Please try again.",
@@ -344,8 +409,7 @@ export const AssignAttributesDialog = ({
     }
 
     try {
-      console.log("Submitting with productId:", productId);
-
+      
 
       const productIdNumber = typeof productId === 'string' 
         ? parseInt(productId, 10) 
@@ -366,8 +430,7 @@ export const AssignAttributesDialog = ({
         }))
       };
 
-      console.log("Payload (only new attributes):", JSON.stringify(payload));
-
+      
 
       if (payload.attributes.length === 0) {
         toast({
@@ -378,10 +441,9 @@ export const AssignAttributesDialog = ({
         return;
       }
 
-
       saveAttributesMutation.mutate(payload);
     } catch (error) {
-      console.error("Error preparing payload:", error);
+      
       toast({
         title: "Error",
         description: "Failed to prepare attribute data for saving",
@@ -390,7 +452,7 @@ export const AssignAttributesDialog = ({
     }
   };
 
-  const isLoading = isAttributesLoading || isConfigLoading || saveAttributesMutation.isPending;
+  const isLoading = isAttributesLoading || isConfigLoading || saveAttributesMutation.isPending || updateAttributeMutation.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -544,15 +606,6 @@ export const AssignAttributesDialog = ({
                                   <X className="h-4 w-4" />
                                 </Button>
                               </div>
-
-
-
-
-
-
-
-
-
                             </div>
                             
                             <div className="grid grid-cols-2 gap-4">
@@ -580,7 +633,6 @@ export const AssignAttributesDialog = ({
                               </div>
                             </div>
 
-
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <Label>Active</Label>
@@ -600,6 +652,32 @@ export const AssignAttributesDialog = ({
                                   })}
                                 />
                               </div>
+                            </div>
+
+                            {/* Submit Button for Individual Attribute */}
+                            <div className="flex justify-end gap-2 pt-3 border-t">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => toggleEditMode(attr.attributeId)}
+                              >
+                                Cancel
+                              </Button>
+                              <Button 
+                                size="sm"
+                                onClick={() => handleSaveIndividualAttribute(attr.attributeId)}
+                                disabled={updateAttributeMutation.isPending}
+                                className="bg-primary hover:bg-primary/90"
+                              >
+                                {updateAttributeMutation.isPending ? (
+                                  <>
+                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                    Saving...
+                                  </>
+                                ) : (
+                                  'Save Changes'
+                                )}
+                              </Button>
                             </div>
                           </div>
                         ) : (
@@ -644,13 +722,6 @@ export const AssignAttributesDialog = ({
                                   onClick={() => toggleEditMode(attr.attributeId)}
                                 >
                                   <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => removeAttribute(attr.attributeId)}
-                                >
-                                  <X className="h-4 w-4" />
                                 </Button>
                               </div>
                             </div>

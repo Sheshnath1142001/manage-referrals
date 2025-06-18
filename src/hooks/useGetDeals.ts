@@ -49,7 +49,7 @@ export function useGetDeals({
         throw new Error('Invalid response from deals API');
       }
     } catch (err) {
-      console.error('Error fetching deals:', err);
+      
       const errorMessage = err instanceof Error ? err.message : 'Unknown error fetching deals';
       setError(err instanceof Error ? err : new Error(errorMessage));
       

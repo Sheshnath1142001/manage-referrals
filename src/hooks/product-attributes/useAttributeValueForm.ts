@@ -42,7 +42,7 @@ export function useAttributeValueForm(selectedAttribute: ProductAttribute | null
     },
     onError: (error) => {
       toast.error("Failed to create attribute value");
-      console.error(error);
+      
     }
   });
 
@@ -71,7 +71,7 @@ export function useAttributeValueForm(selectedAttribute: ProductAttribute | null
     },
     onError: (error) => {
       toast.error("Failed to update attribute value");
-      console.error(error);
+      
     }
   });
 

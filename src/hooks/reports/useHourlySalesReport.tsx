@@ -50,14 +50,14 @@ export const useHourlySalesReport = ({
       
       try {
         const response = await reportsApi.getHourlySalesReport(apiParams);
-        console.log('API response structure:', JSON.stringify(response, null, 2));
+        
         
         // Process the response data into a more usable format
         const processedData = {};
         
         // Handle different potential response structures
         if (response?.data?.data) {
-          console.log('Processing response.data.data array');
+          
           response.data.data.forEach(item => {
             if (!processedData[item.restaurant_id]) {
               processedData[item.restaurant_id] = {};
@@ -67,7 +67,7 @@ export const useHourlySalesReport = ({
         } else if (response?.data) {
           // This is for the structure you mentioned in the example
           // Example: { data: { "35": { "1pm - 2pm": {...}, "2pm - 3pm": {...} } } }
-          console.log('Processing nested restaurant data structure');
+          
           
           Object.entries(response.data).forEach(([restaurantId, restaurantData]) => {
             if (!processedData[restaurantId]) {
@@ -82,18 +82,18 @@ export const useHourlySalesReport = ({
           });
         }
         
-        console.log('Processed data structure:', processedData);
-        console.log('Restaurant IDs in data:', Object.keys(processedData));
+        
+        
         
         // If no data was processed, return sample data for testing
         if (Object.keys(processedData).length === 0) {
-          console.log('No data found in API response, returning empty object');
+          
           return {}; 
         }
         
         return processedData;
       } catch (error) {
-        console.error('Error in hourly sales API call:', error);
+        
         return {}; // Return empty data on error
       }
     },

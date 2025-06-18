@@ -1,3 +1,4 @@
+
 import { api } from './client';
 import axios from 'axios';
 import { 
@@ -32,6 +33,8 @@ interface EverydaySaleReportApiResponseData {
   [restaurantId: string]: EverydaySaleReportRestaurantData;
 }
 
+
+
 // Helper function to get auth token
 const getAuthToken = (): string => {
   const adminData = localStorage.getItem('Admin');
@@ -43,7 +46,7 @@ const getAuthToken = (): string => {
         token = admin.token;
       }
     } catch (error) {
-      console.error('Error parsing admin data:', error);
+      // Silent error handling for token parsing
     }
   }
   return token;
@@ -54,7 +57,6 @@ const getUserTimezone = (): string => {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
   } catch (error) {
-    console.error('Error detecting timezone:', error);
     return 'UTC';
   }
 };
@@ -111,7 +113,7 @@ export const reportsApi = {
     return api.get<ReportResponse<HourlySalesData[]>>('/hourly-sales-data', { params });
   },
 
-  // Top Performers Report
+  // Top Performers Report - Updated to accept user_id
   getTopPerformersReport: async (params: ReportParams) => {
     return api.get<ReportResponse<TopPerformerData[]>>('/top-performers-data', { params });
   },

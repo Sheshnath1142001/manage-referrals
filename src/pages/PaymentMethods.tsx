@@ -1,7 +1,7 @@
 import React from "react";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell, TablePagination } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Eye, Edit, Plus, RotateCcw } from "lucide-react";
+import { Edit, Plus, RotateCcw } from "lucide-react";
 import { PaymentMethodDialog } from "@/components/payment-methods/PaymentMethodDialog";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 
@@ -19,7 +19,7 @@ export default function PaymentMethods() {
 
   // Dialog controls
   const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [dialogMode, setDialogMode] = React.useState<"add" | "edit" | "view">("add");
+  const [dialogMode, setDialogMode] = React.useState<"add" | "edit">("add");
   const [selectedMethod, setSelectedMethod] = React.useState<any | undefined>();
 
   const handleAddClick = () => {
@@ -33,11 +33,10 @@ export default function PaymentMethods() {
     setSelectedMethod(method);
     setDialogOpen(true);
   };
-  
-  const handleViewClick = (method: any) => {
-    setDialogMode("view");
-    setSelectedMethod(method);
-    setDialogOpen(true);
+
+  const isEditDisabled = (method: string) => {
+    const disabledMethods = ["Cash", "Card", "Shadow Card", "Gift Card", "Online Card"];
+    return disabledMethods.includes(method);
   };
 
   return (
@@ -100,10 +99,12 @@ export default function PaymentMethods() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">
-                        <Button variant="ghost" size="icon" onClick={() => handleViewClick(method)}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleEditClick(method)}>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleEditClick(method)}
+                          disabled={isEditDisabled(method.method)}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
                       </div>

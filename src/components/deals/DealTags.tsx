@@ -35,6 +35,10 @@ export const DealTags = ({
     fetchTags();
   }, []);
 
+  useEffect(() => {
+    setSelectedTags(initialTags.map(tag => tag.id));
+  }, [initialTags]);
+
   const fetchTags = async () => {
     try {
       const response = await fetch(`${apiBaseUrl}/tags`, {

@@ -1,6 +1,7 @@
+
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subWeeks, subMonths, subYears, addDays } from 'date-fns';
 import axios from 'axios';
 
 interface UseCategorySalesReportParams {
@@ -9,51 +10,44 @@ interface UseCategorySalesReportParams {
   periodType?: number;
 }
 
-interface CategorySalesData {
-  category_id: string;
-  category_name: string;
-  group_clause: string;
-  total_sales: number;
-  total_sold_quantity: number;
-}
-
-interface CategoryData {
-  [date: string]: CategorySalesData;
-}
-
-interface ApiResponse {
-  [categoryId: string]: CategoryData;
-}
 const apiBaseUrl = import.meta.env.API_BASE_URL || 'https://pratham-respos-testbe-v34.achyutlabs.cloud/api';
+
 export const useCategorySalesReport = ({ 
   restaurantId, 
   selectedDate = new Date(), 
-  periodType = 1 
+  periodType = 2 
 }: UseCategorySalesReportParams) => {
+  
   // Get date range based on selected date and period type
   const getDateRangeForPeriod = () => {
+    const today = new Date();
+    
     switch (periodType) {
-      case 0: // Day
+      case 1: // Day - Last 7 days
         return { 
-          startDate: selectedDate,
-          endDate: selectedDate
+          startDate: startOfWeek(today, { weekStartsOn: 0 }), // Current week's Sunday
+          endDate: endOfWeek(today, { weekStartsOn: 0 }) // Current week's Saturday
         };
-      case 1: // Week
-        const sunday = startOfWeek(selectedDate, { weekStartsOn: 0 });
-        const saturday = endOfWeek(selectedDate, { weekStartsOn: 0 });
+      case 2: // Week - Last 7 weeks
+        const currentWeekStart = startOfWeek(today, { weekStartsOn: 0 });
+        const startDate = startOfWeek(subWeeks(today, 6), { weekStartsOn: 0 });
         return { 
-          startDate: sunday,
-          endDate: saturday 
+          startDate,
+          endDate: endOfWeek(currentWeekStart, { weekStartsOn: 0 })
         };
-      case 2: // Month
+      case 3: // Month - Last 7 months
+        const currentMonthStart = startOfMonth(today);
+        const monthStartDate = startOfMonth(subMonths(today, 6));
         return { 
-          startDate: startOfMonth(selectedDate), 
-          endDate: endOfMonth(selectedDate) 
+          startDate: monthStartDate,
+          endDate: endOfMonth(currentMonthStart)
         };
-      case 3: // Year
+      case 4: // Year - Last 7 years
+        const currentYearStart = startOfYear(today);
+        const yearStartDate = startOfYear(subYears(today, 6));
         return { 
-          startDate: startOfYear(selectedDate), 
-          endDate: endOfYear(selectedDate) 
+          startDate: yearStartDate,
+          endDate: endOfYear(currentYearStart)
         };
       default:
         const defaultSunday = startOfWeek(selectedDate, { weekStartsOn: 0 });
@@ -79,14 +73,16 @@ export const useCategorySalesReport = ({
     queryKey: ['reports', 'category-sales', format(startDate, "yyyy-MM-dd"), format(endDate, "yyyy-MM-dd"), restaurantId, periodType],
     queryFn: async () => {
       try {
-        // Using the exact URL provided
+        // Using the category-sales endpoint as specified
         const url = `${apiBaseUrl}/category-sales`;
         const params = {
-          report_type: periodType + 1, // Converting to API's expected report_type
-          date: format(selectedDate, "yyyy-MM-dd"),
-          restaurant_id: parseInt(restaurantId.toString()),
-          week_start_date: "Sunday"
+          report_type: periodType,
+          start_date: format(startDate, "yyyy-MM-dd"),
+          end_date: format(endDate, "yyyy-MM-dd"),
+          restaurant_id: parseInt(restaurantId.toString())
         };
+        
+        console.log('Category Sales API payload:', params);
         
         // Get the auth token from localStorage
         const adminData = localStorage.getItem('Admin');
@@ -113,14 +109,16 @@ export const useCategorySalesReport = ({
           }
         });
 
+        console.log('Category Sales API response:', response.data);
         return response.data;
       } catch (error) {
-        console.error("Error fetching category sales data:", error);
+        console.error('Category Sales API error:', error);
         throw error;
       }
     },
     refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000 // 5 minutes cache
+    staleTime: 1000, // 1 second cache to ensure fresh data
+    gcTime: 0 // No garbage collection time to ensure fresh data
   });
 
   // Format currency

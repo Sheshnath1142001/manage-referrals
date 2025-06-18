@@ -76,7 +76,7 @@ export const customersApi = {
       }
       return response;
     } catch (error) {
-      console.error('Error fetching customers:', error);
+      
       return { customers: [], total: 0 };
     }
   },
@@ -112,11 +112,11 @@ export const customersApi = {
         customer_group_ids: data.customer_groups?.map((id: string) => parseInt(id)) || [] // Convert to array of numbers
       };
       
-      console.log('Creating customer with data:', createData); // Debug log
+       // Debug log
       
       const response = await api.post('/v2/users/admin', createData);
       
-      console.log('Create customer response:', response); // Debug log
+       // Debug log
       
       // Handle the response structure from the API
       if ('data' in response) {
@@ -124,7 +124,7 @@ export const customersApi = {
       }
       return response.user || response;
     } catch (error) {
-      console.error('Error creating customer:', error);
+      
       throw error;
     }
   },
@@ -163,8 +163,24 @@ export const customersApi = {
     return api.put(`/update-address/${id}`, updateData);
   },
   
-  createCustomerAddress: (data: Partial<CustomerAddress>) =>
-    api.post<CustomerAddress>('/address', data),
+  createCustomerAddress: async (data: Partial<CustomerAddress> & { module_id?: number | string }) => {
+    // Use the correct endpoint from curl: /create-address
+    const createData = {
+      street_name: data.street_name,
+      city: data.city,
+      province: data.province,
+      country: data.country,
+      unit_number: data.unit_number,
+      latitude: data.latitude || "00",
+      longitude: data.longitude || "00", 
+      postcode: data.postcode,
+      phone: data.phone || null,
+      module_type: 6,
+      module_id: data.module_id?.toString()
+    };
+    
+    return api.post('/create-address', createData);
+  },
   
   deleteCustomer: (id: string) => api.delete(`/customers/${id}`)
 };

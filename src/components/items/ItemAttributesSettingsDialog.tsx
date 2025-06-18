@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -34,6 +35,8 @@ interface ItemAttributesSettingsDialogProps {
   onOpenChange: (open: boolean) => void;
   itemName: string;
   onSave: (attributes: ItemAttribute[]) => void;
+  restaurantProductId?: string;
+  productId?: string;
 }
 
 // Define interfaces for API responses
@@ -56,17 +59,95 @@ interface Modifier {
   seq_no: number;
 }
 
-interface Attribute {
-  id: number;
-  attribute: string;
+interface RestaurantProductModifier {
+  id: string;
+  restaurant_product_id: string;
+  modifier_id: number;
+  price: string;
+  online_price: string | null;
   status: number;
+  modifiers: Modifier;
 }
 
-interface AttributeValue {
+interface PriceMatrixItem {
   id: number;
+  restaurant_product_id: string;
+  attribute_value_id: number;
+  restaurant_product_modifier_id: string;
+  price_adjustment: string;
+  product_configuration_attribute_values: {
+    id: number;
+    attribute_id: number;
+    value: string;
+    display_value: string;
+    base_price: string;
+    product_configuration_attributes: {
+      id: number;
+      name: string;
+      display_name: string;
+      attribute_type: string;
+    };
+  };
+  restaurant_product_modifiers: {
+    id: string;
+    restaurant_product_id: string;
+    modifier_id: number;
+    price: string;
+    online_price: string | null;
+    status: number;
+    modifiers: {
+      id: number;
+      modifier_category_id: number;
+      modifier: string;
+      status: number;
+      seq_no: number;
+      modifier_categories: {
+        id: number;
+        modifier_category: string;
+        status: number;
+        is_mandatory: number;
+        is_single_select: number;
+        seq_no: number;
+        restaurant_id: number;
+        max: number | null;
+        min: number | null;
+        is_portion_allowed: number;
+      };
+    };
+  };
+}
+
+interface ConfigOption {
+  id: number;
+  product_id: number;
   attribute_id: number;
-  value: string;
+  is_required: number;
+  min_selections: number;
+  max_selections: number;
+  sequence: number;
   status: number;
+  product_configuration_attributes: {
+    id: number;
+    name: string;
+    display_name: string;
+    attribute_type: string;
+    is_required: number;
+    min_selections: number;
+    max_selections: number;
+    sequence: number;
+    status: number;
+    restaurant_id: number;
+    product_configuration_attribute_values: Array<{
+      id: number;
+      attribute_id: number;
+      value: string;
+      display_value: string;
+      base_price: string;
+      is_default: number;
+      sequence: number;
+      status: number;
+    }>;
+  };
 }
 
 // Define interfaces for the attribute data
@@ -84,6 +165,8 @@ export const ItemAttributesSettingsDialog = ({
   onOpenChange,
   itemName,
   onSave,
+  restaurantProductId,
+  productId,
 }: ItemAttributesSettingsDialogProps) => {
   const { toast } = useToast();
   const [attributes, setAttributes] = useState<ItemAttribute[]>([]);
@@ -97,68 +180,113 @@ export const ItemAttributesSettingsDialog = ({
     priceAdjustment: "",
   });
 
-  // Fetch primary attributes
-  const { data: attributesData, isLoading: isLoadingAttributes } = useQuery({
-    queryKey: ['attributes'],
+  // Fetch restaurant product modifiers - API 1
+  const { data: restaurantProductModifiers, isLoading: isLoadingModifiers } = useQuery({
+    queryKey: ['restaurant-product-modifiers', restaurantProductId, isOpen],
     queryFn: async () => {
-      const response = await api.get('/attributes', { 
+      if (!restaurantProductId) return [];
+      const response = await api.get('/restaurant-product-modifiers', { 
         params: {
           per_page: 9999,
-          status: 1
+          restaurant_product_id: restaurantProductId
         }
       });
-      return response.attributes || [];
+      console.log('Restaurant Product Modifiers Response:', response);
+      return response.data?.restaurant_product_modifiers || response.restaurant_product_modifiers || [];
     },
-    enabled: isOpen // Only fetch when dialog is open
+    enabled: isOpen && !!restaurantProductId,
+    staleTime: 0,
+    cacheTime: 0,
   });
 
-  // Fetch attribute values when primary attribute is selected
-  const { data: attributeValuesData, isLoading: isLoadingAttributeValues } = useQuery({
-    queryKey: ['attribute-values', currentAttribute.primaryAttribute],
-    queryFn: async () => {
-      if (!currentAttribute.primaryAttribute) return [];
-      const response = await api.get('/attribute-values', { 
-        params: {
-          per_page: 9999,
-          attribute_id: currentAttribute.primaryAttribute,
-          status: 1
-        }
-      });
-      return response.attribute_values || [];
-    },
-    enabled: isOpen && !!currentAttribute.primaryAttribute,
-  });
-
-  // Fetch modifier categories
-  const { data: modifierCategoriesData, isLoading: isLoadingModifierCategories } = useQuery({
-    queryKey: ['modifier-categories'],
+  // Fetch modifier categories - API 2
+  const { data: modifierCategories, isLoading: isLoadingCategories } = useQuery({
+    queryKey: ['modifier-categories', isOpen],
     queryFn: async () => {
       const response = await api.get('/modifier-categories', { 
         params: {
           per_page: 9999,
-          status: 1
+          with_pre_defines: 1
         }
       });
-      return response.modifier_categories || [];
+      console.log('Modifier Categories Response:', response);
+      return response.data?.modifier_categories || response.modifier_categories || [];
     },
-    enabled: isOpen // Only fetch when dialog is open
+    enabled: isOpen,
+    staleTime: 0,
+    cacheTime: 0,
   });
 
-  // Fetch modifiers when modifier category is selected
-  const { data: modifiersData, isLoading: isLoadingModifiers } = useQuery({
-    queryKey: ['modifiers', currentAttribute.modifierCategory],
+  // Fetch modifiers by category - New API call
+  const { data: modifiersByCategory, isLoading: isLoadingModifiersByCategory } = useQuery({
+    queryKey: ['modifiers-by-category', currentAttribute.modifierCategory],
     queryFn: async () => {
       if (!currentAttribute.modifierCategory) return [];
-      const response = await api.get('/modifiers', { 
+      const response = await api.get('/modifiers', {
         params: {
           per_page: 9999,
           modifier_category_id: currentAttribute.modifierCategory,
-          status: 1
+          with_pre_defines: 1
         }
       });
-      return response.modifiers || [];
+      console.log('Modifiers by Category Response:', response);
+      return response.data?.modifiers || response.modifiers || [];
     },
-    enabled: isOpen && !!currentAttribute.modifierCategory,
+    enabled: !!currentAttribute.modifierCategory && currentAttribute.modifierCategory !== "",
+    staleTime: 0,
+    cacheTime: 0,
+  });
+
+  // Fetch price matrix - API 3
+  const { data: priceMatrix, isLoading: isLoadingPriceMatrix } = useQuery({
+    queryKey: ['price-matrix', restaurantProductId, isOpen],
+    queryFn: async () => {
+      if (!restaurantProductId) return [];
+      const response = await api.get('/v2/products/price-matrix', { 
+        params: {
+          restaurant_product_id: restaurantProductId
+        }
+      });
+      console.log('Price Matrix Response:', response);
+      return response.data || response || [];
+    },
+    enabled: isOpen && !!restaurantProductId,
+    staleTime: 0,
+    cacheTime: 0,
+  });
+
+  // Fetch config options - API 4
+  const { data: configOptions, isLoading: isLoadingConfig } = useQuery({
+    queryKey: ['config-options', productId, isOpen],
+    queryFn: async () => {
+      if (!productId) return [];
+      const response = await api.get('/v2/products/config-options', { 
+        params: {
+          product_id: productId
+        }
+      });
+      console.log('Config Options Response:', response);
+      return response.data || response || [];
+    },
+    enabled: isOpen && !!productId,
+    staleTime: 0,
+    cacheTime: 0,
+  });
+
+  // Fetch attribute values when primary attribute is selected
+  const { data: attributeValues, isLoading: isLoadingAttributeValues } = useQuery({
+    queryKey: ['attribute-values', currentAttribute.primaryAttribute],
+    queryFn: async () => {
+      if (!currentAttribute.primaryAttribute) return [];
+      const response = await api.get('/v2/products/attribute-values', {
+        params: { attribute_id: parseInt(currentAttribute.primaryAttribute) }
+      });
+      console.log('Attribute Values Response:', response);
+      return response.data || response || [];
+    },
+    enabled: !!currentAttribute.primaryAttribute && currentAttribute.primaryAttribute !== "",
+    staleTime: 0,
+    cacheTime: 0,
   });
 
   // Reset form when dialog opens or closes
@@ -174,18 +302,6 @@ export const ItemAttributesSettingsDialog = ({
       setAttributes([]);
     }
   }, [isOpen]);
-
-  // Helper function to get attribute value options
-  const getAttributeValueOptions = () => {
-    if (!currentAttribute.primaryAttribute || !attributeValuesData) return [];
-    return attributeValuesData;
-  };
-
-  // Helper function to get modifier options
-  const getModifierOptions = () => {
-    if (!currentAttribute.modifierCategory || !modifiersData) return [];
-    return modifiersData;
-  };
 
   // Handle form field changes
   const handleChange = (field: keyof ItemAttribute, value: string) => {
@@ -248,33 +364,27 @@ export const ItemAttributesSettingsDialog = ({
     });
   };
 
-  // Helper function to get attribute label by id
-  const getAttributeLabel = (id: string): string => {
-    if (!attributesData) return id;
-    const attribute = attributesData.find(attr => attr.id.toString() === id);
-    return attribute ? attribute.attribute : id;
-  };
+  // Loading state
+  const isLoading = isLoadingModifiers || isLoadingCategories || isLoadingPriceMatrix || isLoadingConfig;
 
-  // Helper function to get attribute value label by id
-  const getAttributeValueLabel = (attributeId: string, valueId: string): string => {
-    if (!attributeValuesData) return valueId;
-    const value = attributeValuesData.find(val => val.id.toString() === valueId);
-    return value ? value.value : valueId;
-  };
+  // Get primary attribute options from config options
+  const primaryAttributeOptions = Array.isArray(configOptions) ? configOptions
+    .filter((option: ConfigOption) => option.product_configuration_attributes)
+    .map((option: ConfigOption) => ({
+      id: option.product_configuration_attributes.id,
+      name: option.product_configuration_attributes.name,
+      display_name: option.product_configuration_attributes.display_name,
+    })) : [];
 
-  // Helper function to get modifier category label by id
-  const getModifierCategoryLabel = (id: string): string => {
-    if (!modifierCategoriesData) return id;
-    const category = modifierCategoriesData.find(cat => cat.id.toString() === id);
-    return category ? category.modifier_category : id;
-  };
+  // Get filtered attribute values (only active status = 1)
+  const filteredAttributeValues = Array.isArray(attributeValues) 
+    ? attributeValues.filter((value: any) => value.status === 1) 
+    : [];
 
-  // Helper function to get modifier label by id
-  const getModifierLabel = (id: string): string => {
-    if (!modifiersData) return id;
-    const modifier = modifiersData.find(mod => mod.id.toString() === id);
-    return modifier ? modifier.modifier : id;
-  };
+  // Get filtered modifiers by category (only active status = 1)
+  const filteredModifiers = Array.isArray(modifiersByCategory) 
+    ? modifiersByCategory.filter((modifier: any) => modifier.status === 1)
+    : [];
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -296,192 +406,251 @@ export const ItemAttributesSettingsDialog = ({
         </DialogHeader>
 
         <div className="p-6 space-y-6">
-          {/* Add attribute form */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="primaryAttribute" className="text-sm font-medium">
-                Primary Attribute*
-              </Label>
-              <Select 
-                value={currentAttribute.primaryAttribute} 
-                onValueChange={value => handleChange("primaryAttribute", value)}
-                disabled={isLoadingAttributes}
-              >
-                <SelectTrigger id="primaryAttribute">
-                  <SelectValue placeholder={isLoadingAttributes ? "Loading attributes..." : "Select attribute"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {attributesData && attributesData.map((option: Attribute) => (
-                    <SelectItem key={option.id} value={option.id.toString()}>
-                      {option.attribute}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {isLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+                <p className="text-lg text-gray-600">Loading...</p>
+              </div>
             </div>
-            
-            <div>
-              <Label htmlFor="primaryAttributeValue" className="text-sm font-medium">
-                Primary Attribute Value*
-              </Label>
-              <Select 
-                value={currentAttribute.primaryAttributeValue} 
-                onValueChange={value => handleChange("primaryAttributeValue", value)}
-                disabled={!currentAttribute.primaryAttribute || isLoadingAttributeValues}
-              >
-                <SelectTrigger id="primaryAttributeValue">
-                  <SelectValue placeholder={isLoadingAttributeValues ? "Loading values..." : "Select value"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {getAttributeValueOptions().map((option: AttributeValue) => (
-                    <SelectItem key={option.id} value={option.id.toString()}>
-                      {option.value}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label htmlFor="modifierCategory" className="text-sm font-medium">
-                Modifier Category*
-              </Label>
-              <Select 
-                value={currentAttribute.modifierCategory} 
-                onValueChange={value => handleChange("modifierCategory", value)}
-                disabled={isLoadingModifierCategories}
-              >
-                <SelectTrigger id="modifierCategory">
-                  <SelectValue placeholder={isLoadingModifierCategories ? "Loading categories..." : "Select category"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {modifierCategoriesData && modifierCategoriesData.map((option: ModifierCategory) => (
-                    <SelectItem key={option.id} value={option.id.toString()}>
-                      {option.modifier_category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label htmlFor="modifier" className="text-sm font-medium">
-                Modifier*
-              </Label>
-              <Select 
-                value={currentAttribute.modifier} 
-                onValueChange={value => handleChange("modifier", value)}
-                disabled={!currentAttribute.modifierCategory || isLoadingModifiers}
-              >
-                <SelectTrigger id="modifier">
-                  <SelectValue placeholder={isLoadingModifiers ? "Loading modifiers..." : "Select modifier"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {getModifierOptions().map((option: Modifier) => (
-                    <SelectItem key={option.id} value={option.id.toString()}>
-                      {option.modifier}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="flex items-end space-x-2">
-              <div className="flex-1">
-                <Label htmlFor="priceAdjustment" className="text-sm font-medium">
-                  Price Adjustment*
-                </Label>
-                <div className="relative">
-                  <span className="absolute left-2 top-1/2 transform -translate-y-1/2">$</span>
-                  <Input
-                    id="priceAdjustment"
-                    value={currentAttribute.priceAdjustment}
-                    onChange={e => handleChange("priceAdjustment", e.target.value)}
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
-                    className="pl-6"
-                  />
+          ) : (
+            <>
+              {/* Add attribute form */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="primaryAttribute" className="text-sm font-medium">
+                    Primary Attribute*
+                  </Label>
+                  <Select 
+                    value={currentAttribute.primaryAttribute} 
+                    onValueChange={value => handleChange("primaryAttribute", value)}
+                  >
+                    <SelectTrigger id="primaryAttribute">
+                      <SelectValue placeholder="Select attribute" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {primaryAttributeOptions.map((attribute: any) => (
+                        <SelectItem key={attribute.id} value={attribute.id.toString()}>
+                          {attribute.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="primaryAttributeValue" className="text-sm font-medium">
+                    Primary Attribute Value*
+                  </Label>
+                  <Select 
+                    value={currentAttribute.primaryAttributeValue} 
+                    onValueChange={value => handleChange("primaryAttributeValue", value)}
+                    disabled={!currentAttribute.primaryAttribute || isLoadingAttributeValues}
+                  >
+                    <SelectTrigger id="primaryAttributeValue">
+                      <SelectValue placeholder={
+                        isLoadingAttributeValues ? "Loading..." : "Select value"
+                      } />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredAttributeValues.map((value: any) => (
+                        <SelectItem key={value.id} value={value.id.toString()}>
+                          {value.value}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="modifierCategory" className="text-sm font-medium">
+                    Modifier Category*
+                  </Label>
+                  <Select 
+                    value={currentAttribute.modifierCategory} 
+                    onValueChange={value => handleChange("modifierCategory", value)}
+                  >
+                    <SelectTrigger id="modifierCategory">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.isArray(modifierCategories) && modifierCategories.map((category: ModifierCategory) => (
+                        <SelectItem key={category.id} value={category.id.toString()}>
+                          {category.modifier_category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="modifier" className="text-sm font-medium">
+                    Modifier*
+                  </Label>
+                  <Select 
+                    value={currentAttribute.modifier} 
+                    onValueChange={value => handleChange("modifier", value)}
+                    disabled={!currentAttribute.modifierCategory || isLoadingModifiersByCategory}
+                  >
+                    <SelectTrigger id="modifier">
+                      <SelectValue placeholder={
+                        isLoadingModifiersByCategory ? "Loading..." : "Select modifier"
+                      } />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredModifiers.map((modifier: any) => (
+                        <SelectItem key={modifier.id} value={modifier.id.toString()}>
+                          {modifier.modifier}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex items-end space-x-2">
+                  <div className="flex-1">
+                    <Label htmlFor="priceAdjustment" className="text-sm font-medium">
+                      Price Adjustment*
+                    </Label>
+                    <div className="relative">
+                      <span className="absolute left-2 top-1/2 transform -translate-y-1/2">$</span>
+                      <Input
+                        id="priceAdjustment"
+                        value={currentAttribute.priceAdjustment}
+                        onChange={e => handleChange("priceAdjustment", e.target.value)}
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                        className="pl-6"
+                      />
+                    </div>
+                  </div>
+                  <Button 
+                    className="bg-primary text-white hover:bg-primary/80"
+                    onClick={handleAddAttribute}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add
+                  </Button>
                 </div>
               </div>
-              <Button 
-                className="bg-primary text-white hover:bg-primary/80"
-                onClick={handleAddAttribute}
-                disabled={isLoadingAttributes || isLoadingAttributeValues || isLoadingModifierCategories || isLoadingModifiers}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add
-              </Button>
-            </div>
-          </div>
 
-          {/* Table of added attributes */}
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold mb-2">Attribute List</h3>
-            {attributes.length === 0 ? (
-              <div className="text-center py-4 text-gray-500 border rounded-md">
-                No data available
+              {/* Table of added attributes */}
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-2">Attribute List</h3>
+                {attributes.length === 0 ? (
+                  <div className="text-center py-4 text-gray-500 border rounded-md">
+                    No data available
+                  </div>
+                ) : (
+                  <div className="border rounded-md overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Attribute</TableHead>
+                          <TableHead>Attribute Value</TableHead>
+                          <TableHead>Modifier Category</TableHead>
+                          <TableHead>Modifier</TableHead>
+                          <TableHead>Price Adjustment</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {attributes.map(attr => (
+                          <TableRow key={attr.id}>
+                            <TableCell>{attr.primaryAttribute}</TableCell>
+                            <TableCell>{attr.primaryAttributeValue}</TableCell>
+                            <TableCell>{attr.modifierCategory}</TableCell>
+                            <TableCell>{attr.modifier}</TableCell>
+                            <TableCell>${parseFloat(attr.priceAdjustment).toFixed(2)}</TableCell>
+                            <TableCell className="text-right">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => handleDeleteAttribute(attr.id as string)}
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="border rounded-md overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Attribute</TableHead>
-                      <TableHead>Attribute Value</TableHead>
-                      <TableHead>Modifier Category</TableHead>
-                      <TableHead>Modifier</TableHead>
-                      <TableHead>Price Adjustment</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {attributes.map(attr => (
-                      <TableRow key={attr.id}>
-                        <TableCell>
-                          {getAttributeLabel(attr.primaryAttribute)}
-                        </TableCell>
-                        <TableCell>
-                          {getAttributeValueLabel(attr.primaryAttribute, attr.primaryAttributeValue)}
-                        </TableCell>
-                        <TableCell>
-                          {getModifierCategoryLabel(attr.modifierCategory)}
-                        </TableCell>
-                        <TableCell>
-                          {getModifierLabel(attr.modifier)}
-                        </TableCell>
-                        <TableCell>${parseFloat(attr.priceAdjustment).toFixed(2)}</TableCell>
-                        <TableCell className="text-right">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleDeleteAttribute(attr.id as string)}
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </div>
 
-          {/* Save button */}
-          <div className="flex justify-center pt-4">
-            <Button 
-              className="w-full max-w-[200px] bg-primary text-white hover:bg-primary/80"
-              onClick={handleSubmit}
-              disabled={attributes.length === 0}
-            >
-              SUBMIT
-            </Button>
-          </div>
+              {/* Modifier List - Display Price Matrix Data */}
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-2">Modifier List</h3>
+                {!priceMatrix || !Array.isArray(priceMatrix) || priceMatrix.length === 0 ? (
+                  <div className="text-center py-4 text-gray-500 border rounded-md">
+                    No modifier data available
+                  </div>
+                ) : (
+                  <div className="border rounded-md overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Attribute</TableHead>
+                          <TableHead>Attribute Value</TableHead>
+                          <TableHead>Modifier Category</TableHead>
+                          <TableHead>Modifier</TableHead>
+                          <TableHead>Price Adjustment</TableHead>
+                          <TableHead className="text-right">Action</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {priceMatrix.map((item: PriceMatrixItem) => (
+                          <TableRow key={item.id}>
+                            <TableCell>
+                              {item.product_configuration_attribute_values?.product_configuration_attributes?.name || 'N/A'}
+                            </TableCell>
+                            <TableCell>
+                              {item.product_configuration_attribute_values?.display_value || 'N/A'}
+                            </TableCell>
+                            <TableCell>
+                              {item.restaurant_product_modifiers?.modifiers?.modifier_categories?.modifier_category || 'N/A'}
+                            </TableCell>
+                            <TableCell>
+                              {item.restaurant_product_modifiers?.modifiers?.modifier || 'N/A'}
+                            </TableCell>
+                            <TableCell>
+                              ${parseFloat(item.price_adjustment || '0').toFixed(2)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                              >
+                                Edit
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+
+              {/* Save button */}
+              <div className="flex justify-center pt-4">
+                <Button 
+                  className="w-full max-w-[200px] bg-primary text-white hover:bg-primary/80"
+                  onClick={handleSubmit}
+                  disabled={attributes.length === 0}
+                >
+                  SUBMIT
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>
   );
-}; 
+};

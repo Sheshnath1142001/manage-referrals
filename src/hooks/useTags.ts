@@ -30,7 +30,7 @@ export const useTags = () => {
       setTags(response.tags || []);
       setTotal(response.total || 0);
     } catch (error) {
-      console.error('Error fetching tags:', error);
+      
       toast({
         title: "Error",
         description: "Failed to load tags. Please try again.",
@@ -63,7 +63,7 @@ export const useTags = () => {
       });
       fetchTags();
     } catch (error) {
-      console.error('Error deleting tag:', error);
+      
       toast({
         title: "Error",
         description: "Failed to delete tag. Please try again.",

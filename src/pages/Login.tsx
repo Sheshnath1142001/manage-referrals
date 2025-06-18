@@ -21,7 +21,7 @@ const Login = () => {
 
   useEffect(() => {
     if (isAuthChecked && isAuthenticated()) {
-      console.log('User already authenticated, redirecting to dashboard');
+      
       navigate("/", { replace: true });
     }
   }, [isAuthChecked, isAuthenticated, navigate]);
@@ -78,7 +78,7 @@ const Login = () => {
     }
 
     try {
-      console.log('Attempting login with:', { username, password: '********', clientId });
+      
       
       await login({
         username,
@@ -87,7 +87,7 @@ const Login = () => {
       });
       
     } catch (error) {
-      console.error("Login failed:", error);
+      
       // Error handling is done in the login function
     }
   };
@@ -124,6 +124,13 @@ const Login = () => {
       
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-center items-center p-8 relative">
         <div className="max-w-md">
+          <div className="flex justify-center mb-6">
+            <img 
+              src="/logo.svg" 
+              alt="Pratham Logo" 
+              className="h-16 w-auto"
+            />
+          </div>
           <h1 className="text-3xl font-bold text-gray-800 mb-4">
             Welcome To <span className="text-gray-900 bg-gray-200 px-2 py-1 rounded">Pratham</span> Admin
           </h1>

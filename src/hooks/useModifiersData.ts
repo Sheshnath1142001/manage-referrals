@@ -22,12 +22,12 @@ export const useModifiersData = () => {
         seq_no: seqNoFilter || undefined
       };
 
-      console.log("Fetching modifiers with params:", params);
+      
       const response = await modifiersApi.getModifiers(params);
-      console.log("API response:", response);
+      
       
       if (!response.modifiers) {
-        console.error("API response doesn't contain modifiers array:", response);
+        
         setModifiers([]);
         setTotalItems(0);
         return;
@@ -69,7 +69,7 @@ export const useModifiersData = () => {
       const uniqueCategories = Array.from(uniqueCategoriesSet);
       setModifierCategories(uniqueCategories);
     } catch (error) {
-      console.error("Error fetching modifiers:", error);
+      
       
       const errorStatus = (error as any)?.response?.status;
       if (errorStatus !== 401) {
@@ -125,7 +125,7 @@ export const useModifiersData = () => {
 
       return true;
     } catch (error) {
-      console.error("Error updating sequence:", error);
+      
       toast({
         title: "Update Failed",
         description: "Failed to update modifier sequence.",

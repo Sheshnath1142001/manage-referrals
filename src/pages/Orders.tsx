@@ -6,6 +6,7 @@ import { OrdersPagination } from "@/components/orders/OrdersPagination";
 import { OrderDetailsDialog } from "@/components/OrderDetailsDialog";
 import { UpdateOrderStatusDialog } from "@/components/orders/UpdateOrderStatusDialog";
 import { useToast } from "@/components/ui/use-toast";
+import { authApi } from "@/services/api/auth";
 
 interface OrderItem {
   id: number;
@@ -62,7 +63,7 @@ interface OrderDetail {
   orderType: string;
   createdAt: string;
   location: string;
-  items?: OrderItem[];
+  items?: any[];
   note?: string;
   discounts?: OrderDiscount[];
   surcharges?: OrderSurcharge[];
@@ -102,6 +103,35 @@ const Orders = () => {
   const [editingOrderId, setEditingOrderId] = useState<string>("");
   const [editingOrderCurrentStatus, setEditingOrderCurrentStatus] = useState<string>("");
 
+  // Helper to convert UTC date-time string to store's local timezone
+  const convertUtcToStoreTime = (utcString?: string, storeTz?: string): string | undefined => {
+    if (!utcString) return undefined;
+    try {
+      // If the string does not contain timezone info, append 'Z' so Date treats it as UTC
+      const isIsoWithZone = /Z$|[+-]\d{2}:?\d{2}$/.test(utcString);
+      const isoString = isIsoWithZone ? utcString : `${utcString.replace(' ', 'T')}Z`;
+      const dateObj = new Date(isoString);
+
+      if (isNaN(dateObj.getTime())) return utcString; // fallback to original string
+
+      const tz = storeTz || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+      // Format the date in the store's timezone
+      const formatter = new Intl.DateTimeFormat(undefined, {
+        timeZone: tz,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      });
+
+      return formatter.format(dateObj);
+    } catch {
+      return utcString; // fallback to original if anything fails
+    }
+  };
 
   const handleViewOrder = async (orderId: string) => {
     try {
@@ -111,6 +141,20 @@ const Orders = () => {
       }
       
       const { token } = JSON.parse(adminData);
+      
+      // Fetch store timezone using /me endpoint
+      let storeTimezone: string | undefined;
+      try {
+        const meResp: any = await authApi.getMe();
+        const meData = meResp && 'data' in meResp ? meResp.data : meResp;
+        // Attempt to extract timezone from various possible paths
+        storeTimezone = meData?.user?.restaurants?.timezone ||
+                        meData?.user?.restaurant?.timezone ||
+                        meData?.restaurant?.timezone ||
+                        undefined;
+      } catch (_) {
+        // Ignore errors and fall back to browser timezone if extraction fails
+      }
       
       const response = await fetch(`${apiBaseUrl}/v2/orders/${orderId}`, {
         headers: {
@@ -130,7 +174,7 @@ const Orders = () => {
       }
       
       // Log the full API response
-      console.log('API Response:', JSON.stringify(data, null, 2));
+      
       
       // Find the order in the orders list to get additional info
       const orderInList = orders.find(order => order.id === orderId);
@@ -145,29 +189,17 @@ const Orders = () => {
             .join(", ");
         }
       } catch (e) {
-        console.error('Error parsing payment methods:', e);
+        
       }
       
       // Parse items with error handling
-      let items: OrderItem[] = [];
+      let items: any[] = [];
       try {
-        // Use order_line_items from the API response
+        // Pass the raw order_line_items from the API response for the new format
         if (Array.isArray(data.data.order_line_items)) {
-          items = data.data.order_line_items.map((item: any) => ({
-            id: parseInt(item.id) || Math.random(),
-            name: item.products?.name || item.misc_product_name || 'Unknown Item',
-            price: parseFloat(item.price) || 0,
-            quantity: parseInt(item.quantity) || 1,
-            totalPrice: parseFloat(item.line_item_total || item.total_amount) || parseFloat(item.price) * parseInt(item.quantity) || 0,
-            note: item.note || '',
-            modifiers: Array.isArray(item.order_modifiers)
-              ? item.order_modifiers.map((mod: any) => ({
-                  name: mod.restaurant_product_modifiers?.modifiers?.modifier || mod.misc_modifier_name || 'Unknown Modifier',
-                  price: parseFloat(mod.price) || 0
-                }))
-              : []
-          }));
+          items = data.data.order_line_items;
         } else if (Array.isArray(data.data.order_items)) {
+          // Legacy format - convert to old structure
           items = data.data.order_items.map((item: any) => ({
             id: parseInt(item.id) || Math.random(),
             name: item.name || item.item_name || 'Unknown Item',
@@ -183,6 +215,7 @@ const Orders = () => {
               : []
           }));
         } else if (Array.isArray(data.data.items)) {
+          // Legacy format - convert to old structure
           items = data.data.items.map((item: any) => ({
             id: parseInt(item.id) || Math.random(),
             name: item.name || item.item_name || 'Unknown Item',
@@ -200,7 +233,7 @@ const Orders = () => {
         }
         // No mock data fallback: if items is empty, just show empty
       } catch (e) {
-        console.error('Error parsing order items:', e);
+        
       }
       
       // Parse discounts
@@ -222,7 +255,7 @@ const Orders = () => {
           }];
         }
       } catch (e) {
-        console.error('Error parsing discounts:', e);
+        
       }
       
       // Parse surcharges
@@ -244,7 +277,7 @@ const Orders = () => {
           }];
         }
       } catch (e) {
-        console.error('Error parsing surcharges:', e);
+        
       }
       
       // Parse customer details
@@ -266,24 +299,45 @@ const Orders = () => {
           };
         }
       } catch (e) {
-        console.error('Error parsing customer details:', e);
+        
       }
       
       // Parse delivery details
       let delivery: DeliveryDetail = {};
       try {
-        const deliveryData = data.data.delivery || {};
+        /*
+         * Build delivery details from the API response.
+         * 1. Address: Compose a single line address from the first element of
+         *    `order_delivery_addresses_order_delivery_addresses_order_idToorders` (if present).
+         * 2. Delivery fee, waiting time and delivery time are available directly on the root object.
+         */
+        const addressArray =
+          Array.isArray(data.data.order_delivery_addresses_order_delivery_addresses_order_idToorders) &&
+          data.data.order_delivery_addresses_order_delivery_addresses_order_idToorders.length > 0
+            ? (() => {
+                const addr = data.data.order_delivery_addresses_order_delivery_addresses_order_idToorders[0];
+                return [
+                  addr.unit_number ? `Unit ${addr.unit_number}` : undefined,
+                  addr.street_name,
+                  addr.city,
+                  addr.province,
+                  addr.postcode,
+                  addr.country,
+                ].filter(Boolean);
+              })()
+            : [];
+
         delivery = {
-          address: deliveryData.address,
-          instructions: deliveryData.instructions,
-          deliveryFee: deliveryData.fee ? parseFloat(deliveryData.fee) : undefined,
-          estimatedTime: deliveryData.estimated_time,
-          status: deliveryData.status,
-          waitingTime: deliveryData.waiting_time,
-          deliveryTime: deliveryData.delivery_time
+          address: addressArray.length ? addressArray.join(', ') : undefined,
+          instructions: data.data.delivery_instructions || undefined,
+          deliveryFee: data.data.delivery_charge ? parseFloat(data.data.delivery_charge) : undefined,
+          estimatedTime: convertUtcToStoreTime(data.data.estimated_time, storeTimezone),
+          status: data.data.order_status_name || data.data.status || undefined,
+          waitingTime: data.data.waiting_time || undefined,
+          deliveryTime: convertUtcToStoreTime(data.data.delivery_time, storeTimezone),
         };
       } catch (e) {
-        console.error('Error parsing delivery details:', e);
+        
       }
       
       // Map API response to OrderDetailsDialog expected structure
@@ -307,11 +361,11 @@ const Orders = () => {
         tax: data.data.tax ? parseFloat(data.data.tax) : undefined
       };
       
-      console.log('Order details:', orderData);
+      
       setSelectedOrder(orderData);
       setIsDetailsOpen(true);
     } catch (error) {
-      console.error("Error fetching order details:", error);
+      
       toast({
         title: "Error",
         description: "Failed to load order details. Please try again.",

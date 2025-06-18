@@ -11,7 +11,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { isAuthenticated, isAuthChecked, isLoading } = useAuth();
   const location = useLocation();
   
-  console.log('ProtectedRoute check:', { isAuthChecked, isAuthenticated: isAuthenticated(), isLoading });
+  
   
   // Show loading state while checking auth or during login
   if (!isAuthChecked || isLoading) {
@@ -27,11 +27,11 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   
   // If auth check is complete and user is not authenticated, redirect to login
   if (!isAuthenticated()) {
-    console.log('User not authenticated, redirecting to login');
+    
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
   
   // If auth check is complete and user is authenticated, render the children
-  console.log('User authenticated, rendering protected content');
+  
   return <>{children}</>;
 };

@@ -1,11 +1,8 @@
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ItemImageUpload } from "../ItemImageUpload";
-import { ItemImage } from "../ItemImage";
+import { ItemImageUpload } from "./ItemImageUpload";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Image as ImageIcon, PencilIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { FileText, Image as ImageIcon } from "lucide-react";
 
 interface DescriptionSectionProps {
   formData: any;
@@ -20,7 +17,6 @@ export const DescriptionSection = ({
   isViewMode,
   editingItem
 }: DescriptionSectionProps) => {
-  const [isEditingImage, setIsEditingImage] = useState(false);
   const maxDescriptionLength = 300;
 
   const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -68,59 +64,20 @@ export const DescriptionSection = ({
               <ImageIcon className="h-4 w-4 text-gray-500" />
               {isViewMode ? "Item Image" : "Upload Image"}
             </Label>
-            <div className="border rounded-lg overflow-hidden bg-gray-50 h-[200px] flex items-center justify-center relative group">
-              {!isViewMode && editingItem && !isEditingImage ? (
-                <>
-                  <div className="w-full h-full">
-                    <ItemImage 
-                      moduleId={editingItem.id} 
-                      className="w-full h-full object-contain p-2"
-                    />
-                  </div>
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="gap-2"
-                      onClick={() => setIsEditingImage(true)}
-                    >
-                      <PencilIcon className="h-4 w-4" />
-                      Change Image
-                    </Button>
-                  </div>
-                </>
-              ) : isViewMode && editingItem ? (
-                <div className="w-full h-full">
-                  <ItemImage 
-                    moduleId={editingItem.id} 
-                    className="w-full h-full object-contain p-2"
-                  />
-                </div>
-              ) : (
-                <div className="w-full h-full">
-                  <ItemImageUpload
-                    formData={formData}
-                    updateFormField={updateFormField}
-                    isViewMode={isViewMode}
-                  />
-                </div>
-              )}
+            <div className="h-[200px]">
+              <ItemImageUpload
+                formData={formData}
+                updateFormField={updateFormField}
+                isViewMode={isViewMode}
+                editingItem={editingItem}
+              />
             </div>
+            
             {!isViewMode && (
               <div className="space-y-1">
                 <p className="text-xs text-gray-500">
                   Supported formats: JPG, PNG (max 5MB)
                 </p>
-                {isEditingImage && editingItem && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    onClick={() => setIsEditingImage(false)}
-                  >
-                    Cancel Edit
-                  </Button>
-                )}
               </div>
             )}
           </div>

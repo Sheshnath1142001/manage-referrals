@@ -65,7 +65,7 @@ export function QuantityUnitDialog({ isOpen, onClose, mode, initialData, onSucce
       onSuccess?.();
       onClose();
     } catch (error) {
-      console.error('Error saving quantity unit:', error);
+      
       toast({
         title: "Error",
         description: "Failed to save quantity unit. Please try again.",

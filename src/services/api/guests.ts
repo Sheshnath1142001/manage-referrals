@@ -31,7 +31,7 @@ export interface GuestsResponse {
 
 export const guestsApi = {
   getGuests: async (page: number, perPage: number, status: number = 1, search?: string, email?: string, phone_no?: string): Promise<GuestsResponse> => {
-    console.log('📞 Calling getGuests with:', { page, perPage, status, search, email, phone_no });
+    
     try {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -55,7 +55,7 @@ export const guestsApi = {
   },
 
   createGuest: async (data: Partial<Guest>) => {
-    console.log('📞 Calling createGuest with:', data);
+    
     try {
       const response = await api.post<Guest>('/guests', data);
       return response;
@@ -69,7 +69,7 @@ export const guestsApi = {
   },
 
   updateGuest: async (id: string, data: Partial<Guest>) => {
-    console.log('📞 Calling updateGuest with:', { id, data });
+    
     try {
       const response = await api.put<Guest>(`/guests/${id}`, data);
       return response;
@@ -83,7 +83,7 @@ export const guestsApi = {
   },
 
   deleteGuest: async (id: string) => {
-    console.log('📞 Calling deleteGuest with:', { id });
+    
     try {
       const response = await api.delete(`/guests/${id}`);
       return response;

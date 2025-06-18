@@ -7,14 +7,12 @@ import { useItems } from "@/hooks/useItems";
 import { useState } from "react";
 
 const Items = () => {
-   const {
-    availableCategories: allCategories,
-  } = useItems({categoryPageNumber: 1, categoryPerPage: 99999});
-
   const {
     items,
     searchTerm,
     setSearchTerm,
+    barcodeSearch,
+    setBarcodeSearch,
     selectedCategory,
     setSelectedCategory,
     selectedStatus,
@@ -34,8 +32,12 @@ const Items = () => {
     setSelectedItems,
     toggleItemSelection,
     toggleSelectAll,
-    updateBulkStatus
-  } = useItems({});
+    updateBulkStatus,
+    cloneItems
+  } = useItems({
+    categoryPageNumber: 1,
+    categoryPerPage: 99999
+  });
 
   const {
     isItemDialogOpen,
@@ -45,7 +47,8 @@ const Items = () => {
     formData,
     updateFormField,
     resetForm,
-    handleItemAction
+    handleItemAction,
+    setDefaultLocation
   } = useItemForm();
 
   const [isBulkEditDialogOpen, setIsBulkEditDialogOpen] = useState(false);
@@ -56,19 +59,26 @@ const Items = () => {
     }
   };
 
+  // Modified resetForm function that sets default location and category
+  const resetFormWithLocation = () => {
+    resetForm(locations, availableCategories);
+  };
+
   return (
-    <div className="p-6">
+    <div className="p-3 sm:p-6">
       <ItemsFilter 
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
+        barcodeSearch={barcodeSearch}
+        setBarcodeSearch={setBarcodeSearch}
         selectedCategory={selectedCategory}
         setSelectedCategory={setSelectedCategory}
         selectedStatus={selectedStatus}
         setSelectedStatus={setSelectedStatus}
-        categories={allCategories}
+        categories={availableCategories}
         isLoading={isLoading}
         fetchItems={fetchItems}
-        resetForm={resetForm}
+        resetForm={resetFormWithLocation}
         setIsItemDialogOpen={setIsItemDialogOpen}
       />
 
@@ -86,6 +96,7 @@ const Items = () => {
         toggleSelectAll={toggleSelectAll}
         updateBulkStatus={updateBulkStatus}
         onBulkEdit={handleBulkEdit}
+        onClone={cloneItems}
       />
 
       <ItemDialog 
@@ -95,13 +106,13 @@ const Items = () => {
         editingItem={editingItem}
         formData={formData}
         updateFormField={updateFormField}
-        resetForm={resetForm}
+        resetForm={resetFormWithLocation}
         fetchItems={fetchItems}
         categories={availableCategories}
         quantityUnits={quantityUnits}
         locations={locations}
         discountTypes={discountTypes}
-        allCategories={allCategories}
+        allCategories={availableCategories}
       />
 
       <BulkEditDialog
@@ -112,7 +123,6 @@ const Items = () => {
         categories={availableCategories}
         quantityUnits={quantityUnits}
         discountTypes={discountTypes}
-
       />
     </div>
   );

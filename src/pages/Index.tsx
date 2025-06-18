@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useOrdersData } from "@/hooks/use-orders-data";
 import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
 import { format } from "date-fns";
@@ -19,28 +19,6 @@ import { DateRange } from "react-day-picker";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import RestaurantProducts from './RestaurantProducts';
-
-// Temporary mock data that will be removed once API data is fully integrated
-const hourlySalesData = [
-  { hour: '6 AM', sales: 420 },
-  { hour: '7 AM', sales: 680 },
-  { hour: '8 AM', sales: 1240 },
-  { hour: '9 AM', sales: 1680 },
-  { hour: '10 AM', sales: 1420 },
-  { hour: '11 AM', sales: 1890 },
-  { hour: '12 PM', sales: 2480 },
-  { hour: '1 PM', sales: 2680 },
-  { hour: '2 PM', sales: 2240 },
-  { hour: '3 PM', sales: 1580 },
-  { hour: '4 PM', sales: 1420 },
-  { hour: '5 PM', sales: 1890 },
-  { hour: '6 PM', sales: 2380 },
-  { hour: '7 PM', sales: 2580 },
-  { hour: '8 PM', sales: 2180 },
-  { hour: '9 PM', sales: 1680 },
-  { hour: '10 PM', sales: 980 },
-  { hour: '11 PM', sales: 560 },
-];
 
 const getStatusColor = (status: string) => {
   switch (status.toLowerCase()) {
@@ -85,7 +63,9 @@ const Index = () => {
     totalWeeklySales,
     isLoadingWeeklySales,
     weeklySalesPeriodInfo,
-    formatTime
+    formatTime,
+    overview,
+    isLoadingOverview,
   } = useDashboardMetrics();
 
   // Map the dateRange to period recognized by the API
@@ -146,6 +126,22 @@ const Index = () => {
     });
   };
 
+  const handleTotalSalesClick = () => {
+    navigate('/reports/sales');
+  };
+
+  const handleTotalOrdersClick = () => {
+    navigate('/transactions');
+  };
+
+  const handleCashCollectionsClick = () => {
+    navigate('/reports/cash-card');
+  };
+
+  const handleCardCollectionsClick = () => {
+    navigate('/reports/cash-card');
+  };
+
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -177,6 +173,20 @@ const Index = () => {
     }
     return null;
   };
+
+  // Transform live hourly sales distribution into the shape required by the chart
+  const hourlySalesData = useMemo(() => {
+    return (
+      overview?.hourly_sales?.distribution?.map(({ hour, amount }) => ({
+        hour,
+        sales: amount,
+      })) || []
+    );
+  }, [overview]);
+
+  // Extract peak hour information
+  const peakHour = overview?.hourly_sales?.peak_hour;
+  const peakAmount = overview?.hourly_sales?.peak_amount;
 
   return (
     <div className="bg-gradient-to-b from-gray-50 to-gray-100 p-3 sm:p-4 lg:p-6">
@@ -248,7 +258,7 @@ const Index = () => {
         </header>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-          <div className="stat-card animate-fade-in">
+          <div className="stat-card animate-fade-in cursor-pointer hover:shadow-lg transition-shadow" onClick={handleTotalSalesClick}>
             <div className="flex items-start justify-between">
               <div>
                 <p className="stat-title">Total Sales</p>
@@ -268,7 +278,7 @@ const Index = () => {
             </div>
           </div>
 
-          <div className="stat-card animate-fade-in">
+          <div className="stat-card animate-fade-in cursor-pointer hover:shadow-lg transition-shadow" onClick={handleTotalOrdersClick}>
             <div className="flex items-start justify-between">
               <div>
                 <p className="stat-title">Total Orders</p>
@@ -383,7 +393,7 @@ const Index = () => {
             </div>
           </div>
 
-          <div className="stat-card animate-fade-in">
+          <div className="stat-card animate-fade-in cursor-pointer hover:shadow-lg transition-shadow" onClick={handleCashCollectionsClick}>
             <div className="flex items-start justify-between">
               <div>
                 <p className="stat-title">Cash Collections</p>
@@ -401,7 +411,7 @@ const Index = () => {
             </div>
           </div>
 
-          <div className="stat-card animate-fade-in">
+          <div className="stat-card animate-fade-in cursor-pointer hover:shadow-lg transition-shadow" onClick={handleCardCollectionsClick}>
             <div className="flex items-start justify-between">
               <div>
                 <p className="stat-title">Card Collections</p>
@@ -670,52 +680,68 @@ const Index = () => {
           <div className="mt-6 bg-white rounded-xl shadow-sm">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 p-4">
               <h3 className="text-base sm:text-lg font-semibold text-gray-900">Hourly Sales Distribution</h3>
-              <div className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-0">Peak hour: 1 PM ($2,680)</div>
+              <div className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-0">
+                {isLoadingOverview
+                  ? 'Loading...'
+                  : peakHour
+                  ? `Peak hour: ${peakHour} (${formatCurrency(peakAmount ?? 0)})`
+                  : 'No data'}
+              </div>
             </div>
             <div className="h-[250px] sm:h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={hourlySalesData}
-                  margin={{
-                    top: 10,
-                    right: 30,
-                    left: 0,
-                    bottom: 0,
-                  }}
-                >
-                  <defs>
-                    <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.2}/>
-                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid 
-                    strokeDasharray="3 3" 
-                    vertical={false}
-                    stroke="#f0f0f0"
-                  />
-                  <XAxis 
-                    dataKey="hour"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: '#6b7280', fontSize: 12 }}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: '#6b7280', fontSize: 12 }}
-                    tickFormatter={(value) => `$${value}`}
-                  />
-                  <Tooltip content={<HourlySalesTooltip />} />
-                  <Area
-                    type="monotone"
-                    dataKey="sales"
-                    stroke="#8b5cf6"
-                    strokeWidth={2}
-                    fill="url(#salesGradient)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              {isLoadingOverview ? (
+                <div className="flex items-center justify-center h-full">
+                  <RefreshCw className="h-6 w-6 text-primary animate-spin" />
+                </div>
+              ) : hourlySalesData.length === 0 ? (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  No data available
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={hourlySalesData}
+                    margin={{
+                      top: 10,
+                      right: 30,
+                      left: 0,
+                      bottom: 0,
+                    }}
+                  >
+                    <defs>
+                      <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid 
+                      strokeDasharray="3 3" 
+                      vertical={false}
+                      stroke="#f0f0f0"
+                    />
+                    <XAxis 
+                      dataKey="hour"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#6b7280', fontSize: 12 }}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#6b7280', fontSize: 12 }}
+                      tickFormatter={(value) => formatCurrency(value)}
+                    />
+                    <Tooltip content={<HourlySalesTooltip />} />
+                    <Area
+                      type="monotone"
+                      dataKey="sales"
+                      stroke="#8b5cf6"
+                      strokeWidth={2}
+                      fill="url(#salesGradient)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
         </div>

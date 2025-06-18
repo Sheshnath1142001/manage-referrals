@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { ProductAttribute, AttributeType } from "@/types/productAttributes";
 import { UseMutationResult } from "@tanstack/react-query";
+import { Badge } from "@/components/ui/badge";
 
 interface AttributeDialogProps {
   isOpen: boolean;
@@ -83,38 +84,52 @@ export function AttributeDialog({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Type</Label>
-                <Select
-                  value={formData.attribute_type as string}
-                  onValueChange={(value) => onFormDataChange({...formData, attribute_type: value as AttributeType})}
-                  disabled={isViewMode}
-                >
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="text">Text</SelectItem>
-                    <SelectItem value="number">Number</SelectItem>
-                    <SelectItem value="single_select">Single select</SelectItem>
-                    <SelectItem value="multi_select">Multiple select</SelectItem>
-                  </SelectContent>
-                </Select>
+                {isViewMode ? (
+                  <div className="h-9 px-3 py-2 border rounded-md flex items-center">
+                    {formData.attribute_type}
+                  </div>
+                ) : (
+                  <Select
+                    value={formData.attribute_type as string}
+                    onValueChange={(value) => onFormDataChange({...formData, attribute_type: value as AttributeType})}
+                    disabled={isViewMode}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="text">Text</SelectItem>
+                      <SelectItem value="number">Number</SelectItem>
+                      <SelectItem value="single_select">Single select</SelectItem>
+                      <SelectItem value="multi_select">Multiple select</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Status</Label>
-                <Select
-                  value={String(formData.status || "Active")}
-                  onValueChange={(value) => onFormDataChange({...formData, status: value as "Active" | "Inactive"})}
-                  disabled={isViewMode}
-                >
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Active">Active</SelectItem>
-                    <SelectItem value="Inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
+                {isViewMode ? (
+                  <div className="h-9 px-3 py-2 border rounded-md flex items-center">
+                    <Badge variant={String(formData.status) === "Active" || formData.status === 1 ? "default" : "secondary"}>
+                      {String(formData.status) === "Active" || formData.status === 1 ? "Active" : "Inactive"}
+                    </Badge>
+                  </div>
+                ) : (
+                  <Select
+                    value={String(formData.status || "Active")}
+                    onValueChange={(value) => onFormDataChange({...formData, status: value as "Active" | "Inactive"})}
+                    disabled={isViewMode}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Active">Active</SelectItem>
+                      <SelectItem value="Inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </div>
             

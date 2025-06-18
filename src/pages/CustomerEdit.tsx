@@ -67,7 +67,7 @@ export default function CustomerEdit() {
         return admin?.token || null;
       }
     } catch (error) {
-      console.error('Error getting auth token:', error);
+      
     }
     return null;
   };
@@ -115,8 +115,8 @@ export default function CustomerEdit() {
           customer_groups: data.customer_groups,
         });
 
-        // If address details are provided, create address for the new customer
-        if (data.street_name || data.city || data.postcode) {
+        // If user wants to include address and address details are provided, create address for the new customer
+        if (data.include_address && (data.street_name || data.city || data.postcode)) {
           const newCustomerId = typeof newCustomer === 'object' && 'id' in newCustomer 
             ? newCustomer.id 
             : null;
@@ -144,27 +144,29 @@ export default function CustomerEdit() {
           customer_groups: data.customer_groups,
         });
 
-        // Update or create address if provided
-        if (hasAddress) {
-          await customersApi.updateCustomerAddress(address[0].id, {
-            unit_number: data.unit_number,
-            street_name: data.street_name,
-            postcode: data.postcode,
-            city: data.city,
-            province: data.province,
-            country: data.country,
-          });
-        } else if (data.street_name || data.city || data.postcode) {
-          await customersApi.createCustomerAddress({
-            unit_number: data.unit_number || '',
-            street_name: data.street_name || '',
-            postcode: data.postcode || '',
-            city: data.city || '',
-            province: data.province || '',
-            country: data.country || '',
-            module_id: parseInt(id!),
-            module_type: 6,
-          });
+        // Update or create address if user wants to include address
+        if (data.include_address) {
+          if (hasAddress) {
+            await customersApi.updateCustomerAddress(address[0].id, {
+              unit_number: data.unit_number,
+              street_name: data.street_name,
+              postcode: data.postcode,
+              city: data.city,
+              province: data.province,
+              country: data.country,
+            });
+          } else if (data.street_name || data.city || data.postcode) {
+            await customersApi.createCustomerAddress({
+              unit_number: data.unit_number || '',
+              street_name: data.street_name || '',
+              postcode: data.postcode || '',
+              city: data.city || '',
+              province: data.province || '',
+              country: data.country || '',
+              module_id: parseInt(id!),
+              module_type: 6,
+            });
+          }
         }
       }
     },

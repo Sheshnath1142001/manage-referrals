@@ -49,15 +49,21 @@ export function StaffForm({ onSubmit, formData, setFormData, isSubmitting, handl
     queryFn: async () => {
       const response = await getUserRoles({ with_pre_defines: 1 });
       console.log({  response})
-      console.log("User roles response:", response);
+      
       return response;
     },
   });
 
-  // Access user roles data safely
-  const userRoles = useMemo(() => rolesData?.user_roles || [], [rolesData]);
-  console.log("User roles:", userRoles);
-  console.log("Current roleId:", formData.roleId);
+  // Access user roles data safely and filter for only allowed roles
+  const userRoles = useMemo(() => {
+    const allRoles = rolesData?.user_roles || [];
+    // Filter to only show Admin, Attendant, and Delivery Agent
+    const allowedRoles = ['Admin', 'Attendant', 'Delivery Agent'];
+    return allRoles.filter(role => allowedRoles.includes(role.role));
+  }, [rolesData]);
+
+  
+  
 
   return (
     <form onSubmit={onSubmit} className="space-y-6">
@@ -80,7 +86,7 @@ export function StaffForm({ onSubmit, formData, setFormData, isSubmitting, handl
             onValueChange={(value) => {
               const roleId = parseInt(value);
               const selectedRole = userRoles.find(r => r.id === roleId);
-              console.log("Selected role:", selectedRole);
+              
               setFormData(prev => ({
                 ...prev,
                 roleId: roleId,
@@ -156,16 +162,21 @@ export function StaffForm({ onSubmit, formData, setFormData, isSubmitting, handl
           />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="username">Username*</Label>
-          <Input
-            id="username"
-            value={formData.username}
-            onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-            placeholder="Enter username"
-            required
-          />
-        </div>
+        {/* Only show username field in edit mode */}
+        {mode === 'edit' && (
+          <div className="space-y-2">
+            <Label htmlFor="username">Username*</Label>
+            <Input
+              id="username"
+              value={formData.username}
+              onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+              placeholder="Enter username"
+              disabled={true}
+              className="bg-gray-50 cursor-not-allowed"
+              required
+            />
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="password">Password{mode === 'add' ? '*' : ''}</Label>

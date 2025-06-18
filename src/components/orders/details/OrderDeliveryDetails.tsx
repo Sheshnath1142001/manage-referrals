@@ -78,12 +78,24 @@ export const OrderDeliveryDetails: React.FC<OrderDeliveryDetailsProps> = ({
           
           <div className="flex items-start gap-2 col-span-full">
             <MapPin className="h-4 w-4 text-gray-500 mt-0.5 shrink-0" />
-            <span className="text-gray-700">Address: {address || 'Not provided'}</span>
+            {address ? (
+              <span className="text-gray-700 whitespace-pre-line">
+                Address:
+                {" "}
+                {address.split(',').map((part, idx) => (
+                  <span key={idx} className="block first:inline">
+                    {part.trim()}
+                  </span>
+                ))}
+              </span>
+            ) : (
+              <span className="text-gray-700">Address: -</span>
+            )}
           </div>
           
           <div className="flex items-start gap-2 col-span-full">
             <MessageSquare className="h-4 w-4 text-gray-500 mt-0.5 shrink-0" />
-            <span className="text-gray-700">Instructions: {instructions || 'No instructions provided'}</span>
+            <span className="text-gray-700">Instructions: {instructions || '-'}</span>
           </div>
         </div>
       </div>

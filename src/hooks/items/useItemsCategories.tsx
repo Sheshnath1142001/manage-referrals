@@ -27,10 +27,9 @@ export function useItemsCategories() {
       // Fetch all categories with pagination parameters
       const response = await categoriesApi.getCategories({ 
         page: 1,
-        per_page: 99999
+        per_page: 99999,
+        status: 1 // Only fetch active categories
       });
-      
-      console.log("Categories API response:", response);
       
       let categoriesList = [];
       
@@ -49,21 +48,13 @@ export function useItemsCategories() {
           name: cat.category || cat.name || "Unknown"
         }));
         
-        console.log("Formatted categories:", formattedCategories);
-        
-        if (formattedCategories.length > 0) {
-          setAvailableCategories(formattedCategories);
-        } else {
-          console.warn("No categories returned from API, using defaults");
-          setAvailableCategories(defaultCategories);
-        }
+        setAvailableCategories(formattedCategories);
       } else {
-        console.warn("No categories found, using defaults");
-        setAvailableCategories(defaultCategories);
+        setAvailableCategories([]);
       }
     } catch (error) {
-      console.error("Error fetching categories:", error);
-      setAvailableCategories(defaultCategories);
+      console.error('Failed to fetch categories:', error);
+      setAvailableCategories([]);
     } finally {
       setIsLoading(false);
     }

@@ -101,7 +101,7 @@ export const BulkEditDialog = ({
         setLocalDiscountTypes(discountTypesResponse.data.discount_types);
       }
     } catch (error) {
-      console.error("Error fetching dropdown data:", error);
+      
       toast({
         title: "Error",
         description: "Failed to load form data. Some options may be unavailable.",
@@ -179,7 +179,7 @@ export const BulkEditDialog = ({
       onBulkUpdateSuccess();
       onOpenChange(false);
     } catch (error) {
-      console.error("Error updating items:", error);
+      
       toast({
         title: "Error",
         description: "Failed to update items. Please try again.",
@@ -244,7 +244,7 @@ export const BulkEditDialog = ({
       onBulkUpdateSuccess();
       onOpenChange(false);
     } catch (error) {
-      console.error("Error updating individual items:", error);
+      
       toast({
         title: "Error",
         description: "Failed to update items. Please try again.",
@@ -362,11 +362,11 @@ export const BulkEditDialog = ({
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                       <SelectContent>
-                        {categories.map((cat: any) => (
+                        {Array.isArray(categories) ? categories.map((cat: any) => (
                           <SelectItem key={cat.id} value={cat.id.toString()}>
                             {cat.category}
                           </SelectItem>
-                        ))}
+                        )) : null}
                       </SelectContent>
                     </Select>
                   </div>

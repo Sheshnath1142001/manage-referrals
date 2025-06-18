@@ -78,7 +78,7 @@ export function MultiSelect({
           role="combobox"
           aria-expanded={open}
           className={cn(
-            "w-full justify-between",
+            "w-full justify-between items-start py-2 min-h-10 h-auto",
             !safeValue.length && "text-muted-foreground",
             className
           )}

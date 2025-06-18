@@ -20,7 +20,7 @@ export const getRestaurantsForProduct = async (productId: number | string): Prom
     });
     return response.data || response || [];
   } catch (error) {
-    console.error('Error fetching restaurants for product:', error);
+    
     return [];
   }
 };

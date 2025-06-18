@@ -10,7 +10,7 @@ interface ApiDataViewProps {
 export const ApiDataView = ({ apiResponse, onHide }: ApiDataViewProps) => {
   // Helper function to safely extract categories from API response
   const extractCategoriesFromResponse = () => {
-    console.log("API Response in ApiDataView:", apiResponse);
+    
     
     if (!apiResponse) return [];
     

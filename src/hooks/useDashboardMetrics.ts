@@ -14,6 +14,7 @@ import {
   HourlySalesDistribution
 } from '@/services/api/dashboard';
 import { useToast } from './use-toast';
+import { useGetRestaurants } from './useGetRestaurants';
 
 // Configuration options for component behavior
 interface DashboardConfig {
@@ -64,7 +65,7 @@ export const useDashboardMetrics = (config: DashboardConfig = DEFAULT_CONFIG) =>
       try {
         return await dashboardApi.getDashboardMetrics(params);
       } catch (err) {
-        console.error('Error fetching dashboard metrics:', err);
+        
         toast({
           title: 'Error',
           description: 'Failed to fetch dashboard metrics',
@@ -98,7 +99,7 @@ export const useDashboardMetrics = (config: DashboardConfig = DEFAULT_CONFIG) =>
       try {
         return await dashboardApi.getTopSellingItems(params);
       } catch (err) {
-        console.error('Error fetching top selling items:', err);
+        
         toast({
           title: 'Error',
           description: 'Failed to fetch top selling items',
@@ -132,7 +133,7 @@ export const useDashboardMetrics = (config: DashboardConfig = DEFAULT_CONFIG) =>
       try {
         return await dashboardApi.getOngoingOrders(params);
       } catch (err) {
-        console.error('Error fetching ongoing orders:', err);
+        
         toast({
           title: 'Error',
           description: 'Failed to fetch ongoing orders',
@@ -174,7 +175,7 @@ export const useDashboardMetrics = (config: DashboardConfig = DEFAULT_CONFIG) =>
       try {
         return await dashboardApi.getWeeklySales(params);
       } catch (err) {
-        console.error('Error fetching weekly sales data:', err);
+        
         toast({
           title: 'Error',
           description: 'Failed to fetch weekly sales data',
@@ -211,7 +212,7 @@ export const useDashboardMetrics = (config: DashboardConfig = DEFAULT_CONFIG) =>
       try {
         return await dashboardApi.getOverview(params);
       } catch (err) {
-        console.error('Error fetching dashboard overview:', err);
+        
         toast({
           title: 'Error',
           description: 'Failed to fetch dashboard overview',

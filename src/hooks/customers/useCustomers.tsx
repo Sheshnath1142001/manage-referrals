@@ -41,7 +41,7 @@ export const useCustomers = (initialParams?: {
           total_pages: Math.ceil((response.total || 0) / pageSize)
         };
       } catch (error) {
-        console.error("Error fetching customers:", error);
+        
         toast({
           title: "Error",
           description: "Failed to fetch customers",

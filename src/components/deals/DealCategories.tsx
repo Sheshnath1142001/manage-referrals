@@ -33,6 +33,11 @@ export const DealCategories = ({
     }
   }, [restaurantId]);
 
+  // Keep local selection in sync with parent when switching between create/edit dialogs
+  useEffect(() => {
+    setCategories(initialCategories);
+  }, [initialCategories]);
+
   const fetchCategories = async () => {
     try {
       const response = await fetch(
@@ -84,28 +89,17 @@ export const DealCategories = ({
   const selectedCategoryIds = categories.map(category => category.id.toString());
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Categories</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Select Categories</Label>
-              <MultiSelect
-                options={categoryOptions}
-                value={selectedCategoryIds}
-                onChange={handleCategoriesChange}
-                placeholder="Select categories"
-                disabled={disabled || isLoading}
-                searchable={true}
-                loading={isLoading}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="space-y-2">
+      <Label>Deal Categories</Label>
+      <MultiSelect
+        options={categoryOptions}
+        value={selectedCategoryIds}
+        onChange={handleCategoriesChange}
+        placeholder="Select categories"
+        disabled={disabled || isLoading}
+        searchable={true}
+        loading={isLoading}
+      />
     </div>
   );
 }; 

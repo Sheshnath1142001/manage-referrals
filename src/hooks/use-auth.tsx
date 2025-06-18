@@ -10,9 +10,14 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   isAuthChecked: boolean;
+  authVersion: number;
   login: (credentials: LoginCredentials & { clientId: string }) => Promise<void>;
   logout: () => void;
   isAuthenticated: () => boolean;
+  /**
+   * Allow children components to update the cached user object (e.g. after profile edit).
+   */
+  setUser: (user: User | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,6 +39,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isAuthChecked, setIsAuthChecked] = useState(false);
+  const [authVersion, setAuthVersion] = useState(0);
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -42,23 +48,23 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     const initializeAuth = () => {
       try {
-        console.log('Initializing auth...');
+        
         const adminData = localStorage.getItem('Admin');
         if (adminData) {
           const parsedAdmin = JSON.parse(adminData) as AuthResponse;
           if (parsedAdmin.token && parsedAdmin.user) {
-            console.log('Found existing auth data');
+            
             setToken(parsedAdmin.token);
             setUser(parsedAdmin.user);
           }
         }
       } catch (error) {
-        console.error('Error parsing admin data:', error);
+        
         localStorage.removeItem('Admin');
         localStorage.removeItem('token');
       } finally {
         setIsAuthChecked(true);
-        console.log('Auth check completed');
+        
       }
     };
 
@@ -70,7 +76,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 const login = async (credentials: LoginCredentials & { clientId: string }) => {
   try {
     setIsLoading(true);
-    console.log('Attempting login with endpoint /v2/users/admin/login...');
+    
     
     const authData = await authApi.login(
       credentials.username,
@@ -79,7 +85,7 @@ const login = async (credentials: LoginCredentials & { clientId: string }) => {
     );
     
     if (authData.token && authData.user) {
-      console.log('Login successful');
+      
       
       // Convert string ID to number if needed
       const userWithNumberId = {
@@ -98,7 +104,21 @@ const login = async (credentials: LoginCredentials & { clientId: string }) => {
       }));
       
       // Clear all React Query cache data to ensure fresh data for new tenant
+      
       queryClient.clear();
+      
+      // Clear any tenant-specific caches from previous sessions
+      if (window.localStorage) {
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+          if (key.startsWith('tenant_') || key.startsWith('cache_')) {
+            localStorage.removeItem(key);
+          }
+        });
+      }
+      
+      // Increment auth version to trigger re-renders
+      setAuthVersion(prev => prev + 1);
       
       toast({
         title: "Success",
@@ -109,7 +129,7 @@ const login = async (credentials: LoginCredentials & { clientId: string }) => {
       navigate('/', { replace: true });
     }
   } catch (error: any) {
-    console.error('Login error:', error);
+    
       toast({
         title: "Error",
         description: error.response?.data?.message || "Login failed",
@@ -122,25 +142,44 @@ const login = async (credentials: LoginCredentials & { clientId: string }) => {
   };
 
   const logout = () => {
-    console.log('Logging out...');
+    
+    const previousUser = user;
+    
     setUser(null);
     setToken(null);
     localStorage.removeItem('Admin');
     localStorage.removeItem('token');
     
     // Clear all React Query cache to prevent showing old tenant data
+    
     queryClient.clear();
+    
+    // Clear any other persistent caches
+    if (window.localStorage) {
+      // Clear any other app-specific cache keys if needed
+      const keys = Object.keys(localStorage);
+      keys.forEach(key => {
+        if (key.startsWith('tenant_') || key.startsWith('cache_')) {
+          localStorage.removeItem(key);
+        }
+      });
+    }
+    
+    // Increment auth version to trigger re-renders
+    setAuthVersion(prev => prev + 1);
     
     navigate('/login');
     toast({
       title: "Success",
       description: "Logged out successfully",
     });
+    
+    
   };
 
   const isAuthenticated = () => {
     const result = !!token && !!user;
-    console.log('Auth check result:', result);
+    
     return result;
   };
 
@@ -149,9 +188,11 @@ const login = async (credentials: LoginCredentials & { clientId: string }) => {
     token,
     isLoading,
     isAuthChecked,
+    authVersion,
     login,
     logout,
-    isAuthenticated
+    isAuthenticated,
+    setUser,
   };
 
   return (

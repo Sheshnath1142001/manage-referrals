@@ -42,7 +42,7 @@ const Profile = () => {
   const { toast } = useToast();
   const { user, isAuthChecked, setUser } = useAuth();
   // Debug: log user value on every render
-  console.log('Profile page user context:', user);
+  
   const [editOpen, setEditOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [showCurrent, setShowCurrent] = useState(false);
@@ -56,6 +56,15 @@ const Profile = () => {
   useEffect(() => {
     setProfileKey((k) => k + 1);
   }, [user]);
+
+  // Fetch latest profile info from API on component mount to ensure data is up-to-date
+  useEffect(() => {
+    // Only attempt to refresh if auth check is done and user exists (i.e. authenticated)
+    if (isAuthChecked && user) {
+      handleRefreshProfile();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthChecked]);
 
   if (!isAuthChecked) {
     return (
@@ -122,15 +131,15 @@ const Profile = () => {
       });
       // Fetch the latest user info and update context/localStorage
       const meRes = await authApi.getMe();
-      if (meRes && meRes.data && meRes.data.user) {
+      if (meRes && meRes.user) {
         const adminData = localStorage.getItem('Admin');
         if (adminData) {
           const admin = JSON.parse(adminData);
-          admin.user = meRes.data.user;
+          admin.user = meRes.user;
           localStorage.setItem('Admin', JSON.stringify(admin));
         }
-        setUser({ ...meRes.data.user });
-        console.log('Set user after refresh:', meRes.data.user);
+        setUser({ ...meRes.user });
+        
       }
       setEditOpen(false);
       toast({
@@ -186,15 +195,15 @@ const Profile = () => {
     setRefreshLoading(true);
     try {
       const meRes = await authApi.getMe();
-      if (meRes && meRes.data && meRes.data.user) {
+      if (meRes && meRes.user) {
         const adminData = localStorage.getItem('Admin');
         if (adminData) {
           const admin = JSON.parse(adminData);
-          admin.user = meRes.data.user;
+          admin.user = meRes.user;
           localStorage.setItem('Admin', JSON.stringify(admin));
         }
-        setUser({ ...meRes.data.user });
-        console.log('Set user after refresh:', meRes.data.user);
+        setUser({ ...meRes.user });
+        
       }
       toast({ title: "Profile refreshed", description: "Your profile information has been updated." });
     } catch (error: any) {
@@ -312,10 +321,10 @@ const Profile = () => {
                   </div>
                   <div className="space-y-3 md:col-span-2">
                     <Label className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                      <IdCard className="h-4 w-4 text-primary" /> Client ID
+                      <IdCard className="h-4 w-4 text-primary" /> Company Code
                     </Label>
                     <div className="p-3 rounded-md bg-gray-50 border border-gray-100">
-                      <p className="text-gray-900">{user.restaurant_id}</p>
+                      <p className="text-gray-900">{user.company_code || '-'}</p>
                     </div>
                   </div>
                 </div>

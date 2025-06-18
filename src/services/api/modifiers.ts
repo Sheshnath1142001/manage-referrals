@@ -83,7 +83,7 @@ export interface ModifierCategoryData {
 
 export const modifiersApi = {
   getModifiers: async (params: any): Promise<any> => {
-    console.log('Fetching modifiers with params:', params);
+    
     
     const apiParams = { ...params };
     
@@ -102,12 +102,12 @@ export const modifiersApi = {
     }
     
     const response = await api.get('/modifiers', { params: apiParams });
-    console.log('API response for modifiers:', response);
+    
     return response;
   },
   
   createModifier: (data: ModifierData | CreateModifierPayload) => {
-    console.log('Creating modifier with data:', data);
+    
     
     if ('modifier' in data && 'modifier_category_id' in data) {
       return api.post('/modifier', data);
@@ -122,10 +122,10 @@ export const modifiersApi = {
   },
   
   updateModifier: (id: string, data: ModifierData | UpdateModifierPayload) => {
-    console.log('Updating modifier with ID:', id, 'data:', data);
+    
     
     if ('modifier' in data || 'modifier_category_id' in data) {
-      return api.put(`/modifier/${id}`, data);
+      return api.patch(`/modifier/${id}`, data);
     } else {
       const formData = new FormData();
       const oldData = data as ModifierData;
@@ -137,7 +137,7 @@ export const modifiersApi = {
   },
   
   updateModifierSequence: (id: number, newSeqNo: number, modifierCategoryId: number) => {
-    console.log('Updating sequence for modifier:', { id, newSeqNo, modifierCategoryId });
+    
     return api.patch('/shift-modifier-seq', {
       id,
       new_seq_no: newSeqNo,
@@ -146,7 +146,7 @@ export const modifiersApi = {
   },
   
   updateModifierSeqNo: (id: string, seqNo: number, modifierCategoryId: number) => {
-    console.log('Updating sequence for modifier ID:', id, 'to:', seqNo, 'category ID:', modifierCategoryId);
+    
     return api.patch('/shift-modifier-seq', {
       id: Number(id),
       new_seq_no: seqNo,
@@ -157,7 +157,7 @@ export const modifiersApi = {
   deleteModifier: (id: string) => api.delete(`/modifiers/${id}`),
   
   importModifiers: (data: FormData) => {
-    console.log('Importing modifiers');
+    
     return api.post('/modifiers/import', data);
   },
   
@@ -208,30 +208,30 @@ export const modifierCategoriesApi = {
     }
     
     // Log the final parameters being sent to the API
-    console.log('Sending final modifier categories params to API:', apiParams);
+    
     
     const response = await api.get('/modifier-categories', { params: apiParams });
-    console.log('API response for modifier categories:', response);
+    
     
     return response as unknown as ModifierCategoriesApiResponse;
   },
   
   createModifierCategory: async (data: ModifierCategoryData) => {
-    console.log('Creating modifier category with data:', data);
+    
     const response = await api.post('/modifier-category', data);
-    console.log('Create modifier category response:', response);
+    
     return response;
   },
   
   updateModifierCategory: async (id: string, data: ModifierCategoryData) => {
-    console.log('Updating modifier category with data:', data);
+    
     const response = await api.patch(`/modifier-category/${id}`, data);
-    console.log('Update modifier category response:', response);
+    
     return response;
   },
   
   updateModifierCategorySequence: (id: string | number, seqNo: number, name: string) => {
-    console.log('Updating sequence for category ID:', id, 'to:', seqNo, 'name:', name);
+    
     return api.patch('/shift-modifier-category-seq', {
       id: Number(id),
       name: name,
@@ -242,7 +242,7 @@ export const modifierCategoriesApi = {
   deleteModifierCategory: (id: string) => api.delete(`/modifier-categories/${id}`),
   
   importModifierCategories: (data: any) => {
-    console.log('Importing modifier categories with data:', data);
+    
     return api.post('/import-modifier-categories', data); 
   },
 };

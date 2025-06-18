@@ -123,9 +123,9 @@ export const dealsApi = {
   
   // Get deal component types
   getDealComponentTypes: async () => {
-    console.log('Fetching deal component types...');
+    
     const response = await api.get<DealComponentType[]>('/v2/deals/component-types/list');
-    console.log('Deal component types response:', response);
+    
     return response;
   },
   

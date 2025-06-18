@@ -56,7 +56,7 @@ export interface ProductAttribute {
 }
 
 export interface ProductAttributesFilterParams {
-  status?: string;
+  status?: number;
   name?: string;
   page?: number;
   per_page?: number;

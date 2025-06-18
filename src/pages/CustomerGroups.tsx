@@ -1,3 +1,5 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from "react-router-dom";
 import { CustomerGroupDialog } from "@/components/customer-groups/CustomerGroupDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,8 +24,24 @@ import { useToast } from "@/components/ui/use-toast";
 import { customerGroupsApi, type Customer, type CustomerGroup } from '@/services/api/customerGroups';
 import { authApi } from '@/services/api/auth'; // Import authApi
 import { ArrowLeft, Edit, Eye, Plus, RefreshCw, Trash2, Users } from "lucide-react";
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from "react-router-dom";
+
+// Define proper interfaces for the actual API response structure
+interface ApiPaginationResponse {
+  total: number;
+  page: number;
+  limit: number;
+  total_pages: number;
+}
+
+interface ApiDataResponse {
+  data: CustomerGroup[];
+  pagination: ApiPaginationResponse;
+}
+
+interface ActualApiResponse {
+  success: boolean;
+  data: ApiDataResponse;
+}
 
 const CustomerGroups: React.FC = () => {
   const navigate = useNavigate();
@@ -51,14 +69,14 @@ const CustomerGroups: React.FC = () => {
   const fetchCurrentUser = async () => {
     try {
       const response = await authApi.getMe();
-      console.log('Current user data:', response);
+      
       
       // Handle both direct data and axios wrapper response
       const userData = 'data' in response ? response.data : response;
       setCurrentUser(userData);
       return userData; // Return userData for immediate use
     } catch (error) {
-      console.error('Error fetching current user:', error);
+      
       toast({
         title: "Warning",
         description: "Could not fetch user information",
@@ -79,15 +97,34 @@ const CustomerGroups: React.FC = () => {
         restaurantId // Add restaurant_id parameter
       );
 
-      if (response) {
-        setCustomerGroups(response.data);
-        setTotalItems(response.pagination.total);
+      
+
+      // Since the API client interceptor returns response.data, 
+      // the response should already be the ActualApiResponse structure
+      if (response && typeof response === 'object' && 'success' in response && 'data' in response) {
+        const apiResponse = response as ActualApiResponse;
+        
+        if (apiResponse.success && apiResponse.data) {
+          const customerGroupsData: CustomerGroup[] = apiResponse.data.data || [];
+          const paginationData: ApiPaginationResponse = apiResponse.data.pagination || { total: 0, page: 1, limit: 10, total_pages: 0 };
+          
+          
+          
+          
+          setCustomerGroups(customerGroupsData);
+          setTotalItems(paginationData.total);
+        } else {
+          
+          setCustomerGroups([]);
+          setTotalItems(0);
+        }
       } else {
+        
         setCustomerGroups([]);
         setTotalItems(0);
       }
     } catch (error) {
-      console.error('Error fetching customer groups:', error);
+      
       toast({
         title: "Error",
         description: "Failed to fetch customer groups",
@@ -103,11 +140,13 @@ const CustomerGroups: React.FC = () => {
   const fetchCustomers = async () => {
     try {
       const response = await customerGroupsApi.getCustomers();
+      
       if (response && response.customers) {
+        
         setCustomers(response.customers);
       }
     } catch (error) {
-      console.error('Error fetching customers:', error);
+      
       toast({
         title: "Error",
         description: "Failed to fetch customers",
@@ -161,6 +200,8 @@ const CustomerGroups: React.FC = () => {
   };
 
   const handleView = (group: CustomerGroup) => {
+    
+    
     setSelectedGroup(group);
     setIsViewDialogOpen(true);
   };
@@ -188,7 +229,7 @@ const CustomerGroups: React.FC = () => {
 
   const handleCreateSubmit = async (values: any) => {
     try {
-      console.log('Form values received:', values);
+      
       
       // Check if user_ids are present directly
       let userIds = values.user_ids || [];
@@ -209,7 +250,7 @@ const CustomerGroups: React.FC = () => {
         restaurant_id: restaurantId // Add restaurant_id to payload
       };
       
-      console.log('Data being sent to API:', data);
+      
       await customerGroupsApi.createCustomerGroup(data);
       toast({
         title: "Success",
@@ -224,7 +265,7 @@ const CustomerGroups: React.FC = () => {
         await fetchCustomerGroups();
       }
     } catch (error) {
-      console.error('Error creating customer group:', error);
+      
       toast({
         title: "Error",
         description: "Failed to create customer group",
@@ -268,7 +309,7 @@ const CustomerGroups: React.FC = () => {
         await fetchCustomerGroups();
       }
     } catch (error) {
-      console.error('Error updating customer group:', error);
+      
       toast({
         title: "Error",
         description: "Failed to update customer group",
@@ -296,7 +337,7 @@ const CustomerGroups: React.FC = () => {
         await fetchCustomerGroups();
       }
     } catch (error) {
-      console.error('Error deleting customer group:', error);
+      
       toast({
         title: "Error",
         description: "Failed to delete customer group",
@@ -313,12 +354,6 @@ const CustomerGroups: React.FC = () => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-2xl font-semibold">Customer Groups</h1>
-          {/* Optional: Display current user info */}
-          {currentUser && (
-            <div className="text-sm text-gray-500">
-              Welcome, {currentUser.user?.name || currentUser.user?.username}
-            </div>
-          )}
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="icon" onClick={handleRefresh}>
@@ -362,10 +397,21 @@ const CustomerGroups: React.FC = () => {
                     <TableCell>{group.name}</TableCell>
                     <TableCell>{group.description}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="flex items-center gap-1">
+                      <div className="flex items-center gap-1">
                         <Users className="h-3 w-3" />
-                        {group._count?.customer_groups_users || 0}
-                      </Badge>
+                        {group._count?.customer_groups_users || group.customer_groups_users?.length || 0}
+                        {(() => {
+                          const names = group.customer_groups_users?.map(u => u.users?.name).filter(Boolean) || [];
+                          if (names.length === 0) return null;
+                          const visibleNames = names.slice(0, 2).join(', ');
+                          const extra = names.length > 2 ? ` (+${names.length - 2})` : '';
+                          return (
+                            <span className="ml-2 truncate max-w-[180px] text-xs text-muted-foreground" title={names.join(', ')}>
+                              {visibleNames}{extra}
+                            </span>
+                          );
+                        })()}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
@@ -496,10 +542,12 @@ const CustomerGroups: React.FC = () => {
                       </Badge>
                     ) : (
                       selectedGroup.customer_groups_users.map((user) => {
+                        const apiName = user.users?.name;
                         const customer = customers.find(c => c.id === user.user_id);
+                        const displayName = apiName || customer?.name || `Customer ID: ${user.user_id}`;
                         return (
                           <Badge key={user.user_id} variant="outline" className="mr-1">
-                            {customer?.name || user.user_id}
+                            {displayName}
                           </Badge>
                         );
                       })

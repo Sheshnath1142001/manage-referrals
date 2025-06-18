@@ -30,55 +30,52 @@ export const attachmentsApi = {
     module_type: number;
     module_id: string | number;
   }): Promise<AttachmentResponse> => {
-    console.log('Making API request to /attachments with params:', params);
-    console.log('Full API URL will be:', `${import.meta.env.API_BASE_URL}/attachments`);
-    
     try {
       const response = await api.get('/attachments', { params });
-      console.log('Attachments API raw response:', response);
-      console.log('Response status:', response.status);
-      console.log('Response data:', response.data);
       
       // Return the response data directly
       return response.data || response;
     } catch (error: any) {
-      console.error('Attachments API error:', error);
-      console.error('Error response:', error.response?.data);
-      console.error('Error status:', error.response?.status);
-      console.error('Error config:', error.config);
-      
       // Return empty response if error
       return { attachment: [] };
     }
   },
   
   uploadAttachment: async (formData: FormData) => {
-    console.log('Uploading attachment...');
-    
     try {
       const response = await api.post('/attachments', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      console.log('Upload response:', response);
       return response;
     } catch (error) {
-      console.error('Upload error:', error);
       throw error;
     }
   },
   
   deleteAttachment: async (id: string) => {
-    console.log('Deleting attachment:', id);
-    
     try {
       const response = await api.delete(`/attachments/${id}`);
-      console.log('Delete response:', response);
       return response;
     } catch (error) {
-      console.error('Delete error:', error);
+      throw error;
+    }
+  },
+  
+  // Delete multiple attachments in a single request (preferred for deal image removal)
+  deleteAttachments: async (params: { attachment_ids: (string | number)[]; module_type: string | number; module_id: string | number; }) => {
+    try {
+      const response = await api.delete('/attachments', {
+        data: params,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      return response;
+    } catch (error) {
       throw error;
     }
   }
 };
+

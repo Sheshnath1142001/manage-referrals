@@ -52,7 +52,7 @@ export const useModifierForm = () => {
       // Close dialog after successful submission
       closeDialog();
     } catch (error) {
-      console.error("Error saving modifier:", error);
+      
       toast({
         title: "Error",
         description: "Failed to save modifier.",

@@ -8,11 +8,11 @@ export const locationItemsApi = {
 
   // Update a single location item
   updateLocationItem: (id: string, data: UpdateLocationItemData) =>
-    api.put(`/restaurant-products/${id}`, data),
+    api.patch(`/restaurant-product/${id}`, data),
 
   // Bulk update multiple items
   bulkUpdate: (items: BulkUpdateItem[]) => 
-    api.post('/v2/bulk-update', items),
+    api.put('/bulk-update', items),
 
   // Clone items from one location to another using the correct endpoint
   cloneItems: (sourceLocationId: string, targetLocationId: string) =>
@@ -32,7 +32,7 @@ export const locationItemsApi = {
 
   // Create multiple restaurant product modifiers
   createMultipleRestaurantProductModifiers: (modifiers: any[]) =>
-    api.post('/restaurant-product-modifiers/multiple', { restaurant_product_modifiers: modifiers }),
+    api.post('/create-multiple-restaurant-product-modifiers', { restaurant_product_modifiers: modifiers }),
 
   // Update product modifiers
   updateProductModifiers: (id: string, data: any) =>

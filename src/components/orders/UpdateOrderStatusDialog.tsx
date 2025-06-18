@@ -69,7 +69,7 @@ export const UpdateOrderStatusDialog = ({
       const activeStatuses = data.order_statuses.filter((status: OrderStatus) => status.status === 1);
       setOrderStatuses(activeStatuses);
     } catch (error) {
-      console.error("Error fetching order statuses:", error);
+      
       toast({
         title: "Error",
         description: "Failed to load order statuses. Please try again.",
@@ -129,7 +129,7 @@ export const UpdateOrderStatusDialog = ({
         throw new Error('Update failed');
       }
     } catch (error) {
-      console.error("Error updating order status:", error);
+      
       toast({
         title: "Error",
         description: "Failed to update order status. Please try again.",

@@ -38,7 +38,7 @@ export const attributesService = {
     if (params.name) urlParams.set('atrribute', params.name);
     urlParams.set('page', String(params.page || 1));
     urlParams.set('per_page', String(params.per_page || 10));
-    if (params.status) urlParams.set('status', params.status);
+    if (params.status !== undefined) urlParams.set('status', String(params.status));
     
     // Convert to string and remove leading '?'
     const queryString = urlParams.toString();

@@ -1,3 +1,4 @@
+
 import { 
   Home,
   BarChart,
@@ -24,7 +25,9 @@ import {
   MonitorSmartphone,
   LayoutGrid,
   Store,
-  Ticket
+  Ticket,
+  Monitor,
+  HelpCircle
 } from "lucide-react";
 
 export const navigationItems = [
@@ -173,6 +176,11 @@ export const promotionsManagementItems = [
     icon: Megaphone,
   },
   {
+    title: "Online Promotions",
+    url: "/online-promotions",
+    icon: LayoutGrid,
+  },
+  {
     title: "Promotional Groups",
     url: "/promotional-groups",
     icon: LayoutGrid,
@@ -181,5 +189,19 @@ export const promotionsManagementItems = [
     title: "Customer Display",
     url: "/customer-display",
     icon: MonitorSmartphone,
+  },
+  {
+    title: "Self-Checkout Display",
+    url: "/self-checkout-display",
+    icon: Monitor,
+  }
+];
+
+// New help & support items - moved to bottom
+export const helpSupportItems = [
+  {
+    title: "Help & Support",
+    url: "/help-support",
+    icon: HelpCircle,
   }
 ];

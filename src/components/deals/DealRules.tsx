@@ -48,11 +48,11 @@ export const DealRules = ({
       } else if (response && typeof response === 'object' && 'data' in response && response.data && Array.isArray((response.data as any).data)) {
         setRuleTypes((response.data as any).data);
       } else {
-        console.error('Unexpected rule types response format:', response);
+        
         setRuleTypes([]);
       }
     } catch (error) {
-      console.error('Failed to load rule types:', error);
+      
       toast({
         title: "Error",
         description: "Failed to load rule types.",

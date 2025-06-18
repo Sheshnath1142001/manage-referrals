@@ -35,7 +35,7 @@ export const ItemActions = ({ item, handleItemAction }: ItemActionsProps) => {
       // Call the original handler
       handleItemAction(item, 'view');
     } catch (error) {
-      console.error('Error fetching restaurants for product:', error);
+      
       // Still call the handler even if API fails
       handleItemAction(item, 'view');
     }
@@ -49,7 +49,7 @@ export const ItemActions = ({ item, handleItemAction }: ItemActionsProps) => {
       // Call the original handler
       handleItemAction(item, 'edit');
     } catch (error) {
-      console.error('Error fetching restaurants for product:', error);
+      
       // Still call the handler even if API fails
       handleItemAction(item, 'edit');
     }
@@ -86,23 +86,28 @@ export const ItemActions = ({ item, handleItemAction }: ItemActionsProps) => {
           <Copy className="h-4 w-4" />
         </Button>
         <Button 
-          variant="outline" 
-          size="icon"
-          className="h-9 w-9 border border-gray-300"
-          onClick={() => setIsAttributesDialogOpen(true)}
-          title="Assign Attributes"
-        >
-          <Settings className="h-4 w-4" />
-        </Button>
+  variant="outline" 
+  size="icon"
+  className="h-9 w-9 border border-gray-300"
+  onClick={() => {
+    queryClient.invalidateQueries({ 
+      queryKey: ['productConfigOptions', item.id.toString()] 
+    });
+    setIsAttributesDialogOpen(true);
+  }}
+  title="Assign Attributes"
+>
+  <Settings className="h-4 w-4" />
+</Button>
       </div>
 
       <AssignAttributesDialog 
         open={isAttributesDialogOpen}
         onOpenChange={(open) => {
-          console.log('AssignAttributesDialog open state changing to:', open);
+          
           if (open) {
-            console.log('Opening AssignAttributesDialog with productId:', item.id);
-            console.log('Item details:', item);
+            
+            
           }
           setIsAttributesDialogOpen(open);
         }}

@@ -13,7 +13,7 @@ export function useAttributeValues(expandedAttribute: number | null) {
       if (!expandedAttribute) return [];
       
       try {
-        console.log(`Fetching attribute values for attribute ID ${expandedAttribute}`);
+        
         
         // First try using the service
         let response;
@@ -22,7 +22,7 @@ export function useAttributeValues(expandedAttribute: number | null) {
             attribute_id: expandedAttribute 
           });
         } catch (serviceError) {
-          console.error('Error using service, trying direct API call:', serviceError);
+          
           
           // Fallback to direct API call if service fails
           const adminData = localStorage.getItem('Admin');
@@ -35,7 +35,7 @@ export function useAttributeValues(expandedAttribute: number | null) {
                 token = admin.token;
               }
             } catch (e) {
-              console.error('Error parsing admin data:', e);
+              
             }
           }
           
@@ -54,7 +54,7 @@ export function useAttributeValues(expandedAttribute: number | null) {
           response = directResponse.data;
         }
         
-        console.log('Raw API response:', response);
+        
         
         // Handle the response data
         let values = [];
@@ -64,7 +64,7 @@ export function useAttributeValues(expandedAttribute: number | null) {
           values = response.data;
         }
         
-        console.log('Extracted values array:', values);
+        
         
         // Map the API response fields to our AttributeValue type
         const mappedValues = values.map((value: any) => {
@@ -74,19 +74,19 @@ export function useAttributeValues(expandedAttribute: number | null) {
             name: value.value || '',
             display_name: value.display_value || '',
             base_price: parseFloat(value.base_price || '0') || 0,
-            is_default: value.is_default === 1 || value.is_default === true,
+            is_default: Number(value.is_default), // Keep as number (0 or 1)
             sequence: parseInt(value.sequence || '0') || 0,
             seq_no: parseInt(value.sequence || '0') || 0,
-            status: value.status === 1 ? "Active" : "Inactive"
+            status: Number(value.status) // Keep as number (0 or 1)
           };
           
           return mappedValue;
         });
         
-        console.log('Final mapped attribute values:', mappedValues);
+        
         return mappedValues;
       } catch (error) {
-        console.error('Error fetching attribute values:', error);
+        
         return [];
       }
     },

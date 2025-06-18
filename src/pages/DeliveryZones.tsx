@@ -6,6 +6,14 @@ import {
   CardContent, 
   CardHeader
 } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { 
   Table, 
@@ -28,10 +36,12 @@ import { useToast } from '@/hooks/use-toast';
 import { deliveryZonesApi, DeliveryZone } from '@/services/api/deliveryZones';
 import { DeliveryZoneFormDialog } from "@/components/delivery-zones/AddDeliveryZoneDialog";
 import { useGetRestaurants } from '@/hooks/useGetRestaurants';
+import { useAuth } from '@/hooks/use-auth';
 
 const DeliveryZones = () => {
   const { toast } = useToast();
-  const { restaurants: availableRestaurants, isLoading: isLoadingRestaurants } = useGetRestaurants();
+  const { user, token } = useAuth();
+  const { restaurants: availableRestaurants, isLoading: isLoadingRestaurants, refreshRestaurants } = useGetRestaurants();
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(10);
   const [filterLocation, setFilterLocation] = useState<string>('');
@@ -44,38 +54,80 @@ const DeliveryZones = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [viewZoneData, setViewZoneData] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [zoneToDelete, setZoneToDelete] = useState<number | null>(null);
+
+  const queryClient = useQueryClient();
+  
+  // Create tenant-specific key for React Query cache
+  const tenantKey = user?.id ? `tenant_${user.id}_${(user as any)?.restaurant_id || 'default'}` : 'anonymous';
+
+  // Clear delivery zones cache when tenant changes
+  useEffect(() => {
+    
+    queryClient.removeQueries({ queryKey: ['deliveryZones'] });
+    
+    // Reset filters to default when tenant changes
+    setCurrentPage(1);
+    setFilterLocation('');
+    setFilterStatus('Active');
+    setFilterZoneType('');
+    setZoneName('');
+  }, [tenantKey, queryClient]);
+
+  // Force refresh restaurants when component mounts
+  useEffect(() => {
+    
+    
+    
+    refreshRestaurants();
+  }, []); // Empty dependency array to run only on mount
+
+  // Debug log for restaurants data
+  useEffect(() => {
+    console.log('📊 Restaurants data updated:', {
+      count: availableRestaurants.length,
+      restaurants: availableRestaurants,
+      isLoading: isLoadingRestaurants
+    });
+  }, [availableRestaurants, isLoadingRestaurants]);
 
   // Set default location to first restaurant if not set and restaurants are loaded
   useEffect(() => {
     if (!filterLocation && availableRestaurants.length > 0) {
+      
       setFilterLocation(String(availableRestaurants[0].id));
     }
-  }, [filterLocation, availableRestaurants]);
-
-  const queryClient = useQueryClient();
+  }, [filterLocation, availableRestaurants, tenantKey]);
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['deliveryZones', currentPage, pageSize, filterLocation, filterStatus, filterZoneType, zoneName],
+    queryKey: ['deliveryZones', tenantKey, currentPage, pageSize, filterLocation, filterStatus, filterZoneType, zoneName],
     queryFn: () => {
-      // Ensure we have a valid restaurant_id
+      // Ensure we have a valid restaurant_id and auth token
+      if (!token) {
+        throw new Error('Authentication required');
+      }
+      
       if (!filterLocation || (filterLocation === 'all' && availableRestaurants.length === 0)) {
         throw new Error('Please select a location');
       }
 
+      
+      
       return deliveryZonesApi.getDeliveryZones({
         page: currentPage,
         per_page: pageSize,
         restaurant_id: filterLocation === 'all' 
-          ? availableRestaurants[0]?.id || 0 
+          ? Number(availableRestaurants[0]?.id) || 0 
           : Number(filterLocation),
         status: filterStatus === 'Active' ? 1 : filterStatus === 'Inactive' ? 0 : undefined,
         zone_type: filterZoneType === 'distance' ? 1 : filterZoneType === 'area' ? 2 : undefined,
         name: zoneName || undefined
       });
     },
-    enabled: Boolean(availableRestaurants.length > 0), // Only enable when we have restaurants loaded
-    staleTime: 30000, // Consider data fresh for 30 seconds
-    cacheTime: 5 * 60 * 1000, // Keep data in cache for 5 minutes
+    enabled: Boolean(token && availableRestaurants.length > 0 && filterLocation), // Only enable when we have auth and restaurants loaded
+    staleTime: 0, // Always consider data stale to ensure fresh fetch after tenant switch
+    gcTime: 0, // Don't cache data to prevent cross-tenant contamination
   });
 
   const zones = data?.data || [];
@@ -83,15 +135,18 @@ const DeliveryZones = () => {
 
   const handleRefresh = async () => {
     try {
-      await refetch();
+      
+      // Refresh both delivery zones and restaurants
+      refreshRestaurants(); // Force refresh restaurants
+      await refetch(); // Refresh delivery zones
       toast({
         title: "Success",
-        description: "Delivery zones have been refreshed",
+        description: "Delivery zones and restaurants have been refreshed",
       });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to refresh delivery zones",
+        description: "Failed to refresh data",
         variant: "destructive"
       });
     }
@@ -114,10 +169,22 @@ const DeliveryZones = () => {
   };
 
   const handleDeleteZone = (id: number) => {
-    if (window.confirm('Are you sure you want to delete this delivery zone?')) {
+    setZoneToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (zoneToDelete) {
       setDeleteLoading(true);
-      deleteMutation.mutate(id);
+      deleteMutation.mutate(zoneToDelete);
+      setDeleteDialogOpen(false);
+      setZoneToDelete(null);
     }
+  };
+
+  const cancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setZoneToDelete(null);
   };
 
   const handlePageChange = (page: number) => {
@@ -134,7 +201,7 @@ const DeliveryZones = () => {
     onSuccess: () => {
       toast({ title: 'Success', description: 'Delivery zone updated' });
       setEditDialogOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['deliveryZones'] });
+      queryClient.invalidateQueries({ queryKey: ['deliveryZones', tenantKey] });
     },
     onError: (error: any) => {
       toast({ 
@@ -148,50 +215,46 @@ const DeliveryZones = () => {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deliveryZonesApi.deleteDeliveryZone(id),
     onSuccess: () => {
-      toast({ title: 'Success', description: 'Delivery zone deleted' });
-      queryClient.invalidateQueries({ queryKey: ['deliveryZones'] });
+      toast({ title: 'Success', description: 'Delivery zone deleted successfully' });
+      queryClient.invalidateQueries({ queryKey: ['deliveryZones', tenantKey] });
     },
     onError: (error: any) => {
       toast({ 
         title: 'Error', 
-        description: error.message || 'Failed to delete', 
+        description: error.message || 'Failed to delete delivery zone', 
         variant: 'destructive' 
       });
     },
     onSettled: () => {
       setDeleteLoading(false);
+      setDeleteDialogOpen(false);
+      setZoneToDelete(null);
     }
   });
 
+  // Show loading if not authenticated
+  if (!token) {
+    return (
+      <div className="p-8">
+        <div className="text-center py-8">
+          <p className="text-lg text-gray-600">Please log in to view delivery zones.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-8">
-      <div className="flex items-center justify-between gap-4 mb-6">
-        <div className="flex items-center gap-4 flex-1">
-          <div className="w-64">
-            <div className="relative">
-              <Input 
-                placeholder="Search by zone name..." 
-                value={zoneName}
-                onChange={(e) => setZoneName(e.target.value)}
-                className="w-full"
-              />
-              {zoneName && (
-                <button
-                  type="button"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
-                  onClick={() => setZoneName("")}
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="w-64">
+      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        {/* Filter inputs */}
+        <div className="grid gap-3 flex-1 sm:grid-cols-2 md:grid-cols-3 lg:flex lg:flex-wrap lg:gap-4">
+          <div className="w-full sm:w-auto">
             <Select 
               value={filterLocation} 
               onValueChange={setFilterLocation}
+              disabled={isLoadingRestaurants}
             >
-              <SelectTrigger>
+              <SelectTrigger className="h-9 bg-white border border-gray-300 w-full sm:w-[160px]">
                 <SelectValue placeholder="Select Location" />
               </SelectTrigger>
               <SelectContent>
@@ -202,12 +265,19 @@ const DeliveryZones = () => {
               </SelectContent>
             </Select>
           </div>
-          <div className="w-48">
+          <div className="w-full sm:w-auto">
+            <Input 
+              placeholder="Search by zone name..." 
+              value={zoneName} 
+              onChange={(e) => setZoneName(e.target.value)}
+              className="h-9 bg-white border border-gray-300 w-full"/>
+          </div>
+          <div className="w-full sm:w-auto">
             <Select 
               value={filterStatus} 
               onValueChange={setFilterStatus}
             >
-              <SelectTrigger>
+              <SelectTrigger className="h-9 bg-white border border-gray-300 w-full sm:w-[130px]">
                 <SelectValue placeholder="Select Status" />
               </SelectTrigger>
               <SelectContent>
@@ -217,12 +287,12 @@ const DeliveryZones = () => {
               </SelectContent>
             </Select>
           </div>
-          <div className="w-48">
+          <div className="w-full sm:w-auto">
             <Select 
               value={filterZoneType} 
               onValueChange={setFilterZoneType}
             >
-              <SelectTrigger>
+              <SelectTrigger className="h-9 bg-white border border-gray-300 w-full sm:w-[160px]">
                 <SelectValue placeholder="Select Zone Type" />
               </SelectTrigger>
               <SelectContent>
@@ -234,29 +304,29 @@ const DeliveryZones = () => {
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
+        {/* Action buttons */}
+        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
           <Button
             variant="outline"
             size="icon"
             onClick={handleRefresh}
-            className="h-8 w-8"
+            className="h-9 w-9 border border-gray-300"
             disabled={isLoading}
           >
             <RefreshCw className="h-4 w-4" />
           </Button>
           <Button
             variant="default"
-            size="sm"
+            size="icon"
             onClick={handleAddZone}
-            className="h-8"
+            className="bg-primary hover:bg-primary/90 text-white h-9 w-9 rounded-full"
           >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Zone
+            <Plus className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      <div className="rounded-md border">
+      <div className="rounded-md border relative overflow-x-auto">
         <Table>
           <TableHeader className="bg-[#0f172a] text-white rounded-t-lg overflow-hidden">
             <TableRow>
@@ -336,7 +406,13 @@ const DeliveryZones = () => {
         open={addDialogOpen}
         onOpenChange={setAddDialogOpen}
         mode="add"
-        onSubmit={() => {}}
+        onSubmit={() => {
+          // Just invalidate queries, let React Query handle the refetch automatically
+          queryClient.invalidateQueries({ 
+            queryKey: ['deliveryZones', tenantKey],
+            exact: false 
+          });
+        }}
         onClose={() => setAddDialogOpen(false)}
       />
       {editZoneData && (
@@ -359,6 +435,40 @@ const DeliveryZones = () => {
           onClose={() => setViewDialogOpen(false)}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-red-500" />
+              Delete Delivery Zone
+            </DialogTitle>
+            <DialogDescription className="space-y-2">
+              <p>Are you sure, you want to delete delivery zone?</p>
+              {zoneToDelete && (
+                <div className="bg-gray-50 p-3 rounded-md">
+                  <p className="font-medium text-gray-900">
+                    Zone: {zones.find(z => z.id === zoneToDelete)?.name || 'Unknown Zone'}
+                  </p>
+                </div>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={cancelDelete} disabled={deleteLoading}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={confirmDelete}
+              disabled={deleteLoading}
+            >
+              {deleteLoading ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

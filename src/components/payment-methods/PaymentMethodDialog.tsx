@@ -17,7 +17,7 @@ import type { PaymentMethod } from "@/hooks/usePaymentMethods";
 interface PaymentMethodDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  mode: "add" | "edit" | "view";
+  mode: "add" | "edit";
   initialData?: PaymentMethod;
   onSuccess?: () => void;
 }
@@ -66,7 +66,7 @@ export function PaymentMethodDialog({ isOpen, onClose, mode, initialData, onSucc
       onSuccess?.();
       onClose();
     } catch (error) {
-      console.error('Error saving payment method:', error);
+      
       toast({
         title: "Error",
         description: "Failed to save payment method. Please try again.",
@@ -83,17 +83,15 @@ export function PaymentMethodDialog({ isOpen, onClose, mode, initialData, onSucc
     setIsActive(true);
   };
 
-  const isViewMode = mode === "view";
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
-            {mode === "add" ? "Add Payment Method" : mode === "edit" ? "Edit Payment Method" : "View Payment Method"}
+            {mode === "add" ? "Add Payment Method" : "Edit Payment Method"}
           </DialogTitle>
         </DialogHeader>
-        <form onSubmit={isViewMode ? (e) => { e.preventDefault(); onClose(); } : handleSubmit}>
+        <form onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="method-name">Method Name*</Label>
@@ -105,7 +103,7 @@ export function PaymentMethodDialog({ isOpen, onClose, mode, initialData, onSucc
                 required
                 maxLength={255}
                 autoFocus
-                disabled={isSubmitting || isViewMode}
+                disabled={isSubmitting}
               />
             </div>
             
@@ -116,7 +114,7 @@ export function PaymentMethodDialog({ isOpen, onClose, mode, initialData, onSucc
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Enter description"
-                disabled={isSubmitting || isViewMode}
+                disabled={isSubmitting}
               />
             </div>
 
@@ -126,26 +124,18 @@ export function PaymentMethodDialog({ isOpen, onClose, mode, initialData, onSucc
                 id="active"
                 checked={isActive}
                 onCheckedChange={setIsActive}
-                disabled={isSubmitting || isViewMode}
+                disabled={isSubmitting}
               />
             </div>
           </div>
 
-          <div className="flex justify-end gap-4 mt-6">
-            {isViewMode ? (
-              <Button type="button" onClick={onClose}>
-                CLOSE
-              </Button>
-            ) : (
-              <>
-                <Button type="button" variant="outline" onClick={handleReset} disabled={isSubmitting}>
-                  RESET
-                </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "SUBMITTING..." : "SUBMIT"}
-                </Button>
-              </>
-            )}
+          <div className="flex justify-end gap-2 mt-6">
+            <Button type="button" variant="outline" onClick={handleReset} disabled={isSubmitting}>
+              RESET
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "SUBMITTING..." : "SUBMIT"}
+            </Button>
           </div>
         </form>
       </DialogContent>

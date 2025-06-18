@@ -16,55 +16,55 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ status, location, em
   
   const getStatusColor = (status: string | undefined) => {
     if (!status || typeof status !== 'string') {
-      return 'bg-gray-700 text-gray-300';
+      return 'bg-gray-100 text-gray-800';
     }
     
     switch (status.toLowerCase()) {
       case 'completed':
       case 'finished':
       case 'delivered':
-        return 'bg-green-900 text-green-300';
+        return 'bg-green-50 text-green-700';
       case 'preparing':
       case 'in progress':
       case 'ready to serve':
-        return 'bg-blue-900 text-blue-300';
+        return 'bg-blue-50 text-blue-700';
       case 'pending':
       case 'placed':
       case 'accept':
-        return 'bg-yellow-900 text-yellow-300';
+        return 'bg-yellow-50 text-yellow-700';
       case 'cancelled':
       case 'declined':
-        return 'bg-red-900 text-red-300';
+        return 'bg-red-50 text-red-700';
       default:
-        return 'bg-gray-700 text-gray-300';
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <div className="bg-[#111827] rounded-lg border border-gray-700 p-4">
-        <span className="text-sm text-gray-400 mb-1.5 block">Order Status</span>
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <span className="text-sm text-gray-500 mb-1.5 block">Order Status</span>
         <Badge 
           variant="secondary" 
-          className={`${getStatusColor(status)} mt-0.5 w-fit border-0`}
+          className={`${getStatusColor(status)} mt-0.5 w-fit border border-transparent`}
         >
           {displayStatus}
         </Badge>
       </div>
       
-      <div className="bg-[#111827] rounded-lg border border-gray-700 p-4">
-        <span className="text-sm text-gray-400 mb-1.5 block">Location</span>
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <span className="text-sm text-gray-500 mb-1.5 block">Location</span>
         <div className="flex items-center gap-1.5">
-          <MapPin className="h-4 w-4 text-gray-400" />
-          <span className="font-medium text-gray-300">{displayLocation}</span>
+          <MapPin className="h-4 w-4 text-gray-500" />
+          <span className="font-medium text-gray-800">{displayLocation}</span>
         </div>
       </div>
       
-      <div className="bg-[#111827] rounded-lg border border-gray-700 p-4">
-        <span className="text-sm text-gray-400 mb-1.5 block">Attendant</span>
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <span className="text-sm text-gray-500 mb-1.5 block">Attendant</span>
         <div className="flex items-center gap-1.5">
-          <User className="h-4 w-4 text-gray-400" />
-          <span className="font-medium text-gray-300">{displayEmployee}</span>
+          <User className="h-4 w-4 text-gray-500" />
+          <span className="font-medium text-gray-800">{displayEmployee}</span>
         </div>
       </div>
     </div>

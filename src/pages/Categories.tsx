@@ -90,7 +90,7 @@ const Categories = () => {
         description: "The new sequence has been saved successfully."
       });
     } catch (error) {
-      console.error("Error updating sequence:", error);
+      
       toast({
         title: "Reordering Failed",
         description: "Failed to update the category sequence on the server.",

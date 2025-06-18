@@ -158,9 +158,9 @@ export default function TableTypes() {
       </div>
 
       <div className="space-y-6">
-        <div className="flex items-center gap-3 w-full">
+        <div className="flex flex-col gap-3 w-full md:flex-row md:items-center md:gap-3">
           <select
-            className="h-10 min-w-[180px] bg-white border border-gray-300 rounded px-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="h-10 w-full md:w-[200px] lg:w-[220px] bg-white border border-gray-300 rounded px-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={locationFilter}
             onChange={e => setLocationFilter(e.target.value)}
             disabled={isLoadingRestaurants}
@@ -175,13 +175,13 @@ export default function TableTypes() {
             placeholder="Search Table Types"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="h-10 min-w-[200px] max-w-[300px] text-sm"
+            className="h-10 w-full md:min-w-[200px] md:max-w-[300px] text-sm"
             aria-label="Search Table Types"
           />
-          <Button variant="outline" size="icon" onClick={handleRefresh} className="h-10 w-10 ml-auto">
+          <Button variant="outline" size="icon" onClick={handleRefresh} className="h-10 w-10 md:ml-auto">
             <RefreshCw className="h-4 w-4" />
           </Button>
-          <Button variant="default" onClick={handleAddNew} className="h-10 px-4">
+          <Button variant="default" onClick={handleAddNew} className="h-10 px-4 w-full md:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Add Table Type
           </Button>

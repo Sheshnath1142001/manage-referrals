@@ -128,11 +128,11 @@
 }
 
 .react-tel-input {
-  @apply border border-input rounded-md;
+  @apply relative flex h-10 w-full rounded-md border border-input bg-background overflow-visible;
 }
 
 .react-tel-input .form-control {
-  @apply w-full h-10 px-3 py-2 text-sm bg-background text-foreground shadow-sm transition-colors rounded-md;
+  @apply w-full h-10 px-3 py-2 text-base bg-background text-foreground shadow-sm transition-colors outline-none;
   padding-left: 75px !important;
   border: none !important;
 }
@@ -146,29 +146,30 @@
 }
 
 .react-tel-input .flag-dropdown {
-  @apply border-0 bg-background rounded-l-md;
+  @apply flex items-center justify-center border-0 bg-background rounded-l-md h-full;
   width: 65px;
 }
 
 .react-tel-input .selected-flag {
-  @apply bg-transparent hover:bg-accent rounded-l-md;
+  @apply relative flex items-center justify-center bg-transparent hover:bg-accent rounded-l-md border-0;
   width: 65px;
   padding: 0 0 0 8px;
 }
 
 .react-tel-input .selected-flag .flag {
-  @apply absolute left-2 top-1/2 transform -translate-y-1/2;
+  @apply static h-5 w-5;
+  margin-top: 0 !important;
 }
 
 .react-tel-input .country-dropdown {
-  @apply bg-popover text-popover-foreground border border-input rounded-md shadow-md;
+  @apply absolute left-0 top-full mt-2 z-50 bg-white text-popover-foreground border border-input rounded-md shadow-md min-w-full w-max;
   margin-top: 8px;
   padding: 0;
   max-height: 300px;
 }
 
 .react-tel-input .country-list {
-  @apply bg-transparent;
+  @apply bg-white;
   max-height: calc(300px - 40px);
   margin: 0;
   padding: 0;
@@ -202,5 +203,20 @@
 }
 
 .react-tel-input .special-label {
+  display: none;
+}
+
+/* Disabled state styles for Phone Input */
+.react-tel-input .form-control:disabled {
+  @apply bg-muted cursor-not-allowed text-muted-foreground;
+}
+
+.react-tel-input .flag-dropdown[disabled],
+.react-tel-input .selected-flag[disabled] {
+  @apply cursor-not-allowed opacity-60;
+}
+
+/* Hide default caret icon in flag dropdown to avoid misalignment */
+.react-tel-input .flag-dropdown .arrow {
   display: none;
 }

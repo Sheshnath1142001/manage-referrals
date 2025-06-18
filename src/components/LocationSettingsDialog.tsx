@@ -67,14 +67,14 @@ const LocationSettingsDialog = ({
   onSubmit,
   initialData
 }: LocationSettingsDialogProps) => {
-  console.log('LocationSettingsDialog rendered with props:', { open, initialData });
+  
   const [settings, setSettings] = useState<LocationSettings>(initialData || defaultSettings);
   
   // Reset form when dialog opens with initial data or open state changes
   useEffect(() => {
-    console.log('LocationSettingsDialog useEffect triggered:', { initialData, open });
+    
     if (open && initialData) {
-      console.log('Setting form data with initial data:', initialData);
+      
       setSettings(initialData);
     } else if (open && !initialData) {
       // Reset to default settings if no initial data
@@ -83,7 +83,7 @@ const LocationSettingsDialog = ({
   }, [initialData, open]);
   
   const handleChange = (field: keyof LocationSettings, value: string | boolean) => {
-    console.log('Handling change:', { field, value });
+    
     setSettings(prev => ({
       ...prev,
       [field]: value
@@ -91,7 +91,7 @@ const LocationSettingsDialog = ({
   };
   
   const handleSubmit = () => {
-    console.log('Submitting settings:', settings);
+    
     onSubmit(settings);
     onOpenChange(false);
   };

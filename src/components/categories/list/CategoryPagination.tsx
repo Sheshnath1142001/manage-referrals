@@ -18,7 +18,10 @@ export const CategoryPagination = ({
   onPageChange, 
   onPageSizeChange 
 }: CategoryPaginationProps) => {
-  const totalPages = pageSize === -1 ? 1 : Math.ceil(totalItems / pageSize);
+  // Helper function to check if showing all items
+  const isShowingAll = pageSize === 0 || pageSize === -1;
+  
+  const totalPages = isShowingAll ? 1 : Math.ceil(totalItems / pageSize);
 
   const getPageNumbers = () => {
     const pages = [];
@@ -59,23 +62,28 @@ export const CategoryPagination = ({
 
   const pageNumbers = getPageNumbers();
 
+  // Helper function to get display value for page size
+  const getPageSizeDisplay = (size: number) => {
+    return (size === 0 || size === -1) ? "All" : size.toString();
+  };
+
   return (
     <div className="border-t border-gray-100">
       <div className="flex items-center justify-between px-4 py-4">
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-600">Records per page:</span>
           <Select 
-            value={pageSize === -1 ? "all" : pageSize.toString()} 
+            value={isShowingAll ? "all" : pageSize.toString()} 
             onValueChange={(value) => {
               if (value === "all") {
-                onPageSizeChange(0); // This will be converted to -1 in the hook
+                onPageSizeChange(0);
               } else {
                 onPageSizeChange(Number(value));
               }
             }}
           >
             <SelectTrigger className="h-9 bg-white border border-gray-300 w-[80px]">
-              <SelectValue placeholder={pageSize === -1 ? "All" : pageSize.toString()} />
+              <SelectValue>{getPageSizeDisplay(pageSize)}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="5">5</SelectItem>
@@ -91,14 +99,14 @@ export const CategoryPagination = ({
           <span className="text-sm text-gray-600">
             {totalItems === 0 ? (
               "No items"
-            ) : pageSize === -1 ? (
+            ) : isShowingAll ? (
               `Showing all ${totalItems} items`
             ) : (
               `${Math.min((currentPage - 1) * pageSize + 1, totalItems)}-${Math.min(currentPage * pageSize, totalItems)} of ${totalItems}`
             )}
           </span>
           
-          {pageSize !== -1 && (
+          {!isShowingAll && (
             <div className="flex flex-wrap gap-1 items-center">
               <Button
                 variant="outline"
