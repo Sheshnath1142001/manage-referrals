@@ -221,6 +221,18 @@ const Index = () => {
     };
   }, [dashboardSalesData, dashboardTotalSales]);
 
+  // Create hourly sales data from overview
+  const hourlySalesData = useMemo(() => {
+    if (!overview?.hourly_sales?.data || overview.hourly_sales.data.length === 0) {
+      return [];
+    }
+    
+    return overview.hourly_sales.data.map((item: any) => ({
+      hour: item.hour,
+      sales: item.sales
+    }));
+  }, [overview?.hourly_sales?.data]);
+
   // Extract peak hour information
   const peakHour = overview?.hourly_sales?.peak_hour;
   const peakAmount = overview?.hourly_sales?.peak_amount;
