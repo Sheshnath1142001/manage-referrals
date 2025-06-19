@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import {
   RefreshCw,
@@ -368,6 +369,51 @@ const CashCardReport = () => {
             font-size: 14px;
           }
         }
+        
+        /* Mobile responsive fixes */
+        @media (max-width: 768px) {
+          .mobile-table {
+            display: block;
+            width: 100%;
+            overflow-x: auto;
+            white-space: nowrap;
+          }
+          
+          .mobile-table table {
+            width: auto;
+            min-width: 100%;
+          }
+          
+          .mobile-sticky-location {
+            position: sticky !important;
+            left: 0 !important;
+            background: white !important;
+            z-index: 10 !important;
+            min-width: 140px !important;
+            max-width: 140px !important;
+            width: 140px !important;
+          }
+          
+          .mobile-sticky-attribute {
+            position: sticky !important;
+            left: 140px !important;
+            background: white !important;
+            z-index: 9 !important;
+            min-width: 180px !important;
+            max-width: 180px !important;
+            width: 180px !important;
+          }
+          
+          .mobile-date-cell {
+            min-width: 120px !important;
+            text-align: center !important;
+          }
+          
+          .mobile-total-cell {
+            min-width: 120px !important;
+            text-align: center !important;
+          }
+        }
         `
       }} />
 
@@ -496,21 +542,21 @@ const CashCardReport = () => {
             </div>
           </div>
         ) : (
-          <div className="rounded-md border overflow-x-auto">
+          <div className="rounded-md border mobile-table">
             <Table className="print-table min-w-full">
               <TableHeader className="bg-[#0F172A]">
                 <TableRow>
-                  <TableHead className="text-white font-medium rounded-tl-lg whitespace-nowrap sticky left-0 bg-[#0F172A] z-20">Location</TableHead>
-                  <TableHead className="text-white font-medium whitespace-nowrap sticky left-[120px] bg-[#0F172A] z-10">Attributes</TableHead>
+                  <TableHead className="text-white font-medium rounded-tl-lg whitespace-nowrap mobile-sticky-location">Location</TableHead>
+                  <TableHead className="text-white font-medium whitespace-nowrap mobile-sticky-attribute">Attributes</TableHead>
                   {getDisplayDates().map((date, index) => (
                     <TableHead 
                       key={date.toISOString()} 
-                      className="text-white font-medium text-center whitespace-nowrap min-w-[120px]"
+                      className="text-white font-medium text-center whitespace-nowrap mobile-date-cell"
                     >
                       {formatDateHeader(date)}
                     </TableHead>
                   ))}
-                  <TableHead className="text-white font-medium text-center rounded-tr-lg whitespace-nowrap min-w-[120px]">Total</TableHead>
+                  <TableHead className="text-white font-medium text-center rounded-tr-lg whitespace-nowrap mobile-total-cell">Total</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -534,13 +580,17 @@ const CashCardReport = () => {
                               {attrIndex === 0 && (
                                 <TableCell 
                                   rowSpan={attributes.length + 2} 
-                                  className="font-medium whitespace-nowrap sticky left-0 bg-white z-20 border-r"
+                                  className="font-medium whitespace-nowrap mobile-sticky-location border-r"
                                 >
-                                  {restaurantName}
+                                  <div className="max-w-[120px] truncate" title={restaurantName}>
+                                    {restaurantName}
+                                  </div>
                                 </TableCell>
                               )}
-                              <TableCell className={`${attribute.color} whitespace-nowrap sticky left-[120px] bg-white z-10 border-r`}>
-                                {attribute.label}
+                              <TableCell className={`${attribute.color} whitespace-nowrap mobile-sticky-attribute border-r`}>
+                                <div className="max-w-[160px] truncate" title={attribute.label}>
+                                  {attribute.label}
+                                </div>
                               </TableCell>
                               {getDisplayDates().map((date) => {
                                 const dateStr = formatDisplayDate(date);
@@ -574,7 +624,7 @@ const CashCardReport = () => {
                                 total += value;
                                 
                                 return (
-                                  <TableCell key={`${dateStr}-${attribute.key}`} className="text-center whitespace-nowrap">
+                                  <TableCell key={`${dateStr}-${attribute.key}`} className="text-center whitespace-nowrap mobile-date-cell">
                                     <span className={attribute.color}>
                                       {attribute.key.includes('amount') || attribute.key === 'sale' 
                                         ? formatCurrency(value) 
@@ -583,7 +633,7 @@ const CashCardReport = () => {
                                   </TableCell>
                                 );
                               })}
-                              <TableCell className="text-center font-medium whitespace-nowrap">
+                              <TableCell className="text-center font-medium whitespace-nowrap mobile-total-cell">
                                 <span className={attribute.color}>
                                   {attribute.key.includes('amount') || attribute.key === 'sale' 
                                     ? formatCurrency(total) 
@@ -596,21 +646,23 @@ const CashCardReport = () => {
 
                         {/* Online Card Payment Amount Row */}
                         <TableRow>
-                          <TableCell className="text-red-600 whitespace-nowrap sticky left-[120px] bg-white z-10 border-r">
-                            Online Card Payment Amount
+                          <TableCell className="text-red-600 whitespace-nowrap mobile-sticky-attribute border-r">
+                            <div className="max-w-[160px] truncate" title="Online Card Payment Amount">
+                              Online Card Payment Amount
+                            </div>
                           </TableCell>
                           {getDisplayDates().map((date) => {
                             const dateStr = formatDisplayDate(date);
                             const onlineCardTotals = getOnlineCardTotals(restaurant, dateStr);
                             return (
-                              <TableCell key={`${dateStr}-online-amount`} className="text-center whitespace-nowrap">
+                              <TableCell key={`${dateStr}-online-amount`} className="text-center whitespace-nowrap mobile-date-cell">
                                 <span className="text-red-600">
                                   {formatCurrency(onlineCardTotals.amount)}
                                 </span>
                               </TableCell>
                             );
                           })}
-                          <TableCell className="text-center font-medium whitespace-nowrap">
+                          <TableCell className="text-center font-medium whitespace-nowrap mobile-total-cell">
                             <span className="text-red-600">
                               {formatCurrency(
                                 getDisplayDates().reduce((total, date) => {
@@ -625,21 +677,23 @@ const CashCardReport = () => {
 
                         {/* Online Card Payments Row */}
                         <TableRow>
-                          <TableCell className="text-red-500 whitespace-nowrap sticky left-[120px] bg-white z-10 border-r">
-                            Online Card Payments
+                          <TableCell className="text-red-500 whitespace-nowrap mobile-sticky-attribute border-r">
+                            <div className="max-w-[160px] truncate" title="Online Card Payments">
+                              Online Card Payments
+                            </div>
                           </TableCell>
                           {getDisplayDates().map((date) => {
                             const dateStr = formatDisplayDate(date);
                             const onlineCardTotals = getOnlineCardTotals(restaurant, dateStr);
                             return (
-                              <TableCell key={`${dateStr}-online-count`} className="text-center whitespace-nowrap">
+                              <TableCell key={`${dateStr}-online-count`} className="text-center whitespace-nowrap mobile-date-cell">
                                 <span className="text-red-500">
                                   {onlineCardTotals.count}
                                 </span>
                               </TableCell>
                             );
                           })}
-                          <TableCell className="text-center font-medium whitespace-nowrap">
+                          <TableCell className="text-center font-medium whitespace-nowrap mobile-total-cell">
                             <span className="text-red-500">
                               {getDisplayDates().reduce((total, date) => {
                                 const dateStr = formatDisplayDate(date);
