@@ -48,7 +48,7 @@ export interface Campaign {
   id: string;
   name: string;
   description: string;
-  type: 'sms' | 'newsletter' | 'push_notification';
+  type: 'sms' | 'newsletter';
   content: string;
   start_date: string;
   end_date: string | null;
@@ -84,7 +84,7 @@ export interface CampaignListResponse {
 export interface CreateCampaignPayload {
   name: string;
   description: string;
-  type: 'sms' | 'newsletter' | 'push_notification';
+  type: 'sms' | 'newsletter';
   content: string;
   status: string;
   customer_group_ids?: number[];
@@ -101,7 +101,7 @@ export const promotionsApi = {
     page?: number;
     limit?: number;
     search?: string;
-    type: 'sms' | 'newsletter' | 'push_notification';
+    type: 'sms' | 'newsletter'; // 'push_notification' commented out to hide push notifications
   }): Promise<CampaignListResponse> => {
     try {
       const response = await api.get('/v2/promotions/campaigns', { params });

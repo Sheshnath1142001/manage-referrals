@@ -39,7 +39,7 @@ const ModifiersScreen = () => {
         response.modifier_categories
           .filter(cat => cat.status === 1)
           .forEach(cat => {
-            categoriesMap[cat.modifier_category] = cat.id;
+            categoriesMap[cat.modifier_category] = Number(cat.id);
           });
         
         setModifierCategories(categoriesArray);
@@ -70,9 +70,9 @@ const ModifiersScreen = () => {
       const params = {
         page: currentPage,
         per_page: pageSize,
-        category: categoryFilter || undefined,
+        modifier_category_id: categoryFilter ? modifierCategoriesMap[categoryFilter] : undefined,
         status: statusFilter !== "all" ? statusFilter : undefined,
-        name: nameFilter || undefined,
+        modifier: nameFilter || undefined,
         seq_no: seqNoFilter || undefined
       };
 
@@ -126,7 +126,7 @@ const ModifiersScreen = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, pageSize, categoryFilter, statusFilter, nameFilter, seqNoFilter]);
+  }, [currentPage, pageSize, categoryFilter, statusFilter, nameFilter, seqNoFilter, modifierCategoriesMap]);
 
   useEffect(() => {
     fetchModifiers();

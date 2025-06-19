@@ -18,7 +18,7 @@ export const useModifiersData = () => {
         per_page: pageSize,
         category: categoryFilter || undefined,
         status: statusFilter !== "all" ? statusFilter : undefined,
-        name: nameFilter || undefined,
+        modifier: nameFilter || undefined,
         seq_no: seqNoFilter || undefined
       };
 

@@ -11,13 +11,15 @@ interface TimePickerProps {
   onValueChange?: (value: string) => void;
   className?: string;
   placeholder?: string;
+  minTime?: string;
 }
 
 export function TimePicker({ 
   value, 
   onValueChange, 
   className,
-  placeholder = "Select time" 
+  placeholder = "Select time",
+  minTime 
 }: TimePickerProps) {
   const [open, setOpen] = useState(false);
   const [selectedHour, setSelectedHour] = useState("12");
@@ -34,6 +36,27 @@ export function TimePicker({
       setSelectedPeriod(period);
     }
   }, [value]);
+
+  // Convert time string to minutes for comparison
+  const timeToMinutes = (timeStr: string) => {
+    const [time, period] = timeStr.split(' ');
+    const [hour, minute] = time.split(':').map(Number);
+    let hour24 = hour;
+    if (period === 'PM' && hour !== 12) hour24 += 12;
+    if (period === 'AM' && hour === 12) hour24 = 0;
+    return hour24 * 60 + minute;
+  };
+
+  // Check if a time option is disabled
+  const isTimeDisabled = (hour: string, minute: string, period: string) => {
+    if (!minTime) return false;
+    
+    const currentTimeStr = `${hour}:${minute} ${period}`;
+    const currentMinutes = timeToMinutes(currentTimeStr);
+    const minMinutes = timeToMinutes(minTime);
+    
+    return currentMinutes < minMinutes;
+  };
 
   // Generate hour options (1-12)
   const hourOptions = Array.from({ length: 12 }, (_, i) => {
@@ -60,11 +83,20 @@ export function TimePicker({
   };
 
   // Quick select options for common times
-  const quickSelectTimes = [
+  const allQuickSelectTimes = [
     "06:00 AM", "07:00 AM", "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM",
     "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM",
     "06:00 PM", "07:00 PM", "08:00 PM", "09:00 PM", "10:00 PM", "11:00 PM"
   ];
+
+  // Filter quick select times based on minTime
+  const quickSelectTimes = minTime 
+    ? allQuickSelectTimes.filter(time => !isTimeDisabled(
+        time.split(':')[0], 
+        time.split(':')[1].split(' ')[0], 
+        time.split(' ')[1]
+      ))
+    : allQuickSelectTimes;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -128,13 +160,21 @@ export function TimePicker({
               </Select>
             </div>
             
-            <Button onClick={handleApply} className="w-full" size="sm">
+            <Button 
+              onClick={handleApply} 
+              className="w-full" 
+              size="sm"
+              disabled={isTimeDisabled(selectedHour, selectedMinute, selectedPeriod)}
+            >
               Apply
             </Button>
+            
+            {isTimeDisabled(selectedHour, selectedMinute, selectedPeriod) && minTime && (
+              <div className="text-xs text-red-600 bg-red-50 p-2 rounded border border-red-200">
+                Selected time must be after {minTime}
+              </div>
+            )}
           </div>
-          
-          {/* Quick Select */}
-          
         </div>
       </PopoverContent>
     </Popover>

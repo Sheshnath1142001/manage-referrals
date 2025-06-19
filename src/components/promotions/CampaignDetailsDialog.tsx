@@ -57,8 +57,11 @@ export function CampaignDetailsDialog({
         return <MessageSquare className="h-5 w-5" />;
       case 'newsletter':
         return <Mail className="h-5 w-5" />;
+      // Push notification case commented out to hide push notifications
+      /*
       case 'push_notification':
         return <Bell className="h-5 w-5" />;
+      */
       default:
         return <MessageSquare className="h-5 w-5" />;
     }
@@ -70,8 +73,11 @@ export function CampaignDetailsDialog({
         return 'SMS Campaign';
       case 'newsletter':
         return 'Email Campaign';
+      // Push notification case commented out to hide push notifications
+      /*
       case 'push_notification':
         return 'Push Notification';
+      */
       default:
         return 'Campaign';
     }

@@ -53,6 +53,32 @@ const HourlySalesReport = () => {
   const [endTime, setEndTime] = useState("05:00 PM");
   const [salesMetric, setSalesMetric] = useState("net_sale");
 
+  // Convert time string to minutes for comparison
+  const timeToMinutes = (timeStr: string) => {
+    const [time, period] = timeStr.split(' ');
+    const [hour, minute] = time.split(':').map(Number);
+    let hour24 = hour;
+    if (period === 'PM' && hour !== 12) hour24 += 12;
+    if (period === 'AM' && hour === 12) hour24 = 0;
+    return hour24 * 60 + minute;
+  };
+
+  // Auto-adjust end time if it becomes invalid when start time changes
+  useEffect(() => {
+    const startMinutes = timeToMinutes(startTime);
+    const endMinutes = timeToMinutes(endTime);
+    
+    if (endMinutes <= startMinutes) {
+      // Set end time to 1 hour after start time
+      const newEndHour = Math.floor(startMinutes / 60) + 1;
+      const newEndMinute = startMinutes % 60;
+      const newEndPeriod = newEndHour >= 12 ? 'PM' : 'AM';
+      const displayHour = newEndHour > 12 ? newEndHour - 12 : newEndHour === 0 ? 12 : newEndHour;
+      const newEndTime = `${displayHour.toString().padStart(2, '0')}:${newEndMinute.toString().padStart(2, '0')} ${newEndPeriod}`;
+      setEndTime(newEndTime);
+    }
+  }, [startTime]);
+
   // Generate time slots based on start and end time
   const generateTimeSlots = (start: string, end: string) => {
     const parseTime = (timeStr: string) => {
@@ -410,6 +436,7 @@ const HourlySalesReport = () => {
                     value={endTime}
                     onValueChange={setEndTime}
                     placeholder="End Time"
+                    minTime={startTime}
                   />
                 </div>
 

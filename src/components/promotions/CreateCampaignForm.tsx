@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCustomerGroups } from "@/hooks/useCustomerGroups";
 
 interface CreateCampaignFormProps {
-  type: 'sms' | 'newsletter' | 'push_notification';
+  type: 'sms' | 'newsletter'; // 'push_notification' commented out to hide push notifications
   onCancel: () => void;
   onCreated: () => void;
 }
@@ -88,7 +88,8 @@ const emailTemplate = `<!DOCTYPE html>
 </body>
 </html>`;
 
-// Sample Push Notification templates
+// Sample Push Notification templates - commented out to hide push notifications
+/*
 const pushTemplates = [
   {
     name: "App Update",
@@ -99,6 +100,7 @@ const pushTemplates = [
     content: "📦 Your order #[ORDER_ID] has been shipped! Track your delivery in real-time through our app."
   }
 ];
+*/
 
 export function CreateCampaignForm({ type, onCancel, onCreated }: CreateCampaignFormProps) {
   const { customerGroups, isLoading: isLoadingGroups, error: customerGroupsError } = useCustomerGroups();
@@ -134,8 +136,11 @@ export function CreateCampaignForm({ type, onCancel, onCreated }: CreateCampaign
         return 'Create SMS Campaign';
       case 'newsletter':
         return 'Create Email Campaign';
+      // Push notification case commented out to hide push notifications
+      /*
       case 'push_notification':
         return 'Create Push Notification';
+      */
       default:
         return 'Create Campaign';
     }
@@ -220,7 +225,10 @@ export function CreateCampaignForm({ type, onCancel, onCreated }: CreateCampaign
           content: template.content
         }));
       }
-    } else if (type === 'push_notification') {
+    }
+    // Push notification template selection commented out to hide push notifications
+    /*
+    else if (type === 'push_notification') {
       const template = pushTemplates.find(t => t.name === templateName);
       if (template) {
         setFormData(prev => ({
@@ -229,6 +237,7 @@ export function CreateCampaignForm({ type, onCancel, onCreated }: CreateCampaign
         }));
       }
     }
+    */
   };
 
   const handleCustomerGroupChange = (value: string) => {
@@ -370,6 +379,7 @@ export function CreateCampaignForm({ type, onCancel, onCreated }: CreateCampaign
               />
             </div>
             
+            {/* Template selection for SMS and Push Notifications - Push notifications commented out
             {(type === 'sms' || type === 'push_notification') && (
               <div>
                 <Label>Select Template</Label>
@@ -398,6 +408,29 @@ export function CreateCampaignForm({ type, onCancel, onCreated }: CreateCampaign
                 </Select>
               </div>
             )}
+            */}
+            
+            {/* Template selection for SMS only - since push notifications are hidden */}
+            {type === 'sms' && (
+              <div>
+                <Label>Select Template</Label>
+                <Select 
+                  value={selectedTemplate}
+                  onValueChange={handleSelectTemplate}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select a template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {smsTemplates.map(template => (
+                      <SelectItem key={template.name} value={template.name}>
+                        {template.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             
             <div>
               <Label htmlFor="content">Content</Label>
@@ -406,7 +439,7 @@ export function CreateCampaignForm({ type, onCancel, onCreated }: CreateCampaign
                 name="content"
                 value={formData.content}
                 onChange={handleInputChange}
-                placeholder={`Enter ${type === 'sms' ? 'SMS' : type === 'newsletter' ? 'email' : 'push notification'} content`}
+                placeholder={`Enter ${type === 'sms' ? 'SMS' : 'email'} content`}
                 className="mt-1 font-mono text-sm"
                 rows={type === 'newsletter' ? 20 : 6}
               />

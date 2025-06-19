@@ -4,9 +4,10 @@ import { useToast } from '@/components/ui/use-toast';
 
 export interface AttendanceReportParams {
   view_type: 'custom';
-  format: 'summary';
+  format: 'summary' | 'daily';
   per_page?: number;
   location_id?: string | number;
+  user_id?: string | number;
   start_date: string;
   end_date: string;
 }
@@ -37,7 +38,7 @@ export function useAttendanceReport() {
       
 
       if (response && typeof response === 'object') {
-        setData(response);
+        setData(response.data || response);
       } else {
         throw new Error('Invalid response format from attendance report API');
       }

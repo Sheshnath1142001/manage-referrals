@@ -15,10 +15,10 @@ export function useAttributesList() {
   }>({
     page: Number(searchParams.get('page')) || 1,
     per_page: Number(searchParams.get('per_page')) || 10,
-    name: searchParams.get('atrribute') || undefined
+    name: searchParams.get('search') || undefined
   });
   
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('atrribute') || "");
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || "");
   const [expandedAttribute, setExpandedAttribute] = useState<number | null>(null);
 
   // Create debounced search function
@@ -44,8 +44,8 @@ export function useAttributesList() {
   useEffect(() => {
     const newParams = new URLSearchParams();
     
-    // Set parameters in the exact order required: atrribute, page, per_page
-    if (filterParams.name) newParams.set('atrribute', filterParams.name);
+    // Set parameters in the exact order required: search, page, per_page
+    if (filterParams.name) newParams.set('search', filterParams.name);
     newParams.set('page', filterParams.page.toString());
     newParams.set('per_page', filterParams.per_page.toString());
     if (filterParams.status !== undefined) newParams.set('status', filterParams.status.toString());

@@ -132,6 +132,8 @@ const EditLoginTimeDialog = ({
 }: EditLoginTimeDialogProps) => {
   const [loginDate, setLoginDate] = useState("");
   const [loginTime, setLoginTime] = useState("");
+  const [suggestedLogoutDate, setSuggestedLogoutDate] = useState("");
+  const [suggestedLogoutTime, setSuggestedLogoutTime] = useState("");
 
   useEffect(() => {
     if (loginRecord && open) {
@@ -140,9 +142,36 @@ const EditLoginTimeDialog = ({
         const loginDateTime = new Date(loginRecord.logged_in_time || loginRecord.login_time!);
         setLoginDate(format(loginDateTime, "yyyy-MM-dd"));
         setLoginTime(format(loginDateTime, "HH:mm:ss"));
+        
+        // Calculate suggested logout time
+        calculateSuggestedLogoutTime(loginDateTime);
       }
     }
   }, [loginRecord, open]);
+
+  // Function to calculate suggested logout time based on login time
+  const calculateSuggestedLogoutTime = (loginDateTime: Date) => {
+    const suggestedLogoutDateTime = new Date(loginDateTime);
+    suggestedLogoutDateTime.setHours(suggestedLogoutDateTime.getHours() + 8);
+    
+    // If the calculated logout time is on the next day, keep it on the same day
+    // but set it to a reasonable end time (e.g., 18:00:00)
+    if (suggestedLogoutDateTime.getDate() !== loginDateTime.getDate()) {
+      suggestedLogoutDateTime.setDate(loginDateTime.getDate());
+      suggestedLogoutDateTime.setHours(18, 0, 0, 0);
+    }
+    
+    setSuggestedLogoutDate(format(suggestedLogoutDateTime, "yyyy-MM-dd"));
+    setSuggestedLogoutTime(format(suggestedLogoutDateTime, "HH:mm:ss"));
+  };
+
+  // Update suggested logout time when login time changes
+  const handleLoginTimeChange = (newDate: string, newTime: string) => {
+    if (newDate && newTime) {
+      const newLoginDateTime = new Date(`${newDate}T${newTime}`);
+      calculateSuggestedLogoutTime(newLoginDateTime);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,13 +192,24 @@ const EditLoginTimeDialog = ({
         const loginDateTime = new Date(loginRecord.logged_in_time || loginRecord.login_time!);
         setLoginDate(format(loginDateTime, "yyyy-MM-dd"));
         setLoginTime(format(loginDateTime, "HH:mm:ss"));
+        calculateSuggestedLogoutTime(loginDateTime);
       }
     }
   };
 
+  // Function to update both login and logout times
+  const handleUpdateBothTimes = () => {
+    if (!loginRecord || !loginDate || !loginTime) return;
+
+    const loginDateTime = `${loginDate}T${loginTime}.000Z`;
+    const logoutDateTime = `${suggestedLogoutDate}T${suggestedLogoutTime}.000Z`;
+
+    onSubmit(loginRecord.id, loginDateTime, logoutDateTime);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
             Edit Login Time: {loginRecord?.users?.username || 'User'}
@@ -187,7 +227,10 @@ const EditLoginTimeDialog = ({
                   id="login-date"
                   type="date"
                   value={loginDate}
-                  onChange={(e) => setLoginDate(e.target.value)}
+                  onChange={(e) => {
+                    setLoginDate(e.target.value);
+                    handleLoginTimeChange(e.target.value, loginTime);
+                  }}
                   required
                   disabled={isSubmitting}
                 />
@@ -199,12 +242,46 @@ const EditLoginTimeDialog = ({
                   type="time"
                   step="1"
                   value={loginTime}
-                  onChange={(e) => setLoginTime(e.target.value)}
+                  onChange={(e) => {
+                    setLoginTime(e.target.value);
+                    handleLoginTimeChange(loginDate, e.target.value);
+                  }}
                   required
                   disabled={isSubmitting}
                 />
               </div>
             </div>
+          </div>
+
+          {/* Suggested Logout Time Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Suggested Logout Time</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="suggested-logout-date">Date</Label>
+                <Input
+                  id="suggested-logout-date"
+                  type="date"
+                  value={suggestedLogoutDate}
+                  disabled
+                  className="bg-gray-50"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="suggested-logout-time">Time</Label>
+                <Input
+                  id="suggested-logout-time"
+                  type="time"
+                  step="1"
+                  value={suggestedLogoutTime}
+                  disabled
+                  className="bg-gray-50"
+                />
+              </div>
+            </div>
+            <p className="text-sm text-gray-600">
+              Suggested logout time is 8 hours after login time. You can update both times together using the button below.
+            </p>
           </div>
 
           {/* Form Actions */}
@@ -218,10 +295,18 @@ const EditLoginTimeDialog = ({
               Reset
             </Button>
             <Button 
+              type="button" 
+              variant="secondary"
+              onClick={handleUpdateBothTimes}
+              disabled={isSubmitting}
+            >
+              Update Both Times
+            </Button>
+            <Button 
               type="submit" 
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Updating..." : "Update"}
+              {isSubmitting ? "Updating..." : "Update Login Only"}
             </Button>
           </div>
         </form>
@@ -248,27 +333,72 @@ const EditLogoutTimeDialog = ({
 }: EditLogoutTimeDialogProps) => {
   const [logoutDate, setLogoutDate] = useState("");
   const [logoutTime, setLogoutTime] = useState("");
+  const [validationError, setValidationError] = useState("");
 
   useEffect(() => {
     if (loginRecord && open) {
-      // Parse logout time
-      if (loginRecord.logged_out_time || loginRecord.logout_time) {
-        const logoutDateTime = new Date(loginRecord.logged_out_time || loginRecord.logout_time!);
-        setLogoutDate(format(logoutDateTime, "yyyy-MM-dd"));
-        setLogoutTime(format(logoutDateTime, "HH:mm:ss"));
+      // Get the login time to set default logout time
+      const loginTime = loginRecord.logged_in_time || loginRecord.login_time;
+      
+      if (loginTime) {
+        const loginDateTime = new Date(loginTime);
+        
+        // Check if there's an existing logout time
+        if (loginRecord.logged_out_time || loginRecord.logout_time) {
+          const logoutDateTime = new Date(loginRecord.logged_out_time || loginRecord.logout_time!);
+          setLogoutDate(format(logoutDateTime, "yyyy-MM-dd"));
+          setLogoutTime(format(logoutDateTime, "HH:mm:ss"));
+        } else {
+          // Set default logout time based on login time
+          // Add 8 hours to login time as default work duration
+          const defaultLogoutDateTime = new Date(loginDateTime);
+          defaultLogoutDateTime.setHours(defaultLogoutDateTime.getHours() + 8);
+          
+          // If the calculated logout time is on the next day, keep it on the same day
+          // but set it to a reasonable end time (e.g., 18:00:00)
+          if (defaultLogoutDateTime.getDate() !== loginDateTime.getDate()) {
+            defaultLogoutDateTime.setDate(loginDateTime.getDate());
+            defaultLogoutDateTime.setHours(18, 0, 0, 0);
+          }
+          
+          setLogoutDate(format(defaultLogoutDateTime, "yyyy-MM-dd"));
+          setLogoutTime(format(defaultLogoutDateTime, "HH:mm:ss"));
+        }
       } else {
-        // Set default to current date/time if no logout time exists
+        // Fallback to current date/time if no login time exists
         const now = new Date();
         setLogoutDate(format(now, "yyyy-MM-dd"));
         setLogoutTime(format(now, "HH:mm:ss"));
       }
+      
+      // Clear validation error when dialog opens
+      setValidationError("");
     }
   }, [loginRecord, open]);
+
+  // Validate logout time is after login time
+  const validateLogoutTime = () => {
+    const loginTime = loginRecord?.logged_in_time || loginRecord?.login_time;
+    if (!loginTime || !logoutDate || !logoutTime) return true;
+
+    const loginDateTime = new Date(loginTime);
+    const logoutDateTime = new Date(`${logoutDate}T${logoutTime}`);
+    
+    if (logoutDateTime <= loginDateTime) {
+      setValidationError("Logout time must be after login time");
+      return false;
+    }
+    
+    setValidationError("");
+    return true;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!loginRecord || !logoutDate || !logoutTime) return;
+
+    if (!validateLogoutTime()) return;
 
     const logoutDateTime = `${logoutDate}T${logoutTime}.000Z`;
     // Keep the existing login time unchanged
@@ -279,23 +409,85 @@ const EditLogoutTimeDialog = ({
 
   const handleReset = () => {
     if (loginRecord) {
-      // Reset to original values
-      if (loginRecord.logged_out_time || loginRecord.logout_time) {
-        const logoutDateTime = new Date(loginRecord.logged_out_time || loginRecord.logout_time!);
-        setLogoutDate(format(logoutDateTime, "yyyy-MM-dd"));
-        setLogoutTime(format(logoutDateTime, "HH:mm:ss"));
+      // Get the login time to set default logout time
+      const loginTime = loginRecord.logged_in_time || loginRecord.login_time;
+      
+      if (loginTime) {
+        const loginDateTime = new Date(loginTime);
+        
+        // Check if there's an existing logout time
+        if (loginRecord.logged_out_time || loginRecord.logout_time) {
+          const logoutDateTime = new Date(loginRecord.logged_out_time || loginRecord.logout_time!);
+          setLogoutDate(format(logoutDateTime, "yyyy-MM-dd"));
+          setLogoutTime(format(logoutDateTime, "HH:mm:ss"));
+        } else {
+          // Set default logout time based on login time
+          // Add 8 hours to login time as default work duration
+          const defaultLogoutDateTime = new Date(loginDateTime);
+          defaultLogoutDateTime.setHours(defaultLogoutDateTime.getHours() + 8);
+          
+          // If the calculated logout time is on the next day, keep it on the same day
+          // but set it to a reasonable end time (e.g., 18:00:00)
+          if (defaultLogoutDateTime.getDate() !== loginDateTime.getDate()) {
+            defaultLogoutDateTime.setDate(loginDateTime.getDate());
+            defaultLogoutDateTime.setHours(18, 0, 0, 0);
+          }
+          
+          setLogoutDate(format(defaultLogoutDateTime, "yyyy-MM-dd"));
+          setLogoutTime(format(defaultLogoutDateTime, "HH:mm:ss"));
+        }
       } else {
-        // Reset to current date/time if no logout time exists
+        // Fallback to current date/time if no login time exists
         const now = new Date();
         setLogoutDate(format(now, "yyyy-MM-dd"));
         setLogoutTime(format(now, "HH:mm:ss"));
       }
+      
+      setValidationError("");
+    }
+  };
+
+  // Function to set logout time based on login time
+  const setLogoutTimeBasedOnLogin = () => {
+    if (loginRecord) {
+      const loginTime = loginRecord.logged_in_time || loginRecord.login_time;
+      
+      if (loginTime) {
+        const loginDateTime = new Date(loginTime);
+        
+        // Add 8 hours to login time as default work duration
+        const defaultLogoutDateTime = new Date(loginDateTime);
+        defaultLogoutDateTime.setHours(defaultLogoutDateTime.getHours() + 8);
+        
+        // If the calculated logout time is on the next day, keep it on the same day
+        // but set it to a reasonable end time (e.g., 18:00:00)
+        if (defaultLogoutDateTime.getDate() !== loginDateTime.getDate()) {
+          defaultLogoutDateTime.setDate(loginDateTime.getDate());
+          defaultLogoutDateTime.setHours(18, 0, 0, 0);
+        }
+        
+        setLogoutDate(format(defaultLogoutDateTime, "yyyy-MM-dd"));
+        setLogoutTime(format(defaultLogoutDateTime, "HH:mm:ss"));
+        setValidationError("");
+      }
+    }
+  };
+
+  // Get formatted login time for display
+  const getFormattedLoginTime = () => {
+    const loginTime = loginRecord?.logged_in_time || loginRecord?.login_time;
+    if (!loginTime) return "Not available";
+    
+    try {
+      return format(new Date(loginTime), "yyyy-MM-dd HH:mm:ss");
+    } catch {
+      return "Invalid date";
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
             Edit Logout Time: {loginRecord?.users?.username || 'User'}
@@ -303,6 +495,14 @@ const EditLogoutTimeDialog = ({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Current Login Time Display */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Current Login Time</Label>
+            <div className="p-3 bg-gray-50 rounded-md">
+              <span className="text-sm text-gray-700">{getFormattedLoginTime()}</span>
+            </div>
+          </div>
+
           {/* Logout Time Section */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Logout Time</h3>
@@ -313,7 +513,10 @@ const EditLogoutTimeDialog = ({
                   id="logout-date"
                   type="date"
                   value={logoutDate}
-                  onChange={(e) => setLogoutDate(e.target.value)}
+                  onChange={(e) => {
+                    setLogoutDate(e.target.value);
+                    validateLogoutTime();
+                  }}
                   required
                   disabled={isSubmitting}
                 />
@@ -325,12 +528,22 @@ const EditLogoutTimeDialog = ({
                   type="time"
                   step="1"
                   value={logoutTime}
-                  onChange={(e) => setLogoutTime(e.target.value)}
+                  onChange={(e) => {
+                    setLogoutTime(e.target.value);
+                    validateLogoutTime();
+                  }}
                   required
                   disabled={isSubmitting}
                 />
               </div>
             </div>
+            
+            {/* Validation Error */}
+            {validationError && (
+              <div className="text-sm text-red-600 bg-red-50 p-2 rounded-md">
+                {validationError}
+              </div>
+            )}
           </div>
 
           {/* Form Actions */}
@@ -345,7 +558,7 @@ const EditLogoutTimeDialog = ({
             </Button>
             <Button 
               type="submit" 
-              disabled={isSubmitting}
+              disabled={isSubmitting || !!validationError}
             >
               {isSubmitting ? "Updating..." : "Update"}
             </Button>

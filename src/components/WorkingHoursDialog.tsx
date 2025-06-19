@@ -62,11 +62,42 @@ const WorkingHoursDialog = ({
     delivery: []
   });
 
+  // State to store original time slots for reset functionality
+  const [originalTimeSlots, setOriginalTimeSlots] = useState<{
+    dineIn: DaySlots[];
+    takeaway: DaySlots[];
+    delivery: DaySlots[];
+  }>({
+    dineIn: [],
+    takeaway: [],
+    delivery: []
+  });
+
   // Order type mapping
   const ORDER_TYPES = {
     dineIn: 1,
     takeaway: 2,
     delivery: 3
+  };
+
+  // Validation function to check if all enabled days have valid time slots
+  const validateTimeSlots = (slots: DaySlots[]): boolean => {
+    return slots.every(daySlot => {
+      // If day is disabled, no validation needed
+      if (daySlot.status === 0) return true;
+      
+      // If day is enabled, check if all slots have valid start and end times
+      return daySlot.slots.every(slot => {
+        return slot.start_time.trim() !== '' && slot.end_time.trim() !== '';
+      });
+    });
+  };
+
+  // Check if all sections have valid time slots
+  const isFormValid = (): boolean => {
+    return Object.values(timeSlots).every(sectionSlots => 
+      validateTimeSlots(sectionSlots)
+    );
   };
 
   // Normalize time format to HH:MM (add leading zeros)
@@ -174,6 +205,7 @@ const WorkingHoursDialog = ({
     });
 
     setTimeSlots(organized);
+    setOriginalTimeSlots(organized);
   };
 
   // Initialize with default slots
@@ -193,6 +225,7 @@ const WorkingHoursDialog = ({
     });
 
     setTimeSlots(defaultSlots);
+    setOriginalTimeSlots(defaultSlots);
   };
 
   // Fetch data when dialog opens
@@ -373,6 +406,23 @@ const WorkingHoursDialog = ({
   };
 
   const handleReset = () => {
+    // Reset only the currently active tab's timings
+    setTimeSlots(prev => ({
+      ...prev,
+      [activeTab]: prev[activeTab].map(day => ({
+        ...day,
+        slots: day.slots.map(slot => ({
+          ...slot,
+          start_time: "",
+          end_time: ""
+        }))
+      }))
+    }));
+    
+    toast({
+      title: "Reset Successful",
+      description: `${getActiveTabName()} timings have been cleared. Please enter new timings.`
+    });
   };
 
   const getActiveTabName = () => {
@@ -530,7 +580,7 @@ const WorkingHoursDialog = ({
                 <Button 
                   type="button" 
                   onClick={handleSubmit}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !isFormValid()}
                   className="bg-primary text-white hover:bg-primary/90 text-xs sm:text-sm"
                 >
                   {isSubmitting ? "SAVING..." : "SUBMIT"}

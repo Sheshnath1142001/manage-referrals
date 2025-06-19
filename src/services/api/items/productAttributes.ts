@@ -34,8 +34,8 @@ export const attributesService = {
     // Create URLSearchParams to ensure exact parameter order
     const urlParams = new URLSearchParams();
     
-    // Set parameters in the exact order required: atrribute, page, per_page
-    if (params.name) urlParams.set('atrribute', params.name);
+    // Set parameters in the exact order required: search, page, per_page
+    if (params.name) urlParams.set('search', params.name);
     urlParams.set('page', String(params.page || 1));
     urlParams.set('per_page', String(params.per_page || 10));
     if (params.status !== undefined) urlParams.set('status', String(params.status));

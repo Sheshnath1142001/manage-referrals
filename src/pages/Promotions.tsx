@@ -30,10 +30,10 @@ import { toast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 
 const PromotionsPage = () => {
-  const [activeTab, setActiveTab] = useState<"sms" | "newsletter" | "push_notification">("sms");
+  const [activeTab, setActiveTab] = useState<"sms" | "newsletter">("sms");
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isCreatingCampaign, setIsCreatingCampaign] = useState(false);
-  const [campaignType, setCampaignType] = useState<'sms' | 'newsletter' | 'push_notification'>('sms');
+  const [campaignType, setCampaignType] = useState<'sms' | 'newsletter'>('sms');
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [campaignDetailsOpen, setCampaignDetailsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -76,8 +76,11 @@ const PromotionsPage = () => {
         return <MessageSquare className="h-5 w-5" />;
       case 'newsletter':
         return <Mail className="h-5 w-5" />;
+      // Push notification case commented out to hide push notifications
+      /*
       case 'push_notification':
         return <Bell className="h-5 w-5" />;
+      */
       default:
         return <MessageSquare className="h-5 w-5" />;
     }
@@ -129,7 +132,7 @@ const PromotionsPage = () => {
     }
   };
 
-  const handleCreateCampaign = (type: 'sms' | 'newsletter' | 'push_notification') => {
+  const handleCreateCampaign = (type: 'sms' | 'newsletter') => {
     setCampaignType(type);
     setIsCreatingCampaign(true);
   };
@@ -270,7 +273,7 @@ const PromotionsPage = () => {
             </div>
           </div>
 
-          <Tabs defaultValue="sms" value={activeTab} onValueChange={(value) => setActiveTab(value as 'sms' | 'newsletter' | 'push_notification')}>
+          <Tabs defaultValue="sms" value={activeTab} onValueChange={(value) => setActiveTab(value as 'sms' | 'newsletter')}>
             <SegmentedTabsList className="mb-6 flex flex-wrap overflow-x-auto">
               <SegmentedTabsTrigger value="sms" className="flex items-center justify-center">
                 <MessageSquare className="h-5 w-5 mr-2" />
@@ -280,10 +283,12 @@ const PromotionsPage = () => {
                 <Mail className="h-5 w-5 mr-2" />
                 Email Campaigns
               </SegmentedTabsTrigger>
+              {/* Push Notification tab hidden - commented out
               <SegmentedTabsTrigger value="push_notification" className="flex items-center justify-center">
                 <Bell className="h-5 w-5 mr-2" />
                 Push Notifications
               </SegmentedTabsTrigger>
+              */}
             </SegmentedTabsList>
 
             <TabsContent value={activeTab} className="m-0">
@@ -293,7 +298,7 @@ const PromotionsPage = () => {
                 </div>
               ) : campaigns.length === 0 ? (
                 <div className="text-center py-12 border rounded-md">
-                  <p className="text-lg text-gray-500 mb-4">No {activeTab === 'sms' ? 'SMS' : activeTab === 'newsletter' ? 'Email' : 'Push Notification'} campaigns found</p>
+                  <p className="text-lg text-gray-500 mb-4">No {activeTab === 'sms' ? 'SMS' : 'Email'} campaigns found</p>
                   <Button
                     className="bg-[#1A1F2C] text-white"
                     onClick={() => handleCreateCampaign(activeTab)}
