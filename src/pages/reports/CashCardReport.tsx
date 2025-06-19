@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import {
   RefreshCw,
@@ -44,6 +45,15 @@ interface SalesData {
   website_card_payments: number;
   mobile_app_card_amount: number;
   mobile_app_payments: number;
+  other_payments?: {
+    [key: string]: {
+      amount: number;
+      count: number;
+      method_name: string;
+      amount_label: string;
+      count_label: string;
+    };
+  };
   group_clause: string;
 }
 
@@ -191,6 +201,7 @@ const CashCardReport = () => {
       const dayData = {};
       let cashTotal = 0;
       let cardTotal = 0;
+      let onlineCardTotal = 0;
       
       // Sum up cash and card totals for all restaurants on this date
       Object.entries(salesData.data).forEach(([restaurantId, restaurantData]) => {
@@ -198,6 +209,16 @@ const CashCardReport = () => {
         if (dateSalesData) {
           cashTotal += dateSalesData.total_cash_payment_amount || 0;
           cardTotal += dateSalesData.total_card_payment_amount || 0;
+          
+          // Add online card amounts from other_payments
+          if (dateSalesData.other_payments) {
+            Object.values(dateSalesData.other_payments).forEach(payment => {
+              if (payment.method_name?.toLowerCase().includes('online') && 
+                  payment.method_name?.toLowerCase().includes('card')) {
+                onlineCardTotal += payment.amount || 0;
+              }
+            });
+          }
         }
       });
       
@@ -211,7 +232,8 @@ const CashCardReport = () => {
       return {
         date: dateLabel,
         cash: cashTotal,
-        card: cardTotal
+        card: cardTotal,
+        onlineCard: onlineCardTotal
       };
     });
   };
@@ -250,6 +272,39 @@ const CashCardReport = () => {
   // Print function
   const handlePrint = () => {
     window.print();
+  };
+
+  // Define all attributes to display
+  const attributes = [
+    { key: 'sale', label: 'Sale', color: 'text-purple-600' },
+    { key: 'total_orders', label: 'Orders', color: 'text-blue-600' },
+    { key: 'total_card_payment_amount', label: 'Card Payment Amount', color: 'text-indigo-600' },
+    { key: 'total_card_payments', label: 'Card Payments', color: 'text-indigo-500' },
+    { key: 'total_cash_payment_amount', label: 'Cash Payment Amount', color: 'text-green-600' },
+    { key: 'total_cash_payments', label: 'Cash Payments', color: 'text-green-500' },
+    { key: 'website_card_amount', label: 'Website Card Payment Amount', color: 'text-cyan-600' },
+    { key: 'website_card_payments', label: 'Website Card Payments', color: 'text-cyan-500' },
+    { key: 'mobile_app_card_amount', label: 'App Card Payment Amount', color: 'text-orange-600' },
+    { key: 'mobile_app_payments', label: 'App Card Payments', color: 'text-orange-500' },
+  ];
+
+  // Get online card payment totals for a specific date and restaurant
+  const getOnlineCardTotals = (restaurant: RestaurantData, dateStr: string) => {
+    const dayData = restaurant[dateStr];
+    if (!dayData?.other_payments) return { amount: 0, count: 0 };
+    
+    let totalAmount = 0;
+    let totalCount = 0;
+    
+    Object.values(dayData.other_payments).forEach(payment => {
+      if (payment.method_name?.toLowerCase().includes('online') && 
+          payment.method_name?.toLowerCase().includes('card')) {
+        totalAmount += payment.amount || 0;
+        totalCount += payment.count || 0;
+      }
+    });
+    
+    return { amount: totalAmount, count: totalCount };
   };
 
   return (
@@ -430,6 +485,13 @@ const CashCardReport = () => {
                     barSize={20} 
                     name="Card"
                   />
+                  <Bar 
+                    dataKey="onlineCard" 
+                    fill="#f59e0b" 
+                    radius={[4, 4, 0, 0]} 
+                    barSize={20} 
+                    name="Online Card"
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -439,17 +501,17 @@ const CashCardReport = () => {
             <Table className="print-table min-w-full">
               <TableHeader className="bg-[#0F172A]">
                 <TableRow>
-                  <TableHead className="text-white font-medium rounded-tl-lg whitespace-nowrap">Location</TableHead>
-                  <TableHead className="text-white font-medium whitespace-nowrap">Attributes</TableHead>
+                  <TableHead className="text-white font-medium rounded-tl-lg whitespace-nowrap sticky left-0 bg-[#0F172A] z-20">Location</TableHead>
+                  <TableHead className="text-white font-medium whitespace-nowrap sticky left-[120px] bg-[#0F172A] z-10">Attributes</TableHead>
                   {getDisplayDates().map((date, index) => (
                     <TableHead 
                       key={date.toISOString()} 
-                      className="text-white font-medium text-right whitespace-nowrap"
+                      className="text-white font-medium text-center whitespace-nowrap min-w-[120px]"
                     >
                       {formatDateHeader(date)}
                     </TableHead>
                   ))}
-                  <TableHead className="text-white font-medium text-right rounded-tr-lg whitespace-nowrap">Total</TableHead>
+                  <TableHead className="text-white font-medium text-center rounded-tr-lg whitespace-nowrap min-w-[120px]">Total</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -462,80 +524,129 @@ const CashCardReport = () => {
                 ) : (
                   restaurantData.map(([restaurantId, restaurant]) => {
                     const restaurantName = Object.values(restaurant)[0]?.restaurant_name || 'Unknown';
-                    let totalSales = 0;
-                    let totalCashAmount = 0;
-                    let totalCardAmount = 0;
 
                     return (
                       <React.Fragment key={restaurantId}>
-                        {/* Sales Row */}
+                        {attributes.map((attribute, attrIndex) => {
+                          let total = 0;
+                          
+                          return (
+                            <TableRow key={`${restaurantId}-${attribute.key}`}>
+                              {attrIndex === 0 && (
+                                <TableCell 
+                                  rowSpan={attributes.length + 2} 
+                                  className="font-medium whitespace-nowrap sticky left-0 bg-white z-20 border-r"
+                                >
+                                  {restaurantName}
+                                </TableCell>
+                              )}
+                              <TableCell className={`${attribute.color} whitespace-nowrap sticky left-[120px] bg-white z-10 border-r`}>
+                                {attribute.label}
+                              </TableCell>
+                              {getDisplayDates().map((date) => {
+                                const dateStr = formatDisplayDate(date);
+                                const dayData = restaurant[dateStr];
+                                let value = 0;
+                                
+                                if (dayData) {
+                                  if (attribute.key === 'sale') {
+                                    value = dayData.sale || 0;
+                                  } else if (attribute.key === 'total_orders') {
+                                    value = dayData.total_orders || 0;
+                                  } else if (attribute.key === 'total_card_payment_amount') {
+                                    value = dayData.total_card_payment_amount || 0;
+                                  } else if (attribute.key === 'total_card_payments') {
+                                    value = dayData.total_card_payments || 0;
+                                  } else if (attribute.key === 'total_cash_payment_amount') {
+                                    value = dayData.total_cash_payment_amount || 0;
+                                  } else if (attribute.key === 'total_cash_payments') {
+                                    value = dayData.total_cash_payments || 0;
+                                  } else if (attribute.key === 'website_card_amount') {
+                                    value = dayData.website_card_amount || 0;
+                                  } else if (attribute.key === 'website_card_payments') {
+                                    value = dayData.website_card_payments || 0;
+                                  } else if (attribute.key === 'mobile_app_card_amount') {
+                                    value = dayData.mobile_app_card_amount || 0;
+                                  } else if (attribute.key === 'mobile_app_payments') {
+                                    value = dayData.mobile_app_payments || 0;
+                                  }
+                                }
+                                
+                                total += value;
+                                
+                                return (
+                                  <TableCell key={`${dateStr}-${attribute.key}`} className="text-center whitespace-nowrap">
+                                    <span className={attribute.color}>
+                                      {attribute.key.includes('amount') || attribute.key === 'sale' 
+                                        ? formatCurrency(value) 
+                                        : value.toString()}
+                                    </span>
+                                  </TableCell>
+                                );
+                              })}
+                              <TableCell className="text-center font-medium whitespace-nowrap">
+                                <span className={attribute.color}>
+                                  {attribute.key.includes('amount') || attribute.key === 'sale' 
+                                    ? formatCurrency(total) 
+                                    : total.toString()}
+                                </span>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+
+                        {/* Online Card Payment Amount Row */}
                         <TableRow>
-                          <TableCell rowSpan={3} className="font-medium whitespace-nowrap">
-                            {restaurantName}
+                          <TableCell className="text-red-600 whitespace-nowrap sticky left-[120px] bg-white z-10 border-r">
+                            Online Card Payment Amount
                           </TableCell>
-                          <TableCell className="text-purple-600 whitespace-nowrap">Sales</TableCell>
                           {getDisplayDates().map((date) => {
                             const dateStr = formatDisplayDate(date);
-                            const dayData = restaurant[dateStr];
-                            const sales = dayData?.sale || 0;
-                            totalSales += sales;
+                            const onlineCardTotals = getOnlineCardTotals(restaurant, dateStr);
                             return (
-                              <TableCell key={`${dateStr}-sales`} className="text-right whitespace-nowrap">
-                                <span className="text-purple-600">
-                                  {formatCurrency(sales)}
+                              <TableCell key={`${dateStr}-online-amount`} className="text-center whitespace-nowrap">
+                                <span className="text-red-600">
+                                  {formatCurrency(onlineCardTotals.amount)}
                                 </span>
                               </TableCell>
                             );
                           })}
-                          <TableCell className="text-right font-medium whitespace-nowrap">
-                            <span className="text-purple-600">
-                              {formatCurrency(totalSales)}
+                          <TableCell className="text-center font-medium whitespace-nowrap">
+                            <span className="text-red-600">
+                              {formatCurrency(
+                                getDisplayDates().reduce((total, date) => {
+                                  const dateStr = formatDisplayDate(date);
+                                  const onlineCardTotals = getOnlineCardTotals(restaurant, dateStr);
+                                  return total + onlineCardTotals.amount;
+                                }, 0)
+                              )}
                             </span>
                           </TableCell>
                         </TableRow>
 
-                        {/* Cash Row */}
+                        {/* Online Card Payments Row */}
                         <TableRow>
-                          <TableCell className="text-green-600 whitespace-nowrap">Cash</TableCell>
-                          {getDisplayDates().map((date) => {
-                            const dateStr = formatDisplayDate(date);
-                            const dayData = restaurant[dateStr];
-                            const cashAmount = dayData?.total_cash_payment_amount || 0;
-                            totalCashAmount += cashAmount;
-                            return (
-                              <TableCell key={`${dateStr}-cash`} className="text-right whitespace-nowrap">
-                                <span className="text-green-600">
-                                  {formatCurrency(cashAmount)}
-                                </span>
-                              </TableCell>
-                            );
-                          })}
-                          <TableCell className="text-right font-medium whitespace-nowrap">
-                            <span className="text-green-600">
-                              {formatCurrency(totalCashAmount)}
-                            </span>
+                          <TableCell className="text-red-500 whitespace-nowrap sticky left-[120px] bg-white z-10 border-r">
+                            Online Card Payments
                           </TableCell>
-                        </TableRow>
-
-                        {/* Card Row */}
-                        <TableRow>
-                          <TableCell className="text-blue-600 whitespace-nowrap">Card</TableCell>
                           {getDisplayDates().map((date) => {
                             const dateStr = formatDisplayDate(date);
-                            const dayData = restaurant[dateStr];
-                            const cardAmount = dayData?.total_card_payment_amount || 0;
-                            totalCardAmount += cardAmount;
+                            const onlineCardTotals = getOnlineCardTotals(restaurant, dateStr);
                             return (
-                              <TableCell key={`${dateStr}-card`} className="text-right whitespace-nowrap">
-                                <span className="text-blue-600">
-                                  {formatCurrency(cardAmount)}
+                              <TableCell key={`${dateStr}-online-count`} className="text-center whitespace-nowrap">
+                                <span className="text-red-500">
+                                  {onlineCardTotals.count}
                                 </span>
                               </TableCell>
                             );
                           })}
-                          <TableCell className="text-right font-medium whitespace-nowrap">
-                            <span className="text-blue-600">
-                              {formatCurrency(totalCardAmount)}
+                          <TableCell className="text-center font-medium whitespace-nowrap">
+                            <span className="text-red-500">
+                              {getDisplayDates().reduce((total, date) => {
+                                const dateStr = formatDisplayDate(date);
+                                const onlineCardTotals = getOnlineCardTotals(restaurant, dateStr);
+                                return total + onlineCardTotals.count;
+                              }, 0)}
                             </span>
                           </TableCell>
                         </TableRow>
