@@ -20,6 +20,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useGetRestaurants } from "@/hooks/useGetRestaurants";
 import { useRefundReport } from "@/hooks/reports/useRefundReport";
+import { ReportDatePicker } from "@/components/ui/report-date-picker";
 import { ViewToggle } from "@/components/ui/view-toggle";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { TableChartToggle } from "@/components/ui/table-chart-toggle";
@@ -38,7 +39,7 @@ const RefundReport = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedLocation, setSelectedLocation] = useState("0");
   const [selectedView, setSelectedView] = useState("table");
-  const [periodType, setPeriodType] = useState<ReportPeriodType>(ReportPeriodType.Day);
+  const [periodType, setPeriodType] = useState<ReportPeriodType>(ReportPeriodType.Week);
   const { restaurants: locations } = useGetRestaurants();
   
   // Use the custom hook for data fetching
@@ -456,31 +457,8 @@ const RefundReport = () => {
 
         <div className="p-6">
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6 no-print">
-            <Select
-              value={periodType.toString()}
-              onValueChange={handlePeriodChange}
-            >
-              <SelectTrigger className="bg-white w-full">
-                <div className="flex items-center">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  <span>{getPeriodLabel()}</span>
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ReportPeriodType.Day.toString()}>Day</SelectItem>
-                <SelectItem value={ReportPeriodType.Week.toString()}>Week</SelectItem>
-                <SelectItem value={ReportPeriodType.Month.toString()}>Month</SelectItem>
-                <SelectItem value={ReportPeriodType.Year.toString()}>Year</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <TableChartToggle 
-              value={selectedView}
-              onValueChange={handleViewChange}
-            />
-
-            <Select
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 no-print">
+<Select
               value={selectedLocation}
               onValueChange={handleLocationChange}
             >
@@ -496,6 +474,10 @@ const RefundReport = () => {
                 ))}
               </SelectContent>
             </Select>
+            <TableChartToggle 
+              value={selectedView}
+              onValueChange={handleViewChange}
+            />
 
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={handlePrint} className="w-10 h-10 p-0">

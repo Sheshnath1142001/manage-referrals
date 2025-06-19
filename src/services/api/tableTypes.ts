@@ -28,7 +28,7 @@ export interface CreateTableTypeData {
 }
 
 export interface UpdateTableTypeData {
-  type?: string;
+  table_type?: string;
   status?: number;
   restaurant_ids?: number[];
 }

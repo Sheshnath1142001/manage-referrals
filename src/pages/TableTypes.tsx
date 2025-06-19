@@ -142,17 +142,24 @@ export default function TableTypes() {
     }
   };
 
-  const handleSubmit = async (data: { table_type: string; status: number }) => {
+  const handleSubmit = async (data: { type: string; status: number; restaurant_ids: number[] }) => {
+    console.log('TableTypes handleSubmit received:', data);
     if (selectedTableType) {
+      const updateData = {
+        table_type: data.type,
+        status: data.status
+      };
+      console.log('Sending update data:', updateData);
       await updateMutation.mutateAsync({
         id: selectedTableType.id,
-        data
+        data: updateData
       });
     } else {
+      console.log('Sending create data:', data);
       await createMutation.mutateAsync({
-        type: data.table_type,
+        type: data.type,
         status: data.status,
-        restaurant_ids: []
+        restaurant_ids: data.restaurant_ids
       });
     }
   };

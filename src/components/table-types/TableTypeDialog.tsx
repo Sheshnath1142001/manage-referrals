@@ -49,25 +49,32 @@ export function TableTypeDialog({
 
   useEffect(() => {
     if (tableType) {
-      form.reset({
+      const resetData = {
         type: tableType.type,
         status: tableType.status === 1,
         restaurant_ids: tableType.restaurant_id ? [tableType.restaurant_id] : [],
-      });
+      };
+      console.log('Resetting form for edit with:', resetData);
+      form.reset(resetData);
     } else {
-      form.reset({
+      const resetData = {
         type: "",
         status: true,
         restaurant_ids: [],
-      });
+      };
+      console.log('Resetting form for create with:', resetData);
+      form.reset(resetData);
     }
   }, [tableType, form]);
 
   const handleSubmit = (values: FormValues) => {
+    console.log('Form values:', values);
     const payload = {
-      table_type: values.type,
+      type: values.type,
       status: values.status ? 1 : 0,
+      restaurant_ids: values.restaurant_ids,
     };
+    console.log('Payload being sent:', payload);
     onSubmit(payload);
   };
 
@@ -108,7 +115,8 @@ export function TableTypeDialog({
   value={field.value[0] || ""}
   disabled={!!tableType}  // Disable in edit mode
   onChange={(e) => {
-    const value = e.target.value ? [parseInt(e.target.value)] : [];
+    const value = e.target.value ? [Number(e.target.value)] : [];
+    console.log('Restaurant selection changed:', { selectedValue: e.target.value, convertedValue: value });
     field.onChange(value);
   }}
 >
