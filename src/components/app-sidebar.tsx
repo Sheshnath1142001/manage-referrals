@@ -67,7 +67,7 @@ export function AppSidebar() {
         <SidebarContent className="py-6 overflow-y-auto">
           <SidebarGroup>
             <SidebarGroupContent>
-              <SidebarMenu className="space-y-1">
+              <SidebarMenu className="space-y-2">
                 {navigationItems.map((item) => {
                   const isActive = location.pathname === item.url;
                   

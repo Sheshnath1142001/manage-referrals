@@ -100,6 +100,8 @@ const AddEditLocationDialog = ({
     { id: "3", name: "Delivery" }
   ];
   
+  const [hasExistingImage, setHasExistingImage] = useState(false);
+  
   useEffect(() => {
     if (initialData) {
       // Parse service types from initialData
@@ -136,6 +138,7 @@ const AddEditLocationDialog = ({
       });
       
       setImagePreview(initialData.image || null);
+      setHasExistingImage(!!initialData.image);
     } else {
       setFormData({
         name: "",
@@ -160,6 +163,7 @@ const AddEditLocationDialog = ({
       });
       
       setImagePreview(null);
+      setHasExistingImage(false);
     }
   }, [initialData, open]);
   
@@ -276,9 +280,11 @@ const AddEditLocationDialog = ({
             const imageUrl = imageData.attachment[0].upload_path;
             setImagePreview(imageUrl);
             setFormData(prev => ({ ...prev, image: imageUrl }));
+            setHasExistingImage(true);
           } else {
             setImagePreview(null);
             setFormData(prev => ({ ...prev, image: "" }));
+            setHasExistingImage(false);
           }
         } catch (error) {
           
@@ -319,6 +325,7 @@ const AddEditLocationDialog = ({
       });
       setImagePreview(null);
       setSelectedFile(null);
+      setHasExistingImage(false);
     }
   }, [open, initialData]);
   
@@ -445,6 +452,7 @@ const AddEditLocationDialog = ({
     setSelectedFile(file);
     const previewUrl = URL.createObjectURL(file);
     setImagePreview(previewUrl);
+    setHasExistingImage(false);
   };
   
   const handleRemoveImage = () => {
@@ -455,6 +463,7 @@ const AddEditLocationDialog = ({
       ...prev,
       image: ""
     }));
+    setHasExistingImage(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -614,6 +623,7 @@ const AddEditLocationDialog = ({
       });
       
       setImagePreview(initialData.image || null);
+      setHasExistingImage(!!initialData.image);
     } else {
       setFormData({
         name: "",
@@ -638,6 +648,7 @@ const AddEditLocationDialog = ({
       });
       
       setImagePreview(null);
+      setHasExistingImage(false);
     }
   };
   
@@ -652,6 +663,9 @@ const AddEditLocationDialog = ({
       if (response.attachment && response.attachment.length > 0) {
         setImagePreview(response.attachment[0].upload_path);
         setFormData(prev => ({ ...prev, image: response.attachment[0].upload_path }));
+        setHasExistingImage(true);
+      } else {
+        setHasExistingImage(false);
       }
     } catch (error) {
       
@@ -715,6 +729,7 @@ const AddEditLocationDialog = ({
         if (deleteData.message) {
           setImagePreview(null);
           setFormData(prev => ({ ...prev, image: "" }));
+          setHasExistingImage(false);
           toast({
             title: "Success",
             description: deleteData.message
@@ -1041,7 +1056,7 @@ const AddEditLocationDialog = ({
                           alt="Location" 
                           className="w-full h-full object-contain"
                         />
-                        {!viewOnly && (
+                        {!viewOnly && hasExistingImage && (
                           <Button
                             type="button"
                             variant="destructive"

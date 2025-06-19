@@ -20,7 +20,6 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useGetRestaurants } from "@/hooks/useGetRestaurants";
 import { useRefundReport } from "@/hooks/reports/useRefundReport";
-import { ReportDatePicker } from "@/components/ui/report-date-picker";
 import { ViewToggle } from "@/components/ui/view-toggle";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { TableChartToggle } from "@/components/ui/table-chart-toggle";
@@ -476,11 +475,6 @@ const RefundReport = () => {
               </SelectContent>
             </Select>
 
-            <ReportDatePicker 
-              selectedDate={selectedDate}
-              onDateChange={handleDateChange}
-            />
-
             <TableChartToggle 
               value={selectedView}
               onValueChange={handleViewChange}
@@ -597,7 +591,7 @@ const RefundReport = () => {
                           rowSpan={2} 
                           className="sticky left-[200px] bg-[#1e293b] text-white font-medium border-r border-gray-700"
                         >
-                          Metrics
+                          Attributes
                         </TableHead>
                         {periodDates.map((date, index) => (
                           <TableHead 

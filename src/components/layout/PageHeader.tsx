@@ -31,7 +31,7 @@ export const PageHeader = () => {
     if (path === "/transactions" || path === "/orders") return "Transactions";
     if (path === "/categories") return "Categories";
     if (path === "/items") return "Item Library";
-    if (path === "/location") return "Location Management";
+    if (path === "/location") return "Location";
     if (path === "/location-items") return "Location Items";
     if (path === "/reports") return "Reports";
     if (path === "/reports/sales") return "Sales Report";

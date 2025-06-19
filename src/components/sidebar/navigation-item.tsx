@@ -27,7 +27,7 @@ export function NavigationItem({
   };
 
   return (
-    <SidebarMenuItem key={title} className="mb-3">
+    <SidebarMenuItem key={title}>
       <SidebarMenuButton 
         asChild 
         tooltip={title}

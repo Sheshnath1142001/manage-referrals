@@ -58,7 +58,7 @@ export function CollapsibleSection({
   };
 
   return (
-    <SidebarMenuItem className="mb-3">
+    <SidebarMenuItem>
       <SidebarMenuButton 
         onClick={handleClick}
         data-active={isActive}

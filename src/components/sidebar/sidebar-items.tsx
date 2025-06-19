@@ -11,6 +11,7 @@ import {
   Book,
   Truck,
   ShoppingCart,
+  FileBarChart,
   DollarSign,
   ReceiptText,
   Megaphone,
@@ -39,7 +40,7 @@ export const navigationItems = [
   {
     title: "Reports",
     url: "/reports",
-    icon: BarChart,
+    icon: FileBarChart,
   }
 ];
 
