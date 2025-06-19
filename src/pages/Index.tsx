@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { useState, useEffect, useMemo } from "react";
 import { useOrdersData } from "@/hooks/use-orders-data";
 import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
+import { useDashboardSales } from "@/hooks/useDashboardSales";
 import { format } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -39,7 +40,7 @@ const getStatusColor = (status: string) => {
 const Index = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [dateRange, setDateRange] = useState<string>('today');
+  const [dateRange, setDateRange] = useState<string>('current-week');
   const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>();
   
   // Use our dashboard metrics hook
@@ -68,7 +69,19 @@ const Index = () => {
     isLoadingOverview,
   } = useDashboardMetrics();
 
-  // Map the dateRange to period recognized by the API
+  // Use the new dashboard sales hook
+  const {
+    salesData: dashboardSalesData,
+    totalSales: dashboardTotalSales,
+    periodInfo: dashboardPeriodInfo,
+    isLoading: isDashboardSalesLoading,
+    period: dashboardSalesPeriod,
+    handlePeriodChange: handleDashboardSalesPeriodChange,
+    handleDateRangeChange: handleDashboardSalesDateRangeChange,
+    refetch: refetchDashboardSales
+  } = useDashboardSales();
+
+  // Map the dateRange to period recognized by both APIs
   useEffect(() => {
     const periodMap: Record<string, any> = {
       'today': 'today',
@@ -82,27 +95,27 @@ const Index = () => {
     };
     
     if (periodMap[dateRange]) {
+      // Update both hooks
       handlePeriodChange(periodMap[dateRange]);
+      handleDashboardSalesPeriodChange(periodMap[dateRange]);
     }
-  }, [dateRange, handlePeriodChange]);
+  }, [dateRange, handlePeriodChange, handleDashboardSalesPeriodChange]);
 
   // Handle custom date range changes
   useEffect(() => {
     if (customDateRange?.from && customDateRange?.to) {
-      // Use a ref to track if this is a new selection to avoid infinite loops
       const startDate = format(customDateRange.from, 'yyyy-MM-dd');
       const endDate = format(customDateRange.to, 'yyyy-MM-dd');
       
-      // Only update if both dates are defined
+      // Update both hooks
       hookHandleDateRangeChange(startDate, endDate);
+      handleDashboardSalesDateRangeChange(startDate, endDate);
       
-      // Show toast notification about date range selection
       toast({
         title: "Custom date range selected",
         description: `Data from ${format(customDateRange.from, 'MMM d, yyyy')} to ${format(customDateRange.to, 'MMM d, yyyy')}`,
       });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customDateRange?.from?.getTime(), customDateRange?.to?.getTime()]);
 
   const handleDateRangeChange = (value: string) => {
@@ -120,6 +133,7 @@ const Index = () => {
 
   const handleRefresh = () => {
     refreshAllData();
+    refetchDashboardSales();
     toast({
       title: "Refreshing dashboard...",
       description: "Your dashboard data is being updated.",
@@ -174,15 +188,38 @@ const Index = () => {
     return null;
   };
 
-  // Transform live hourly sales distribution into the shape required by the chart
-  const hourlySalesData = useMemo(() => {
-    return (
-      overview?.hourly_sales?.distribution?.map(({ hour, amount }) => ({
-        hour,
-        sales: amount,
-      })) || []
+  // Transform dashboard sales data for charts instead of weekly sales
+  const chartSalesData = useMemo(() => {
+    if (!dashboardSalesData || dashboardSalesData.length === 0) return { chartData: [], restaurants: [], colors: {}, totalSales: 0 };
+
+    // Extract restaurant names - get all keys except 'date', 'display_label', and 'day_of_week'
+    const restaurants = Object.keys(dashboardSalesData[0] || {}).filter(key => 
+      !['date', 'display_label', 'day_of_week'].includes(key)
     );
-  }, [overview]);
+    
+    // Assign colors to each restaurant
+    const colorPalette = ['#6366f1', '#8b5cf6', '#a855f7', '#ec4899', '#f43f5e', '#ef4444', '#f97316', '#f59e0b'];
+    const colors: Record<string, string> = {};
+    restaurants.forEach((restaurant, index) => {
+      colors[restaurant] = colorPalette[index % colorPalette.length];
+    });
+
+    // Format data for chart
+    const chartData = dashboardSalesData.map(item => ({
+      date: item.display_label,
+      ...restaurants.reduce((acc, restaurant) => {
+        acc[restaurant] = item[restaurant] as number;
+        return acc;
+      }, {} as Record<string, number>)
+    }));
+
+    return {
+      chartData,
+      restaurants,
+      colors,
+      totalSales: dashboardTotalSales
+    };
+  }, [dashboardSalesData, dashboardTotalSales]);
 
   // Extract peak hour information
   const peakHour = overview?.hourly_sales?.peak_hour;
@@ -445,24 +482,24 @@ const Index = () => {
           <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-xl shadow-lg animate-fade-in">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2">
               <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
-                Weekly Sales by Restaurant
-                {weeklySalesPeriodInfo && !isLoadingWeeklySales && (
+                Sales by Restaurant
+                {dashboardPeriodInfo && !isDashboardSalesLoading && (
                   <span className="text-sm font-normal text-gray-500 ml-2">
-                    ({weeklySalesPeriodInfo.period_name})
+                    ({dashboardPeriodInfo.period_name})
                   </span>
                 )}
               </h2>
               <div className="text-xs sm:text-sm text-gray-500">
-                Total sales: {isLoadingWeeklySales ? 'Loading...' : formatCurrency(totalWeeklySales || 0)}
+                Total sales: {isDashboardSalesLoading ? 'Loading...' : formatCurrency(chartSalesData.totalSales || 0)}
               </div>
             </div>
             
             <div className="h-[300px] w-full">
-              {isLoadingWeeklySales ? (
+              {isDashboardSalesLoading ? (
                 <div className="flex items-center justify-center h-full">
                   <RefreshCw className="h-6 w-6 text-primary animate-spin" />
                 </div>
-              ) : weeklySales.length === 0 ? (
+              ) : chartSalesData.chartData.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-gray-500">
                   <p>No sales data available</p>
                   <p className="text-sm mt-1">Try selecting a different time period</p>
@@ -470,7 +507,7 @@ const Index = () => {
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={weeklySales}
+                    data={chartSalesData.chartData}
                     margin={{
                       top: 20,
                       right: 30,
@@ -496,12 +533,12 @@ const Index = () => {
                       content={<CustomTooltip />}
                       cursor={{ fill: 'rgba(0, 0, 0, 0.04)' }}
                     />
-                    {weeklySalesRestaurants.map((restaurant, index) => (
+                    {chartSalesData.restaurants.map((restaurant, index) => (
                       <Bar 
                         key={restaurant}
                         dataKey={restaurant} 
                         name={restaurant} 
-                        fill={weeklySalesColors[restaurant] || '#6366f1'} 
+                        fill={chartSalesData.colors[restaurant] || '#6366f1'} 
                         radius={[4, 4, 0, 0]} 
                         barSize={20} 
                       />
@@ -512,11 +549,11 @@ const Index = () => {
             </div>
             
             <div className="mt-4 flex flex-wrap gap-3 justify-center">
-              {weeklySalesRestaurants.map((restaurant) => (
+              {chartSalesData.restaurants.map((restaurant) => (
                 <div key={restaurant} className="flex items-center gap-2">
                   <div 
                     className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: weeklySalesColors[restaurant] || '#6366f1' }}
+                    style={{ backgroundColor: chartSalesData.colors[restaurant] || '#6366f1' }}
                   ></div>
                   <div className="text-sm font-medium text-gray-700">{restaurant}</div>
                 </div>
