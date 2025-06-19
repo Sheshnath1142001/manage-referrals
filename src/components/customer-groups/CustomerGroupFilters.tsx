@@ -1,5 +1,4 @@
 
-import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
@@ -31,50 +30,57 @@ export function CustomerGroupFilters({
     : restaurantsResponse?.data || [];
 
   return (
-    <div className="flex items-center gap-4">
-      <div>
-        <Select 
-          value={statusFilter} 
-          onValueChange={onStatusFilterChange}
-        >
-          <SelectTrigger className="w-[130px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="1">Active</SelectItem>
-            <SelectItem value="0">Inactive</SelectItem>
-            <SelectItem value="all">All</SelectItem>
-          </SelectContent>
-        </Select>
+    <div className="space-y-4">
+      {/* Filter Inputs */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4">
+        <div className="w-full">
+          <Select 
+            value={statusFilter} 
+            onValueChange={onStatusFilterChange}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">Active</SelectItem>
+              <SelectItem value="0">Inactive</SelectItem>
+              <SelectItem value="all">All</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="w-full">
+          <Select 
+            value={restaurantFilter} 
+            onValueChange={onRestaurantFilterChange}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select Restaurant" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Restaurants</SelectItem>
+              {Array.isArray(restaurants) && restaurants.map((restaurant) => (
+                <SelectItem key={restaurant.id} value={restaurant.id.toString()}>
+                  {restaurant.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
-      <div>
-        <Select 
-          value={restaurantFilter} 
-          onValueChange={onRestaurantFilterChange}
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Select Restaurant" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Restaurants</SelectItem>
-            {restaurants.map((restaurant) => (
-              <SelectItem key={restaurant.id} value={restaurant.id.toString()}>
-                {restaurant.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+
+      {/* Action Buttons */}
+      <div className="flex justify-end">
+        {(statusFilter !== "1" || restaurantFilter !== "all") && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onClearFilters}
+          >
+            Clear Filters
+          </Button>
+        )}
       </div>
-      
-      {(statusFilter !== "1" || restaurantFilter !== "all") && (
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={onClearFilters}
-        >
-          Clear Filters
-        </Button>
-      )}
     </div>
   );
 }

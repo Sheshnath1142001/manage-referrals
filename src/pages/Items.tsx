@@ -1,3 +1,4 @@
+
 import { BulkEditDialog } from "@/components/items/BulkEditDialog";
 import { ItemDialog } from "@/components/items/ItemDialog";
 import { ItemsFilter } from "@/components/items/ItemsFilter";
@@ -65,7 +66,7 @@ const Items = () => {
   };
 
   return (
-    <div className="p-3 sm:p-6">
+    <div className="p-3 sm:p-6 space-y-6">
       <ItemsFilter 
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}

@@ -16,23 +16,23 @@ export function GuestCustomerFilters({
   onPhoneFilterChange,
 }: GuestCustomerFiltersProps) {
   return (
-    <div className="flex items-center gap-2">
-      <div className="relative w-[180px]">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4">
+      <div className="relative w-full">
         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search Email"
           value={emailFilter}
           onChange={(e) => onEmailFilterChange(e.target.value)}
-          className="pl-8"
+          className="pl-8 w-full"
         />
       </div>
-      <div className="relative w-[180px]">
+      <div className="relative w-full">
         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search Phone No."
           value={phoneFilter}
           onChange={(e) => onPhoneFilterChange(e.target.value)}
-          className="pl-8"
+          className="pl-8 w-full"
         />
       </div>
     </div>

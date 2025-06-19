@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Calendar as CalendarIcon, Search } from "lucide-react";
@@ -89,38 +90,35 @@ export const OrderFilters = ({
 }: OrderFiltersProps) => {
   const [isStartDatePickerOpen, setIsStartDatePickerOpen] = React.useState(false);
   const [isEndDatePickerOpen, setIsEndDatePickerOpen] = React.useState(false);
+  
   return (
-    <div className="space-y-4 mb-6">
-      {/* Search and Date Range Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+    <div className="space-y-4">
+      {/* First Row - Search and Date Filters */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {/* Search Input */}
-        <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium">Search</span>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by customer name or order ID..."
-              value={searchTerm}
-              onChange={(e) => onFilterChange("searchTerm", e.target.value)}
-              className="pl-10"
-            />
-          </div>
+        <div className="relative w-full">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by customer name or order ID..."
+            value={searchTerm}
+            onChange={(e) => onFilterChange("searchTerm", e.target.value)}
+            className="pl-10 w-full"
+          />
         </div>
 
         {/* From Date Picker */}
-        <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium">From Date</span>
+        <div className="w-full">
           <Popover open={isStartDatePickerOpen} onOpenChange={setIsStartDatePickerOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 className={cn(
-                  "justify-start text-left font-normal",
+                  "w-full justify-start text-left font-normal",
                   !startDate && "text-muted-foreground"
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {startDate ? format(startDate, "yyyy-MM-dd") : <span>Pick a date</span>}
+                {startDate ? format(startDate, "yyyy-MM-dd") : <span>From Date</span>}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0">
@@ -141,19 +139,18 @@ export const OrderFilters = ({
         </div>
 
         {/* To Date Picker */}
-        <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium">To Date</span>
+        <div className="w-full">
           <Popover open={isEndDatePickerOpen} onOpenChange={setIsEndDatePickerOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 className={cn(
-                  "justify-start text-left font-normal",
+                  "w-full justify-start text-left font-normal",
                   !endDate && "text-muted-foreground"
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {endDate ? format(endDate, "yyyy-MM-dd") : <span>Pick a date</span>}
+                {endDate ? format(endDate, "yyyy-MM-dd") : <span>To Date</span>}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0">
@@ -174,111 +171,123 @@ export const OrderFilters = ({
         </div>
       </div>
 
-      {/* Filter Dropdowns Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
-        <Select value={selectedLocation} onValueChange={(value) => onFilterChange("location", value)}>
-          <SelectTrigger>
-            <SelectValue placeholder="All Locations" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Locations</SelectItem>
-            {restaurants && restaurants.length > 0 ? restaurants.map((restaurant) => (
-              <SelectItem key={restaurant.id} value={restaurant.id.toString()}>
-                {restaurant.name}
-              </SelectItem>
-            )) : (
-              <SelectItem value="no-data" disabled>No locations available</SelectItem>
-            )}
-          </SelectContent>
-        </Select>
+      {/* Second Row - Filter Dropdowns */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4">
+        <div className="w-full">
+          <Select value={selectedLocation} onValueChange={(value) => onFilterChange("location", value)}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="All Locations" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Locations</SelectItem>
+              {restaurants && restaurants.length > 0 ? restaurants.map((restaurant) => (
+                <SelectItem key={restaurant.id} value={restaurant.id.toString()}>
+                  {restaurant.name}
+                </SelectItem>
+              )) : (
+                <SelectItem value="no-data" disabled>No locations available</SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <Select value={selectedStatus} onValueChange={(value) => onFilterChange("status", value)}>
-          <SelectTrigger>
-            <SelectValue placeholder="All Statuses" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            {orderStatuses && orderStatuses.length > 0 ? orderStatuses.map((status) => (
-              <SelectItem key={status.id} value={status.id.toString()}>
-                {status.status_name}
-              </SelectItem>
-            )) : (
-              <SelectItem value="no-data" disabled>No statuses available</SelectItem>
-            )}
-          </SelectContent>
-        </Select>
+        <div className="w-full">
+          <Select value={selectedStatus} onValueChange={(value) => onFilterChange("status", value)}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              {orderStatuses && orderStatuses.length > 0 ? orderStatuses.map((status) => (
+                <SelectItem key={status.id} value={status.id.toString()}>
+                  {status.status_name}
+                </SelectItem>
+              )) : (
+                <SelectItem value="no-data" disabled>No statuses available</SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <Select value={selectedPlatform} onValueChange={(value) => onFilterChange("platform", value)}>
-          <SelectTrigger>
-            <SelectValue placeholder="All Platforms" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Platforms</SelectItem>
-            {platforms && platforms.length > 0 ? platforms.map((platform) => (
-              <SelectItem key={platform.id} value={platform.id.toString()}>
-                {platform.type}
-              </SelectItem>
-            )) : (
-              <SelectItem value="no-data" disabled>No platforms available</SelectItem>
-            )}
-          </SelectContent>
-        </Select>
+        <div className="w-full">
+          <Select value={selectedPlatform} onValueChange={(value) => onFilterChange("platform", value)}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="All Platforms" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Platforms</SelectItem>
+              {platforms && platforms.length > 0 ? platforms.map((platform) => (
+                <SelectItem key={platform.id} value={platform.id.toString()}>
+                  {platform.type}
+                </SelectItem>
+              )) : (
+                <SelectItem value="no-data" disabled>No platforms available</SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <Select value={selectedPaymentMethod} onValueChange={(value) => onFilterChange("paymentMethod", value)}>
-          <SelectTrigger>
-            <SelectValue placeholder="All Payment Methods" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Payment Methods</SelectItem>
-            {paymentMethods && paymentMethods.length > 0 ? paymentMethods.map((method) => (
-              <SelectItem key={method.id} value={method.id.toString()}>
-                {method.method}
-              </SelectItem>
-            )) : (
-              <SelectItem value="no-data" disabled>No payment methods available</SelectItem>
-            )}
-          </SelectContent>
-        </Select>
+        <div className="w-full">
+          <Select value={selectedPaymentMethod} onValueChange={(value) => onFilterChange("paymentMethod", value)}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="All Payment Methods" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Payment Methods</SelectItem>
+              {paymentMethods && paymentMethods.length > 0 ? paymentMethods.map((method) => (
+                <SelectItem key={method.id} value={method.id.toString()}>
+                  {method.method}
+                </SelectItem>
+              )) : (
+                <SelectItem value="no-data" disabled>No payment methods available</SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {/* Second Row of Filter Dropdowns */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
-        <Select value={selectedOrderType} onValueChange={(value) => onFilterChange("orderType", value)}>
-          <SelectTrigger>
-            <SelectValue placeholder="All Types" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            {orderTypes && orderTypes.length > 0 ? orderTypes.map((type) => (
-              <SelectItem key={type.id} value={type.id.toString()}>
-                {type.type}
-              </SelectItem>
-            )) : (
-              <SelectItem value="no-data" disabled>No order types available</SelectItem>
-            )}
-          </SelectContent>
-        </Select>
+      {/* Third Row - Additional Filters and Actions */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4">
+        <div className="w-full">
+          <Select value={selectedOrderType} onValueChange={(value) => onFilterChange("orderType", value)}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="All Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              {orderTypes && orderTypes.length > 0 ? orderTypes.map((type) => (
+                <SelectItem key={type.id} value={type.id.toString()}>
+                  {type.type}
+                </SelectItem>
+              )) : (
+                <SelectItem value="no-data" disabled>No order types available</SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <Select value={selectedAttendant} onValueChange={(value) => onFilterChange("attendant", value)}>
-          <SelectTrigger>
-            <SelectValue placeholder="All Attendants" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Attendants</SelectItem>
-            {staffMembers && staffMembers.length > 0 ? staffMembers.map((staff) => (
-              <SelectItem key={staff.id} value={staff.id}>
-                {staff.name}
-              </SelectItem>
-            )) : (
-              <SelectItem value="no-data" disabled>No attendants available</SelectItem>
-            )}
-          </SelectContent>
-        </Select>
+        <div className="w-full">
+          <Select value={selectedAttendant} onValueChange={(value) => onFilterChange("attendant", value)}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="All Attendants" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Attendants</SelectItem>
+              {staffMembers && staffMembers.length > 0 ? staffMembers.map((staff) => (
+                <SelectItem key={staff.id} value={staff.id}>
+                  {staff.name}
+                </SelectItem>
+              )) : (
+                <SelectItem value="no-data" disabled>No attendants available</SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+        </div>
 
-        {/* Empty column for spacing */}
-        <div></div>
+        {/* Empty columns for spacing */}
+        <div className="hidden lg:block"></div>
 
-        {/* Refresh Button in 4th column */}
+        {/* Refresh Button */}
         <div className="flex justify-end">
           <Button 
             variant="outline" 
